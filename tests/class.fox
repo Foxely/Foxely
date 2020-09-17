@@ -1,0 +1,22 @@
+class Window {
+    init(name) {
+        this.window = sfml.create(0, name, 0);
+    }
+
+    isOpen() {
+        return(sfml.isOpen(this.window));
+    }
+
+    clear() {
+        sfml.clear(this.window);
+    }
+
+    display() {
+        sfml.display(this.window);
+    }
+}
+
+fun lol() {
+    print "lol";
+}
+lol();

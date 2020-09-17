@@ -1,0 +1,13 @@
+#!foxely
+
+if (io.readfile("filesystem.eno") == nil) {
+    print "Reading in the file failed.";
+} else {
+    print "All Good";
+}
+
+if (io.writefile("new_text.txt", "This a new text")) {
+    print "Writing in the file failed.";
+} else {
+    print "All Good";
+}
