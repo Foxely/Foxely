@@ -5,70 +5,47 @@
 ## make an executable
 ##
 
-CC = gcc
-TARGET_EXEC ?= foxely
+CC = g++
 
-SRC_DIRS = ./interpreter
-
-SRC = $(shell find $(SRC_DIRS) -name '*.c')
-MAIN = main.c
-OBJS = $(MAIN:%.c=%.o) $(SRC:%.c=%.o)
-CFLAGS += -W -Wall $(if $(DEBUG),-g3 -D DEBUG_TRACE_EXECUTION)
-CFLAGS += $(if $(DEBUG_MEMORY), -D DEBUG_LOG_GC -D DEBUG_STRESS_GC -D DEBUG_PRINT_CODE)
-LDFLAGS = -Llib -lmy -lm -ldl -lcsfml-graphics -lcsfml-window -lcsfml-system -lcsfml-audio
-LD = $(shell find lib -name '*.c')
-INC_FLAGS = -Iinclude -Ilib/include
-
-TEST_NAME = unit_tests
-UNIT_SRC =	$(shell find asm -name '*.c')
+EXECUTABLE	= main
+SRC_DIR = src
 
 
-TEST_SRC =	$(shell find tests -name '*.c')
+MAIN_SRC = main.cpp
+MAIN_OBJ = $(MAIN_SRC:%.cpp=%.o)
+SRC = $(shell find $(SRC_DIR) -name '*.cpp')
+OBJ = $(SRC:%.cpp=%.o)
 
+CFLAGS += -std=c++17 -W -Wall -Wextra $(if $(DEBUG),-g3) $(if $(DEBUG),-DDEBUG -DDEBUG_TRACE_EXECUTION)
+LDFLAGS = -Llib -llexer
+INC_FLAGS = -Iinclude -Ilib/GenericLexer/include
 
-
-
-all: lib_make $(TARGET_EXEC)
+all: lib_make bin/$(EXECUTABLE)
 
 lib_make:
-	@make -sC lib/my
+	make -C lib/GenericLexer/
 
-$(TARGET_EXEC): $(OBJS)
-	@$(CC) -o $@ $(OBJS) $(CFLAGS) $(LDFLAGS)
+run: lib_make all
+	@./bin/$(EXECUTABLE) $(ARGS)
 
-%.o: %.c
+bin/$(EXECUTABLE): $(MAIN_OBJ) $(OBJ)
+	@$(CC) -o $@ $(MAIN_OBJ) $(OBJ) $(CFLAGS) $(INC_FLAGS) $(LDFLAGS)
+
+%.o: %.cpp
 	@$(CC) $(INC_FLAGS) $(CFLAGS) -c $< -o $@
 	@echo "\033[1;32mCompiled \033[1;37m'$<'\033[m"
 
 .PHONY: clean
 clean:
-	@$(RM) -r main.o
-	@$(RM) -r $(OBJS)
-	@$(RM) -r *.gcno
-	@$(RM) -r *.gcda
-	@$(RM) -r "NUL"
+	@$(RM) -r $(OBJ)
 
 .PHONY: fclean
 fclean: clean
-	@$(RM) -r $(TARGET_EXEC)
-	@$(RM) -r $(TEST_NAME)
+	@$(RM) -r $(BIN)/$(EXECUTABLE)
 	@$(RM) -r vgcore*
-	@make fclean -sC lib/my
 
 .PHONY: re
 re: fclean all
 
 valgrind:
-	valgrind --leak-check=full -s ./$(NAME)
-
-tests_run: lib_make
-	@echo "\033[1;95mRunning tests...\033[0;39m"
-	@gcc -o $(TEST_NAME) $(UNIT_SRC) $(TEST_SRC) $(INC_FLAGS) $(CFLAGS) $(LDFLAGS) --coverage -lcriterion
-	./$(TEST_NAME)
-	gcovr
-	@echo "\033[1;94mTest finished, here are the results\033[0;39m"
-	@make fclean
-
-csfml:
-	@gcc -c csfml.c -lcsfml-graphics -lcsfml-window -lcsfml-system -lcsfml-audio $(INC_FLAGS)
-	@ar -rc lib/libcsfml.a csfml.o
+	valgrind --leak-check=full -s ./bin/$(EXECUTABLE) $(ARGS)

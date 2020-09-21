@@ -1,15 +1,8 @@
-/*
-** EPITECH PROJECT, 2019
-** mylist
-** File description:
-** Header Struct Container
-*/
+#ifndef fox_common_h
+#define fox_common_h
 
-#ifndef __COMMON_H__
-#define __COMMON_H__
-
-typedef struct s_vm vm_t;
-
-#define UINT8_COUNT (UINT8_MAX + 1)
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #endif
