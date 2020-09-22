@@ -10,7 +10,8 @@
 #ifndef __OBJECT_H__
 #define __OBJECT_H__
 
-#include "vm.hpp"
+#include <string>
+
 #include "chunk.hpp"
 #include "value.hpp"
 
@@ -36,7 +37,7 @@
 #define AS_INSTANCE(val)        ((obj_instance *)AS_OBJ(val))
 #define AS_NATIVE(val)        (((obj_native *)AS_OBJ(val))->function)
 #define AS_STRING(val)        ((ObjectString *)AS_OBJ(val))
-#define AS_CSTRING(val)       (((ObjectString *)AS_OBJ(val))->chars)
+#define AS_CSTRING(val)       (((ObjectString *)AS_OBJ(val))->string.c_str())
 
 typedef enum {
     OBJ_BOUND_METHOD,
@@ -51,19 +52,30 @@ typedef enum {
     OBJ_CUSTOM,
 } ObjType;
 
-struct Object {
+class Object
+{
+public:
+    explicit Object()
+    {
+        is_marked = false;
+        next = nullptr;
+    }
     ObjType type;
     bool is_marked;
     struct Object *next;
 };
 
-struct ObjectString {
-    Object obj;
-    int length;
-    char *chars;
+class ObjectString : public Object
+{
+public:
+    explicit ObjectString(const std::string& v) : string(v) {}
+    // int length;
+    // char *chars;
     uint32_t hash;
+    std::string string;
 };
-struct ObjectFunction {
+class ObjectFunction : public Object
+{
     Object obj;
     int arity;
     int upValue_count;
@@ -71,19 +83,20 @@ struct ObjectFunction {
     ObjectString *name;
 };
 
-struct ObjectUpValue {
+class ObjectUpValue : public Object
+{
     Object obj;
     Value *location;
     Value closed;
     struct ObjectUpValue *next;
 };
 
-typedef Value (*native_fn)(VM *vm, int arg_count, Value *args);
+// typedef Value (*native_fn)(VM *vm, int arg_count, Value *args);
 
-struct ObjectNative {
-    Object obj;
-    native_fn function;
-};
+// struct ObjectNative {
+//     Object obj;
+//     native_fn function;
+// };
 
 struct ObjectClosure {
     Object obj;
@@ -112,10 +125,10 @@ struct ObjectBoundMethod {
 };
 
 
-typedef struct {
-    char *name;
-    native_fn function;
-} lib_reg;
+// typedef struct {
+//     char *name;
+//     native_fn function;
+// } lib_reg;
 
 typedef struct {
     Object obj;
@@ -133,41 +146,39 @@ struct ObjectCustomField {
 
 
 
-ObjectCustomField *
-new_custom_field(VM *vm, char *type, void *field, field_destroyer destroy);
+// ObjectCustomField *
+// new_custom_field(VM *vm, char *type, void *field, field_destroyer destroy);
 
-obj_lib *new_lib(VM *vm);
-void define_lib(VM *vm, const char *name, lib_reg *regs);
+// obj_lib *new_lib(VM *vm);
+// void define_lib(VM *vm, const char *name, lib_reg *regs);
 
-ObjectBoundMethod *
-new_bound_method(VM *vm, Value receiver, ObjectClosure *method);
+// ObjectBoundMethod *
+// new_bound_method(VM *vm, Value receiver, ObjectClosure *method);
 
-ObjectInstance *new_instance(VM *vm, ObjectClass *klass);
-ObjectClass *new_class(VM *vm, ObjectString *name);
+// ObjectInstance *new_instance(VM *vm, ObjectClass *klass);
+// ObjectClass *new_class(VM *vm, ObjectString *name);
 
-ObjectUpValue *new_upValue(VM *vm, Value *slot);
+// ObjectUpValue *new_upValue(VM *vm, Value *slot);
 
-ObjectClosure *new_closure(VM *vm, ObjectFunction *function);
+// ObjectClosure *new_closure(VM *vm, ObjectFunction *function);
 
-ObjectNative *new_native(VM *vm, native_fn function);
-// void define_native(VM *vm, table_t *table, const char *name, native_fn func);
+// ObjectNative *new_native(VM *vm, native_fn function);
+// // void define_native(VM *vm, table_t *table, const char *name, native_fn func);
 
-ObjectFunction *new_function(VM *vm);
-void print_function(ObjectFunction *function);
+// ObjectFunction *new_function(VM *vm);
+// void print_function(ObjectFunction *function);
 
-void concatenate(VM *vm);
-void concatenate_number(VM *vm);
-ObjectString *take_string(VM *vm, char *chars, int length);
-ObjectString *copy_string(VM *vm, const char *chars, int length);
-void print_object(Value val);
-Object *allocate_object(VM *vm, size_t size, ObjType type);
+// void concatenate_number(VM *vm);
+// ObjectString* takeString(const std::string& value);
+// ObjectString* copyString(const std::string& value);
+// Object* allocateObject(ObjType type);
 
 static inline bool is_obj_type(Value val, ObjType type)
 {
     return IS_OBJ(val) && AS_OBJ(val)->type == type;
 }
 
-#define ALLOCATE_OBJ(vm, type, object_type) \
-    (type *)allocate_object(vm, sizeof(type), object_type)
+#define ALLOCATE_OBJ(type, objectType) \
+    static_cast<type*>(allocateObject(objectType))
 
 #endif

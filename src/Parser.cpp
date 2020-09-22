@@ -3,6 +3,8 @@
 #include "Parser.h"
 #include "compiler.h"
 #include "object.hpp"
+#include "Allocator.h"
+#include "gc_pointer.h"
 
 Chunk* Parser::GetCurrentChunk()
 {
@@ -16,6 +18,17 @@ void Parser::SetCurrentChunk(Chunk& chunk)
 
 Parser::Parser()
 {
+    size_t lMemorySize = 107374182; //107MB
+    m_pProgramMemory = malloc(lMemorySize);
+
+    if(m_pProgramMemory == nullptr)
+        std::cout << "Allocation Memory Failed" << std::endl;
+    else
+    {
+        m_pAllocator = new (m_pProgramMemory)FreeListAllocator(lMemorySize - sizeof(FreeListAllocator),
+                                                PointerMath::Add(m_pProgramMemory, sizeof(FreeListAllocator)));
+    }
+
     oLexer.Define(TOKEN_NEW_LINE,"\n", true);
     oLexer.Define(TOKEN_WS,"[ \t\r\b]+", true);
     oLexer.Define(TOKEN_NUMBER,"[0-9]+");
@@ -401,7 +414,7 @@ void Variable(Parser& parser, bool can_assign)
 
 void String(Parser& parser, bool can_assign)
 {
-    // EmitConstant(parser, OBJ_VAL(CopyString(parser->vm, parser->previous.start + 1, parser->previous.length - 2)));
+    parser.EmitConstant(OBJ_VAL(parser.CopyString(parser.PreviousToken().GetText())));
 }
 
 void CallCompiler(Parser& parser, bool can_assign)
@@ -556,3 +569,28 @@ void CallCompiler(Parser& parser, bool can_assign)
 //     loc->depth = -1;
 //     loc->is_captured = false;
 // }
+
+ObjectString* Parser::AllocateString(const std::string& str)
+{
+    // ObjectString* string = New<ObjectString>(*m_pAllocator, str);
+    // ObjectString* string = Pointer<ObjectString>(str);
+    Pointer<ObjectString> string = new ObjectString(str);
+    string->type = OBJ_STRING;
+    // string->chars = chars;
+
+    return string;
+}
+
+ObjectString* Parser::CopyString(const std::string& value)
+{
+    // char* heapChars = ALLOCATE(char, length + 1);
+    // memcpy(heapChars, chars, length);
+    // heapChars[length] = '\0';
+
+    return AllocateString(value);
+}
+
+ObjectString* Parser::TakeString(const std::string& value)
+{
+    return AllocateString(value);
+}

@@ -114,7 +114,20 @@ InterpretResult VM::run()
             }
             case OP_GREATER:  BINARY_OP(BOOL_VAL, >); break;
             case OP_LESS:     BINARY_OP(BOOL_VAL, <); break;
-            case OP_ADD:    BINARY_OP(NUMBER_VAL, +); break;
+            case OP_ADD:
+            {
+                if (IS_STRING(Peek(0)) && IS_STRING(Peek(1))) {
+                    Concatenate();
+                } else if (IS_NUMBER(Peek(0)) && IS_NUMBER(Peek(1))) {
+                    double b = AS_NUMBER(Pop());
+                    double a = AS_NUMBER(Pop());
+                    Push(NUMBER_VAL(a + b));
+                } else {
+                    RuntimeError("Operands must be two numbers or two strings.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                break;
+            }
             case OP_SUB:    BINARY_OP(NUMBER_VAL, -); break;
             case OP_MUL:    BINARY_OP(NUMBER_VAL, *); break;
             case OP_DIV:    BINARY_OP(NUMBER_VAL, /); break;
@@ -151,4 +164,19 @@ InterpretResult VM::run()
 #undef READ_BYTE
 #undef READ_CONSTANT
 #undef BINARY_OP
+}
+
+void VM::Concatenate()
+{
+    ObjectString* b = AS_STRING(Pop());
+    ObjectString* a = AS_STRING(Pop());
+
+    // int length = a->length + b->length;
+    // char* chars = ALLOCATE(char, length + 1);
+    // memcpy(chars, a->chars, a->length);
+    // memcpy(chars + a->length, b->chars, b->length);
+    // chars[length] = '\0';
+
+    ObjectString* result = m_oParser.TakeString(a->string + b->string);
+    Push(OBJ_VAL(result));
 }

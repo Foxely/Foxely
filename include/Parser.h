@@ -1,9 +1,13 @@
+
+#pragma once
+
+#include <stdint.h>
 #include "Lexer.h"
 #include "ParserHelper.h"
 #include "chunk.hpp"
-#include <stdint.h>
-
-#pragma once
+#include "PointerMath.h"
+#include "FreeListAllocator.h"
+#include "object.hpp"
 
 // class ObjectFunction;
 
@@ -106,6 +110,8 @@ public:
     bool hadError;
     bool panicMode;
     ParseRule rules[TOKEN_MAX];
+    void* m_pProgramMemory;
+    FreeListAllocator* m_pAllocator;
     // Compiler *comp;
     // ClassCompiler *comp_class;
 
@@ -127,6 +133,10 @@ public:
 
     bool Match(int type);
     ParseRule *GetRule(int type);
+
+    ObjectString* AllocateString(const std::string& str);
+    ObjectString* CopyString(const std::string& value);
+    ObjectString* TakeString(const std::string& value);
 };
 
 bool Compile(Parser& parser, const std::string &strText, Chunk* chunk);

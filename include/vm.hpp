@@ -33,6 +33,7 @@ public:
     void RuntimeError(const char* format, ...);
 
     void EmitByte(uint8_t byte);
+    void Concatenate();
 
 private:
     InterpretResult run();
