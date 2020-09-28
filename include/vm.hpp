@@ -12,6 +12,7 @@
 
 class Parser;
 
+#define UINT8_COUNT (UINT8_MAX + 1)
 #define FRAMES_MAX 64
 #define STACK_MAX (FRAMES_MAX * UINT8_COUNT)
 
@@ -44,6 +45,8 @@ public:
 	ObjectUpvalue* openUpvalues;
 	// std::vector<GCObject*> m_oObjects;
 
+	// static VM vm;
+
     VM();
 	~VM();
     InterpretResult interpret(const char* source);
@@ -61,6 +64,14 @@ public:
 	void DefineNative(const std::string& name, NativeFn function);
 	ObjectUpvalue* CaptureUpvalue(Value* local);
 	void CloseUpvalues(Value* last);
+
+	void AddToRoots();
+	void AddTableToRoot(Table& table);
+	void AddValueToRoot(Value value);
+	void AddObjectToRoot(Object* object);
+	void AddCompilerToRoots();
+	void AddArrayToRoot(ValueArray* array);
+	void BlackenObject(Object* object);
 
 private:
     InterpretResult run();

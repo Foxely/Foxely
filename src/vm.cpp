@@ -11,6 +11,7 @@
 VM::VM()
 {
 	m_oParser.m_pVm = this;
+	openUpvalues = NULL;
     ResetStack();
 	DefineNative("clock", clockNative);
 }
