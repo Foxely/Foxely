@@ -59,7 +59,7 @@ public:
 		return m_strId == value;
 	}
 
-	friend bool operator==(const StringID& id, std::string& value)
+	friend bool operator==(const StringID& id, const std::string& value)
 	{
 		return id.m_strId == value;
 	}
@@ -121,9 +121,8 @@ public:
     Token();
     Token(const char* beg, std::size_t len);
     Token(const char* beg, const char* end);
-    Token(StringID type, const char* beg, std::size_t len);
-    Token(StringID type, const char* beg, std::size_t len, std::size_t lLines);
-    Token(StringID type, const char* beg, const char* end);
+    Token(StringID type, const std::string& beg, std::size_t len, std::size_t lLines = 0);
+    Token(StringID type, const char* beg, const char* end, std::size_t lLines = 0);
     ~Token();
 
     std::string GetText() const;

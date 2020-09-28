@@ -2,23 +2,28 @@
 #include <list>
 #include <typeinfo>
 #include <cstdlib>
+#include <algorithm>
+
 #include "gc_details.h"
 #include "gc_iterator.h"
+#include "aligned.h"
 /*
     Pointer implements a pointer type that uses
     garbage collection to release unused memory.
 */
 template <class T, int size = 0>
-class Pointer{
+class Pointer
+{
 private:
     // refContainer maintains the garbage collection list.
     static std::list<PtrDetails<T> > refContainer;
-    T *addr = nullptr;
-    bool isArray = false; 
-    unsigned arraySize = 0;
     static bool first;
     typename std::list<PtrDetails<T> >::iterator findPtrInfo(T *ptr);
 public:
+    T *addr = nullptr;
+    bool isArray = false; 
+    unsigned arraySize = 0;
+
     // Define an iterator type for Pointer<T>.
     typedef Iter<T> GCiterator;
     Pointer(){
@@ -68,7 +73,47 @@ public:
     static void showlist();
     // Clear refContainer when program exits.
     static void shutdown();
+
+	// Copy constructor.
+	template<class U, int sizeU = 0>
+	Pointer(Pointer<U, sizeU>& ob)
+	{
+		typename std::list<PtrDetails<T> >::iterator p = findPtrInfo(reinterpret_cast<T*>(ob.addr));
+		p->refcount++;
+		this->isArray = ob.isArray;
+		this->arraySize = ob.arraySize;
+		this->addr = reinterpret_cast<T*>(ob.addr);
+	}
+
+	template<class U, int sizeU = 0>
+	Pointer& operator=(Pointer<U, sizeU>& ob)
+	{
+		typename std::list<PtrDetails<T> >::iterator p = findPtrInfo(reinterpret_cast<T*>(ob.addr));
+		p->refcount++;
+		this->isArray = ob.isArray;
+		this->arraySize = ob.arraySize;   
+		this->addr = reinterpret_cast<T*>(ob.addr);
+		return *this;
+	}
+	
+	T* release() noexcept
+	{
+		T* result = nullptr;
+		std::swap(result, addr);
+		return result;
+	}
+
+	void swap(Pointer& src) noexcept
+	{
+		std::swap(addr, src.addr);
+	}
 };
+
+template<typename T>
+void swap(Pointer<T>& lhs, Pointer<T>& rhs)
+{
+	lhs.swap(rhs);
+}
 
 // STATIC INITIALIZATION
 // Creates storage for the static variables
@@ -140,7 +185,8 @@ bool Pointer<T, size>::collect(){
 
 // Overload assignment of pointer to Pointer.
 template <class T, int size>
-T* Pointer<T, size>::operator=(T *t){
+T* Pointer<T, size>::operator=(T *t)
+{
     typename std::list<PtrDetails<T> >::iterator p = findPtrInfo(addr);
     p->refcount--;
     if(p->refcount == 0)collect();
@@ -175,20 +221,23 @@ Pointer<T, size> &Pointer<T, size>::operator=(Pointer &rv){
 
 // A utility function that displays refContainer.
 template <class T, int size>
-void Pointer<T, size>::showlist(){
+void Pointer<T, size>::showlist()
+{
     typename std::list<PtrDetails<T> >::iterator p;
     std::cout << "refContainer<" << typeid(T).name() << ", " << size << ">:\n";
-    std::cout << "memPtr refcount value\n ";
+    std::cout << alignedText(10) << "memPtr" << " | ";
+    std::cout << alignedText(5) << "refcount" << " | ";
+    std::cout << alignedText(5) << "value\n";
     if (refContainer.begin() == refContainer.end())
     {
         std::cout << " Container is empty!\n\n ";
     }
     for (p = refContainer.begin(); p != refContainer.end(); p++)
     {
-        std::cout << "[" << (void *)p->memPtr << "]"
-             << " " << p->refcount << " ";
+        std::cout << "[" << (void *)p->memPtr << "]";
+        std::cout << " | " << alignedText(6) << p->refcount << " ";
         if (p->memPtr)
-            std::cout << " " << *p->memPtr;
+            std::cout << " | " << *p->memPtr;
         else
             std::cout << "---";
         std::cout << std::endl;
@@ -207,7 +256,8 @@ Pointer<T, size>::findPtrInfo(T *ptr){
 }
 // Clear refContainer when program exits.
 template <class T, int size>
-void Pointer<T, size>::shutdown(){
+void Pointer<T, size>::shutdown()
+{
     if (refContainerSize() == 0)
         return; // list is empty
     typename std::list<PtrDetails<T> >::iterator p;

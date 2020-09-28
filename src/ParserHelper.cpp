@@ -36,7 +36,13 @@ const Lexer& ParserHelper::GetLexer() const
 
 void ParserHelper::NextToken()
 {
-    oCurrentToken = oLexer.NextToken();
+	oPreviousToken = CurrentToken();
+    for (;;) {
+		oCurrentToken = oLexer.NextToken();
+        if (oCurrentToken.m_oType != 84)
+            break;
+        ErrorAtCurrent(CurrentToken().GetText().c_str());
+    }
 }
 
 const Token& ParserHelper::PreviousToken() const
@@ -66,8 +72,9 @@ void ParserHelper::AdvanceToken(const token_advance_mode mode)
 
 bool ParserHelper::IsTokenType(const std::string& strType, bool bAdvance)
 {
-    if (oCurrentToken.m_oType == strType && bAdvance) {
-        NextToken();
+    if (oCurrentToken.m_oType == strType) {
+        if (bAdvance)
+        	NextToken();
         return (true);
     }
     return (false);
@@ -75,8 +82,9 @@ bool ParserHelper::IsTokenType(const std::string& strType, bool bAdvance)
 
 bool ParserHelper::IsToken(int iType, bool bAdvance)
 {
-    if (oCurrentToken.m_oType == iType && bAdvance) {
-        NextToken();
+    if (oCurrentToken.m_oType == iType) {
+		if (bAdvance)
+        	NextToken();
         return (true);
     }
     return (false);
@@ -84,9 +92,10 @@ bool ParserHelper::IsToken(int iType, bool bAdvance)
 
 bool ParserHelper::IsToken(const std::string& strValue, bool bAdvance)
 {
-    if (oLexer.TokenMatch(oCurrentToken, strValue) && bAdvance)
+    if (oLexer.TokenMatch(oCurrentToken, strValue))
     {
-        NextToken();
+        if (bAdvance)
+        	NextToken();
         return true;
     }
     return false;
@@ -95,9 +104,10 @@ bool ParserHelper::IsToken(const std::string& strValue, bool bAdvance)
 
 bool ParserHelper::IsToken(const std::string& strType, const std::string& strValue, bool bAdvance)
 {
-    if (oCurrentToken.m_oType == strType && oLexer.TokenMatch(oCurrentToken, strValue) && bAdvance)
+    if (oCurrentToken.m_oType == strType && oLexer.TokenMatch(oCurrentToken, strValue))
     {
-        NextToken();
+        if (bAdvance)
+        	NextToken();
         return true;
     }
     return false;
@@ -105,9 +115,10 @@ bool ParserHelper::IsToken(const std::string& strType, const std::string& strVal
 
 bool ParserHelper::IsToken(const std::string& strType, const char* strValue, bool bAdvance)
 {
-    if (oCurrentToken.m_oType == strType && oLexer.TokenMatch(oCurrentToken, strValue) && bAdvance)
+    if (oCurrentToken.m_oType == strType && oLexer.TokenMatch(oCurrentToken, strValue))
     {
-        NextToken();
+        if (bAdvance)
+        	NextToken();
         return true;
     }
     return false;
@@ -115,9 +126,10 @@ bool ParserHelper::IsToken(const std::string& strType, const char* strValue, boo
 
 bool ParserHelper::IsToken(int iType, const std::string& strValue, bool bAdvance)
 {
-    if (oCurrentToken.m_oType == iType && oLexer.TokenMatch(oCurrentToken, strValue) && bAdvance)
+    if (oCurrentToken.m_oType == iType && oLexer.TokenMatch(oCurrentToken, strValue))
     {
-        NextToken();
+        if (bAdvance)
+        	NextToken();
         return true;
     }
     return false;
@@ -125,9 +137,10 @@ bool ParserHelper::IsToken(int iType, const std::string& strValue, bool bAdvance
 
 bool ParserHelper::IsToken(int iType, const char* strValue, bool bAdvance)
 {
-    if (oCurrentToken.m_oType == iType && oLexer.TokenMatch(oCurrentToken, strValue) && bAdvance)
+    if (oCurrentToken.m_oType == iType && oLexer.TokenMatch(oCurrentToken, strValue))
     {
-        NextToken();
+        if (bAdvance)
+        	NextToken();
         return true;
     }
     return false;
@@ -135,10 +148,11 @@ bool ParserHelper::IsToken(int iType, const char* strValue, bool bAdvance)
 
 bool ParserHelper::IsTokenThenAssign(const std::string& strType, Token& oToken, bool bAdvance)
 {
-    if (oCurrentToken.m_oType == strType && bAdvance)
+    if (oCurrentToken.m_oType == strType)
     {
         oToken = oCurrentToken;
-        NextToken();
+        if (bAdvance)
+        	NextToken();
         return true;
     }
     return false;
@@ -146,10 +160,11 @@ bool ParserHelper::IsTokenThenAssign(const std::string& strType, Token& oToken, 
 
 bool ParserHelper::IsTokenThenAssign(const std::string& strType, const char* strValue, Token& oToken, bool bAdvance)
 {
-    if (oCurrentToken.m_oType == strType && oLexer.TokenMatch(oCurrentToken, strValue) && bAdvance)
+    if (oCurrentToken.m_oType == strType && oLexer.TokenMatch(oCurrentToken, strValue))
     {
         oToken = oCurrentToken;
-        NextToken();
+        if (bAdvance)
+        	NextToken();
         return true;
     }
     return false;
@@ -158,10 +173,11 @@ bool ParserHelper::IsTokenThenAssign(const std::string& strType, const char* str
 template <typename Allocator, template <typename, typename> class Container>
 bool ParserHelper::IsTokenThenAssign(const std::string& strType, Container<Token&, Allocator>& oTokenList, bool bAdvance)
 {
-    if (oCurrentToken.m_oType == strType && bAdvance)
+    if (oCurrentToken.m_oType == strType)
     {
         oTokenList.push_back(oCurrentToken.GetText());
-        NextToken();
+        if (bAdvance)
+        	NextToken();
         return true;
     }
     return false;
@@ -170,10 +186,11 @@ bool ParserHelper::IsTokenThenAssign(const std::string& strType, Container<Token
 template <typename Allocator, template <typename, typename> class Container>
 bool ParserHelper::IsTokenThenAssign(const std::string& strType, const char* strValue, Container<Token&, Allocator>& oTokenList, bool bAdvance)
 {
-    if (oCurrentToken.m_oType == strType && oLexer.TokenMatch(oCurrentToken, strValue) && bAdvance)
+    if (oCurrentToken.m_oType == strType && oLexer.TokenMatch(oCurrentToken, strValue))
     {
         oTokenList.push_back(oCurrentToken.GetText());
-        NextToken();
+        if (bAdvance)
+        	NextToken();
         return true;
     }
     return false;
@@ -182,10 +199,11 @@ bool ParserHelper::IsTokenThenAssign(const std::string& strType, const char* str
 
 bool ParserHelper::IsTokenThenAssign(int iType, Token& oToken, bool bAdvance)
 {
-    if (oCurrentToken.m_oType == iType && bAdvance)
+    if (oCurrentToken.m_oType == iType)
     {
         oToken = oCurrentToken;
-        NextToken();
+        if (bAdvance)
+        	NextToken();
         return true;
     }
     return false;
@@ -193,10 +211,11 @@ bool ParserHelper::IsTokenThenAssign(int iType, Token& oToken, bool bAdvance)
 
 bool ParserHelper::IsTokenThenAssign(int iType, const char* strValue, Token& oToken, bool bAdvance)
 {
-    if (oCurrentToken.m_oType == iType && oLexer.TokenMatch(oCurrentToken, strValue) && bAdvance)
+    if (oCurrentToken.m_oType == iType && oLexer.TokenMatch(oCurrentToken, strValue))
     {
         oToken = oCurrentToken;
-        NextToken();
+        if (bAdvance)
+        	NextToken();
         return true;
     }
     return false;
@@ -205,10 +224,11 @@ bool ParserHelper::IsTokenThenAssign(int iType, const char* strValue, Token& oTo
 template <typename Allocator, template <typename, typename> class Container>
 bool ParserHelper::IsTokenThenAssign(int iType, Container<Token&, Allocator>& oTokenList, bool bAdvance)
 {
-    if (oCurrentToken.m_oType == iType && bAdvance)
+    if (oCurrentToken.m_oType == iType)
     {
         oTokenList.push_back(oCurrentToken.GetText());
-        NextToken();
+        if (bAdvance)
+        	NextToken();
         return true;
     }
     return false;
@@ -217,10 +237,11 @@ bool ParserHelper::IsTokenThenAssign(int iType, Container<Token&, Allocator>& oT
 template <typename Allocator, template <typename, typename> class Container>
 bool ParserHelper::IsTokenThenAssign(int iType, const char* strValue, Container<Token&, Allocator>& oTokenList, bool bAdvance)
 {
-    if (oCurrentToken.m_oType == iType && oLexer.TokenMatch(oCurrentToken, strValue) && bAdvance)
+    if (oCurrentToken.m_oType == iType && oLexer.TokenMatch(oCurrentToken, strValue))
     {
         oTokenList.push_back(oCurrentToken.GetText());
-        NextToken();
+        if (bAdvance)
+        	NextToken();
         return true;
     }
     return false;
@@ -234,6 +255,11 @@ bool ParserHelper::PeekTokenIsType(const std::string& strType)
 bool ParserHelper::PeekTokenIsType(int iType)
 {
     return (oCurrentToken.m_oType == iType);
+}
+
+bool ParserHelper::PeekNextTokenIsType(int iType)
+{
+    return (oLexer.PeekNextToken().m_oType == iType);
 }
 
 bool ParserHelper::PeekTokenIs(const std::string& s)
@@ -259,9 +285,7 @@ void ParserHelper::ErrorAt(const Token& token, const char* message)
     fprintf(stderr, "[line %d] Error", token.m_iLinesTraversed);
 
 	std::string errorType = std::string("ERROR");
-    if (token.m_oType == errorType) {
-        // Nothing.
-    } else {
+    if (token.m_oType != errorType) {
         fprintf(stderr, " at '%s'", token.m_strText.c_str());
     }
 

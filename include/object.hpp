@@ -14,6 +14,7 @@
 
 #include "chunk.hpp"
 #include "value.hpp"
+#include "gc.hpp"
 
 #define OBJ_TYPE(val)         (AS_OBJ(val)->type)
 
@@ -28,14 +29,14 @@
 #define IS_NATIVE(val)        is_obj_type(val, OBJ_NATIVE)
 #define IS_STRING(val)        is_obj_type(val, OBJ_STRING)
 
-#define AS_CUSTOM(val)         ((obj_custom_field *)AS_OBJ(val))
-#define AS_LIB(val)           ((obj_lib *)AS_OBJ(val))
-#define AS_BOUND_METHOD(val)  ((obj_bound_method *)AS_OBJ(val))
-#define AS_CLASS(val)         ((obj_class *)AS_OBJ(val))
-#define AS_CLOSURE(val)       ((obj_closure *)AS_OBJ(val))
+#define AS_CUSTOM(val)         ((ObjectCustomField *)AS_OBJ(val))
+#define AS_LIB(val)           ((ObjectLib *)AS_OBJ(val))
+#define AS_BOUND_METHOD(val)  ((ObjectBoundMethod *)AS_OBJ(val))
+#define AS_CLASS(val)         ((ObjectClass *)AS_OBJ(val))
+#define AS_CLOSURE(val)       ((ObjectClosure *)AS_OBJ(val))
 #define AS_FUNCTION(val)      ((ObjectFunction *)AS_OBJ(val))
-#define AS_INSTANCE(val)        ((obj_instance *)AS_OBJ(val))
-#define AS_NATIVE(val)        (((obj_native *)AS_OBJ(val))->function)
+#define AS_INSTANCE(val)        ((ObjectInstance *)AS_OBJ(val))
+#define AS_NATIVE(val)        (((ObjectNative *)AS_OBJ(val))->function)
 #define AS_STRING(val)        ((ObjectString *)AS_OBJ(val))
 #define AS_CSTRING(val)       (((ObjectString *)AS_OBJ(val))->string.c_str())
 
@@ -52,17 +53,12 @@ typedef enum {
     OBJ_CUSTOM,
 } ObjType;
 
-class Object
+
+
+class Object : public Traceable
 {
 public:
-    explicit Object()
-    {
-        is_marked = false;
-        next = nullptr;
-    }
     ObjType type;
-    bool is_marked;
-    struct Object *next;
 };
 
 class ObjectString : public Object
@@ -74,35 +70,71 @@ public:
     uint32_t hash;
     std::string string;
 };
+
 class ObjectFunction : public Object
 {
-    Object obj;
+public:
     int arity;
-    int upValue_count;
+    int upValueCount;
     Chunk chunk;
     ObjectString *name;
+
+	explicit ObjectFunction()
+	{
+		arity = 0;
+		name = NULL;
+		upValueCount = 0;
+		type = OBJ_FUNCTION;
+	}
 };
 
-class ObjectUpValue : public Object
+class ObjectUpvalue : public Object
 {
-    Object obj;
+public:
     Value *location;
     Value closed;
-    struct ObjectUpValue *next;
+    struct ObjectUpvalue *next;
+
+    explicit ObjectUpvalue(Value* slot)
+    {
+        type = OBJ_UPVALUE;
+        location = slot;
+        next = NULL;
+        closed = NIL_VAL;
+    }
 };
 
-// typedef Value (*native_fn)(VM *vm, int arg_count, Value *args);
+typedef Value (*NativeFn)(int arg_count, Value *args);
 
-// struct ObjectNative {
-//     Object obj;
-//     native_fn function;
-// };
+class ObjectNative : public Object
+{
+public:
+    NativeFn function;
 
-struct ObjectClosure {
-    Object obj;
+	explicit ObjectNative(NativeFn func)
+	{
+		function = func;
+		type = OBJ_NATIVE;
+	}
+};
+
+class ObjectClosure : public Object
+{
+public:
     ObjectFunction *function;
-    ObjectUpValue **upValues;
-    int upValue_count;
+    ObjectUpvalue **upValues;
+    int upvalueCount;
+
+    explicit ObjectClosure(ObjectFunction *func)
+    {
+        type = OBJ_CLOSURE;
+        function = func;
+        upvalueCount = func->upValueCount;
+        upValues = new ObjectUpvalue*[func->upValueCount];
+        for (int i = 0; i < func->upValueCount; i++) {
+            upValues[i] = NULL;
+        }
+    }
 };
 
 struct ObjectClass {
@@ -165,7 +197,7 @@ struct ObjectCustomField {
 // ObjectNative *new_native(VM *vm, native_fn function);
 // // void define_native(VM *vm, table_t *table, const char *name, native_fn func);
 
-// ObjectFunction *new_function(VM *vm);
+ObjectFunction *NewFunction();
 // void print_function(ObjectFunction *function);
 
 // void concatenate_number(VM *vm);

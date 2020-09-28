@@ -6,10 +6,12 @@
 #include "ParserHelper.h"
 #include "chunk.hpp"
 #include "PointerMath.h"
-#include "FreeListAllocator.h"
 #include "object.hpp"
 
+#define UINT8_COUNT (UINT8_MAX + 1)
+
 // class ObjectFunction;
+class VM;
 
 typedef enum {
     // Single-character tokens.
@@ -24,6 +26,8 @@ typedef enum {
     TOKEN_GREATER, TOKEN_GREATER_EQUAL,
     TOKEN_LESS, TOKEN_LESS_EQUAL,
 
+	TOKEN_COLON, TOKEN_DOUBLE_COLON,
+
     // Literals.
     TOKEN_IDENTIFIER, TOKEN_STRING, TOKEN_NUMBER,
 
@@ -33,11 +37,13 @@ typedef enum {
     TOKEN_PRINT, TOKEN_RETURN, TOKEN_SUPER, TOKEN_THIS,
     TOKEN_TRUE, TOKEN_VAR, TOKEN_WHILE, TOKEN_IMPORT,
 
-    TOKEN_NEW_LINE,
+    TOKEN_SINGLE_COMMENT,
+    TOKEN_MULTI_COMMENT,
     TOKEN_WS,
-    TOKEN_ERROR,
-    TOKEN_EOF,
-    TOKEN_MAX
+    TOKEN_MAX,
+    TOKEN_EOF = -1,
+    TOKEN_NEW_LINE = 83,
+    TOKEN_ERROR = 84
 } TokenType;
 
 typedef enum {
@@ -54,47 +60,40 @@ typedef enum {
     PREC_PRIMARY,
 } Precedence;
 
-// typedef struct {
-//     Token name;
-//     int depth;
-//     bool is_captured;
-// } Local;
+typedef struct {
+    Token name;
+    int depth;
+    bool isCaptured;
+} Local;
 
-// struct Upvalue {
-//     uint8_t index;
-//     bool is_local;
-// };
+struct Upvalue {
+    uint8_t index;
+    bool isLocal;
+};
 
 // typedef struct {
 //     uint8_t index;
 //     bool is_local;
 // } UpValue;
 
-// typedef enum {
-//     TYPE_FUNCTION,
-//     TYPE_INITIALIZER,
-//     TYPE_METHOD,
-//     TYPE_SCRIPT
-// } FunctionType;
+typedef enum {
+    TYPE_FUNCTION,
+    TYPE_INITIALIZER,
+    TYPE_METHOD,
+    TYPE_SCRIPT
+} FunctionType;
 
 class Parser;
+class Compiler;
 
-typedef void (*parse_fn)(Parser& parser, bool can_assign); 
-struct ParseRule {
+typedef void (*parse_fn)(Parser& parser, bool can_assign);
+
+struct ParseRule
+{
     parse_fn prefix;
     parse_fn infix;
     Precedence precedence;
 };
-
-// struct Compiler {
-//     Compiler *enclosing;
-//     ObjectFunction *function;
-//     FunctionType type;
-//     Local locals[UINT8_COUNT];
-//     int local_count;
-//     Upvalue upvalues[UINT8_COUNT];
-//     int scope_depth;
-// };
 
 // struct ClassCompiler
 // {
@@ -107,15 +106,13 @@ class Parser : public ParserHelper
 {
 public:
 	Chunk* compilingChunk;
-    bool hadError;
-    bool panicMode;
     ParseRule rules[TOKEN_MAX];
-    void* m_pProgramMemory;
-    FreeListAllocator* m_pAllocator;
-    // Compiler *comp;
+	VM* m_pVm;
+    Compiler *currentCompiler;
     // ClassCompiler *comp_class;
 
     Parser();
+	bool IsEnd();
     void Advance();
     void MarkInitialized();
     void Consume(int oType, const char* message);
@@ -126,20 +123,60 @@ public:
 	void EmitByte(uint8_t byte);
 	void EmitBytes(uint8_t byte1, uint8_t byte2);
 	void EmitConstant(Value value);
+	void EmitReturn();
+	int EmitJump(uint8_t instruction);
+	void PatchJump(int offset);
+	void EmitLoop(int loopStart);
 	uint8_t MakeConstant(Value value);
 
-	void EndCompiler();
+	ObjectFunction* EndCompiler();
 
 
     bool Match(int type);
     ParseRule *GetRule(int type);
 
-    ObjectString* AllocateString(const std::string& str);
+	uint32_t hashString(const std::string& str);
+    ObjectString* AllocateString(const std::string& str, uint32_t hash);
     ObjectString* CopyString(const std::string& value);
     ObjectString* TakeString(const std::string& value);
+
+	uint8_t IdentifierConstant(const Token& name);
+
+	void BeginScope();
+	void EndScope();
 };
 
-bool Compile(Parser& parser, const std::string &strText, Chunk* chunk);
+struct Compiler
+{
+	explicit Compiler (Parser& parser, FunctionType eType, const std::string& name)
+	{
+		enclosing = parser.currentCompiler;
+		localCount = 0;
+		scopeDepth = 0;
+		type = eType;
+		function = new ObjectFunction();
+		parser.currentCompiler = this;
+
+		if (eType != TYPE_SCRIPT) {
+			parser.currentCompiler->function->name = parser.CopyString(name);
+		}
+
+		Local* local = &locals[localCount++];
+		local->depth = 0;
+		local->name.m_strText = "";
+        local->isCaptured = false;
+	}
+
+    Compiler *enclosing;
+    ObjectFunction *function;
+    FunctionType type;
+    Local locals[UINT8_COUNT];
+    int localCount;
+    Upvalue upvalues[UINT8_COUNT];
+    int scopeDepth;
+};
+
+ObjectFunction* Compile(Parser& parser, const std::string &strText, Chunk* chunk);
 void Expression(Parser& parser);
 void ParsePrecedence(Parser& parser, Precedence preced);
 void Number(Parser& parser, bool can_assign = false);
@@ -155,3 +192,16 @@ void RuleSuper(Parser& parser, bool can_assign = false);
 void Variable(Parser& parser, bool can_assign = false);
 void String(Parser& parser, bool can_assign = false);
 void CallCompiler(Parser& parser, bool can_assign = false);
+
+void Block(Parser& parser);
+void Declaration(Parser& parser);
+void Synchronize(Parser& parser);
+void VarDeclaration(Parser& parser, Token name);
+// void VarDeclaration(Parser& parser);
+void NamedVariable(Parser& parser, Token name, bool can_assign);
+void AddLocal(Parser& parser, Token name);
+bool IdentifiersEqual(Token& a, Token& b);
+int ResolveLocal(Parser& parser, Compiler *comp, Token& name);
+void Function(Parser& parser, FunctionType type, const Token& name);
+void FuncDeclaration(Parser& parser, Token name);
+int ResolveUpvalue(Parser& parser, Compiler *comp, Token& name);

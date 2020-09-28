@@ -5,8 +5,8 @@
 #include <map>
 #include <iostream>
 #include <string>
+#include <iterator>
 #include "Token.h"
-#include "Regex.h"
 
 
 struct LessCompare
@@ -27,6 +27,23 @@ struct LessCompare
     }
 };
 
+struct Area
+{
+	explicit Area()
+	{
+		m_cStart = 0;
+		m_cEnd = 0;
+	}
+
+	explicit Area(char start, char end)
+	{
+		m_cStart = start;
+		m_cEnd = end;
+	}
+	char m_cStart;
+	char m_cEnd;
+};
+
 class Lexer
 {
 public:
@@ -36,6 +53,7 @@ public:
     Token oEofToken;
     const char* strEnd;
     std::vector<std::pair<StringID, std::string>> m_oAllDefines;
+    std::vector<std::pair<StringID, Area>> m_oAreaDefines;
     std::vector<StringID> m_oTrashDefines;
 
 private:
@@ -84,7 +102,8 @@ public:
     void AddArea(std::pair<char, char> cRange);
     void Define(const std::string& strId, const std::string& strValue, bool bAddInTrash = false);
 	void Define(const int id, const std::string& strRegex, bool bAddInTrash = false);
-    void DefineArea(std::string strId, char cStart, char cEnd);
+    void DefineArea(const std::string& strId, char cStart, char cEnd);
+    void DefineArea(const int id, char cStart, char cEnd);
 
 };
 

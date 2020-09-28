@@ -2,6 +2,7 @@
 
 #include "debug.h"
 #include "value.hpp"
+#include "object.hpp"
 
 static int invokeInstruction(const char *name, Chunk& chunk, int offset) {
     uint8_t constant = chunk.m_vCode[offset + 1];
@@ -35,11 +36,11 @@ static int simpleInstruction(const char* name, int offset)
 // Print a Constant Instruction (2 bytes)
 static int constantInstruction(const char* name, Chunk& chunk, int offset)
 {
-  uint8_t constant = chunk.m_vCode[offset + 1];
-  printf("%-16s %4d '", name, constant);
-  PrintValue(chunk.m_oConstants.m_vValues[constant]);
-  printf("'\n");
-  return offset + 2;
+	uint8_t constant = chunk.m_vCode[offset + 1];
+	printf("%-16s %4d '", name, constant);
+	PrintValue(chunk.m_oConstants.m_vValues[constant]);
+	printf("'\n");
+	return offset + 2;
 }
 
 void disassembleChunk(Chunk& chunk, const char* name)
@@ -95,7 +96,7 @@ int disassembleInstruction(Chunk& chunk, int offset)
 			return constantInstruction("OP_GET_PROPERTY", chunk, offset);
 		case OP_SET_PROPERTY:
 			return constantInstruction("OP_SET_PROPERTY", chunk, offset);
-		case OP_GET_SUPER:                                             
+		case OP_GET_SUPER:
 			return constantInstruction("OP_GET_SUPER", chunk, offset);
 		case OP_EQUAL:
 			return simpleInstruction("OP_EQUAL", offset);
@@ -129,20 +130,21 @@ int disassembleInstruction(Chunk& chunk, int offset)
 			return invokeInstruction("OP_INVOKE", chunk, offset);
 		case OP_SUPER_INVOKE:
 			return invokeInstruction("OP_SUPER_INVOKE", chunk, offset);
-		case OP_CLOSURE: {
-			// offset++;
-			// uint8_t constant = chunk.m_vCode[offset++];
-			// printf("%-16s %4d ", "OP_CLOSURE", constant);
-			// print_value(chunk.m_oConstants.m_vValues[constant]);
-			// printf("\n");
-			// obj_function *function = AS_FUNCTION(
-			// 	chunk.m_oConstants.m_vValues[constant]);
-			// for (int j = 0; j < function->upvalue_count; j++) {
-			// 	int is_local = chunk.m_vCode[offset++];
-			// 	int index = chunk.m_vCode[offset++];
-			// 	printf("%04d      |                     %s %d\n",
-			// 		offset - 2, is_local ? "local" : "upvalue", index);
-			// }
+		case OP_CLOSURE:
+        {
+			offset++;
+			uint8_t constant = chunk.m_vCode[offset++];
+			printf("%-16s %4d ", "OP_CLOSURE", constant);
+			PrintValue(chunk.m_oConstants.m_vValues[constant]);
+			printf("\n");
+			ObjectFunction *function = AS_FUNCTION(chunk.m_oConstants.m_vValues[constant]);
+			for (int j = 0; j < function->upValueCount; j++)
+            {
+				int is_local = chunk.m_vCode[offset++];
+				int index = chunk.m_vCode[offset++];
+				printf("%04d      |                     %s %d\n",
+					offset - 2, is_local ? "local" : "upvalue", index);
+			}
 			return offset;
 		}
 		case OP_CLOSE_UPVALUE:

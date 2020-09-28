@@ -4,6 +4,15 @@ SRC := $(shell find $(SRC_DIRS) -name '*.cpp')
 OBJ = $(SRC:%.cpp=%.o)
 NAME = liblexer
 
+ifeq ($(BUILD),debug)
+# "Debug" build - no optimization, and debugging symbols
+CFLAGS += -O0 -g3 -std=c++17
+CFLAGS += -DDEBUG
+else
+# "Release" build - optimization, and no debug symbols
+CFLAGS += -O3 -s -DNDEBUG
+endif
+
 bold = `tput bold`
 red = `tput setaf 1`
 green = `tput setaf 2`
@@ -22,7 +31,7 @@ $(NAME): $(OBJ)
 		@cp $(NAME).a ../
 
 %.o : %.cpp
-	@gcc -Iinclude -W -Wall -c $< -o $@
+	@gcc $(CFLAGS) -Iinclude -W -Wall -c $< -o $@
 
 .PHONY: clean
 clean:

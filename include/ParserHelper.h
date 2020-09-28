@@ -70,6 +70,7 @@ public:
 
     bool PeekTokenIsType(const std::string& strType);
     bool PeekTokenIsType(int iType);
+    bool PeekNextTokenIsType(int iType);
     bool PeekTokenIs(const std::string& strValue);
     void ErrorAtCurrent(const char* message);
     void Error(const char* message);

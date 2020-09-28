@@ -11,6 +11,7 @@ Token::Token()
 {
     m_iLength = 0;
     m_strText = string("");
+    m_iLinesTraversed = 0;
     // m_strvText = string_view(m_strText);
 }
 
@@ -18,6 +19,7 @@ Token::Token(const char* beg, size_t len)
 {
     m_iLength = len;
     m_strText = string(beg, m_iLength);
+    m_iLinesTraversed = 0;
     // m_strvText = string_view(m_strText);
 }
 
@@ -25,30 +27,24 @@ Token::Token(const char* beg, const char* end)
 {
     m_iLength = distance(beg, end);
     m_strText = string(beg, m_iLength);
+    m_iLinesTraversed = 0;
     // m_strvText = string_view(m_strText);
 }
 
-Token::Token(StringID type, const char* beg, size_t len)
+Token::Token(StringID type, const std::string& beg, std::size_t len, std::size_t lLines)
 {
     m_oType = type;
     m_iLength = len;
-    m_strText = string(beg, m_iLength);
-    // m_strvText = string_view(m_strText);
-}
-
-Token::Token(StringID type, const char *beg, std::size_t len, std::size_t lLines)
-{
-    m_oType = type;
-    m_iLength = len;
-    m_strText = string(beg, m_iLength);
+    m_strText = string(beg, 0, m_iLength);
     m_iLinesTraversed = lLines;
 }
 
-Token::Token(StringID type, const char *beg, const char *end)
+Token::Token(StringID type, const char *beg, const char *end, std::size_t lLines)
 {
     m_oType = std::move(type);
     m_iLength = distance(beg, end);
     m_strText = string(beg, m_iLength);
+    m_iLinesTraversed = lLines;
 }
 
 Token::~Token()

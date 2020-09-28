@@ -1,11 +1,25 @@
 #ifndef fox_vm_h
 #define fox_vm_h
 
+#include <vector>
+#include <string>
+#include <time.h>
 #include "chunk.hpp"
 #include "value.hpp"
-#include "Parser.h"
+#include "object.hpp"
+#include "Table.hpp"
 
-#define STACK_MAX 256
+
+class Parser;
+
+#define FRAMES_MAX 64
+#define STACK_MAX (FRAMES_MAX * UINT8_COUNT)
+
+struct CallFrame {
+	ObjectClosure* closure;
+	std::vector<uint8_t>::iterator ip;
+	Value* slots;
+};
 
 typedef enum
 {
@@ -17,13 +31,21 @@ typedef enum
 class VM
 {
 public:
+	CallFrame frames[FRAMES_MAX];
+  	int frameCount;
+
     Chunk m_oChunk;
     std::vector<uint8_t>::iterator ip;
     Value stack[STACK_MAX];
     Value* stackTop;
     Parser m_oParser;
+	Table strings;
+	Table globals;
+	ObjectUpvalue* openUpvalues;
+	// std::vector<GCObject*> m_oObjects;
 
     VM();
+	~VM();
     InterpretResult interpret(const char* source);
 
     void ResetStack();
@@ -34,9 +56,19 @@ public:
 
     void EmitByte(uint8_t byte);
     void Concatenate();
+	bool CallValue(Value callee, int argCount);
+	bool Call(ObjectClosure* closure, int argCount);
+	void DefineNative(const std::string& name, NativeFn function);
+	ObjectUpvalue* CaptureUpvalue(Value* local);
+	void CloseUpvalues(Value* last);
 
 private:
     InterpretResult run();
 };
+
+static Value clockNative(int argCount, Value* args)
+{
+  return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
+}
 
 #endif

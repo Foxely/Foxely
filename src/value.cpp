@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <iostream>
 
 #include "memory.h"
 #include "value.hpp"
@@ -34,15 +35,20 @@ bool ValuesEqual(Value a, Value b)
         case VAL_BOOL:   return AS_BOOL(a) == AS_BOOL(b);
         case VAL_NIL:    return true;
         case VAL_NUMBER: return AS_NUMBER(a) == AS_NUMBER(b);
-        case VAL_OBJ:
-        {
-            ObjectString* aString = AS_STRING(a);
-            ObjectString* bString = AS_STRING(b);
-            return aString->string == bString->string;
-        }
+        case VAL_OBJ: return AS_OBJ(a) == AS_OBJ(b);
         default:
         return false; // Unreachable.
     }
+}
+
+void PrintFunction(ObjectFunction* function)
+{
+	if (function->name == NULL) {
+        std::cout << "<script>";
+		return;
+	}
+
+    std::cout << "<fn " << function->name->string << ">";
 }
 
 void printObject(Value value)
@@ -50,8 +56,20 @@ void printObject(Value value)
     switch (OBJ_TYPE(value))
     {
         case OBJ_STRING:
-        printf("%s", AS_CSTRING(value));
-        break;
+            std::cout << (AS_STRING(value))->string;
+        	break;
+		case OBJ_FUNCTION:
+			PrintFunction(AS_FUNCTION(value));
+			break;
+		case OBJ_NATIVE:
+            std::cout << "<native fn>";
+			break;
+        case OBJ_CLOSURE:
+            PrintFunction(AS_CLOSURE(value)->function);
+            break;
+        case OBJ_UPVALUE:
+            printf("upvalue");
+            break;
     }
 }
 
@@ -59,9 +77,9 @@ void PrintValue(Value value)
 {
     switch (value.type)
     {
-        case VAL_BOOL:   printf(AS_BOOL(value) ? "true" : "false"); break;
-        case VAL_NIL:    printf("nil"); break;
-        case VAL_NUMBER: printf("%g", AS_NUMBER(value)); break;
+        case VAL_BOOL: std::cout << (AS_BOOL(value) ? "true" : "false"); break;
+        case VAL_NIL:    std::cout << "nil"; break;
+        case VAL_NUMBER: std::cout << AS_NUMBER(value); break;
         case VAL_OBJ: printObject(value); break;
     }
 }

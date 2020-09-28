@@ -22,7 +22,7 @@ struct Value {
     union {
         bool boolean;
         double number;
-        Object *obj;
+        Object* obj;
     } as;
 };
 

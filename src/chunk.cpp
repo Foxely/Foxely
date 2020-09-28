@@ -6,10 +6,10 @@
  */
 Chunk::Chunk()
 {
-  m_iCount = 0;
-  m_iCapacity = 0;
-  m_vCode = std::vector<uint8_t>();
-  m_vLines = std::vector<int>();
+	m_iCount = 0;
+	m_iCapacity = 0;
+	m_vCode = std::vector<uint8_t>();
+	m_vLines = std::vector<int>();
 }
 
 /**
@@ -25,8 +25,7 @@ void Chunk::WriteChunk(uint8_t byte, int line)
 //   }
 
 //   chunk.code[chunk.count] = byte;
-//   chunk.count++;
-
+	m_iCount++;
     m_vCode.push_back(byte);
     m_vLines.push_back(line);
 }
