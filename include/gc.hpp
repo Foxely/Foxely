@@ -10,6 +10,8 @@
 struct Traceable;
 struct ObjectHeader;
 
+class VM;
+
 class GC
 {
 	typedef std::set<Traceable*> ObjectSet;
@@ -29,6 +31,7 @@ class GC
 public:
 	int bytesAllocated;
 	int nextGC;
+	VM* pVm;
 
 
 	static GC Gc;
@@ -41,6 +44,7 @@ public:
 	void RemoveObject(Traceable* o);
 	void AddRoot(Traceable* obj);
 	void RemoveRoot(Traceable* obj);
+	void ClearRoots();
 };
 
 /**

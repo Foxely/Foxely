@@ -12,6 +12,7 @@ VM::VM()
 {
 	m_oParser.m_pVm = this;
 	openUpvalues = NULL;
+	stack[0] = Value();
     ResetStack();
 	DefineNative("clock", clockNative);
 }
@@ -163,9 +164,7 @@ void VM::DefineNative(const std::string& name, NativeFn function)
 InterpretResult VM::interpret(const char* source)
 {
     Chunk oChunk;
-	// auto startCompile = std::chrono::steady_clock::now();
     ObjectFunction *function = Compile(m_oParser, source, &oChunk);
-	// auto endCompile = std::chrono::steady_clock::now();
 
     if (function == NULL)
         return (INTERPRET_COMPILE_ERROR);
@@ -175,12 +174,8 @@ InterpretResult VM::interpret(const char* source)
     Pop();
     Push(OBJ_VAL(closure));
     CallValue(OBJ_VAL(closure), 0);
-	// auto startExec = std::chrono::steady_clock::now();
 	InterpretResult result = run();
-	// auto endExec = std::chrono::steady_clock::now();
 
-	// std::cout << "Compile Time: " << std::chrono::duration <double> (endCompile - startCompile).count() << " s" << std::endl;
-	// std::cout << "Execution Time: " << std::chrono::duration <double> (endExec - startExec).count() << " s" << std::endl;
     return result;
 }
 
@@ -419,8 +414,10 @@ InterpretResult VM::run()
 
 void VM::Concatenate()
 {
-    ObjectString* b = AS_STRING(Pop());
-    ObjectString* a = AS_STRING(Pop());
+    ObjectString* b = AS_STRING(Peek(0));
+    ObjectString* a = AS_STRING(Peek(1));
+	Pop();
+	Pop();
 
     ObjectString* result = m_oParser.TakeString(a->string + b->string);
     Push(OBJ_VAL(result));
@@ -474,6 +471,7 @@ void VM::AddObjectToRoot(Object* object)
 	GC::Gc.AddRoot(object);
 
 	BlackenObject(object);
+	strings.RemoveWhite();
 }
 
 void VM::AddCompilerToRoots()

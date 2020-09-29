@@ -3,11 +3,9 @@
 #include "Parser.h"
 #include "compiler.h"
 #include "object.hpp"
-#include "vm.hpp"
 #include "gc.hpp"
-#include "gc_allocator.hpp"
+#include "vm.hpp"
 #include "statement.hpp"
-
 
 Chunk* Parser::GetCurrentChunk()
 {
@@ -232,8 +230,10 @@ void Parser::EmitLoop(int loopStart)
 
 uint8_t Parser::MakeConstant(Value value)
 {
-
+	m_pVm->Push(value);
 	int constant = GetCurrentChunk()->AddConstant(value);
+	m_pVm->Pop();
+
 	if (constant > UINT8_MAX) {
 		Error("Too many constants in one chunk.");
 		return 0;
@@ -724,8 +724,11 @@ ObjectString* Parser::AllocateString(const std::string& str, uint32_t hash)
 	string->hash = hash;
 
 	if (m_pVm)
+	{
+		m_pVm->Push(OBJ_VAL(string));
 		m_pVm->strings.Set(string, NIL_VAL);
-
+		m_pVm->Pop();
+	}
     return string;
 }
 

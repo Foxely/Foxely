@@ -14,6 +14,7 @@
 void repl()
 {
     VM vm;
+    GC::Gc.pVm = &vm;
     char line[1024] = "";
     for (;;)
     {
@@ -30,6 +31,7 @@ void repl()
 void runFile(const char* path)
 {
     VM vm;
+    GC::Gc.pVm = &vm;
 	std::ifstream t(path);
 	std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
 

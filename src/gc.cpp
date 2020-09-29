@@ -3,9 +3,9 @@
 #include <algorithm>
 #include <setjmp.h>
 
-// #include "Parser.h"
+#include "Parser.h"
 #include "gc.hpp"
-// #include "vm.hpp"
+#include "vm.hpp"
 
 GC GC::Gc;
 
@@ -19,7 +19,10 @@ Traceable::Traceable()
 	if (GC::Gc.bytesAllocated > GC::Gc.nextGC)
     {
         // VM::vm.AddToRoots();
-    	// GC::Gc.Collect();
+		// if (GC::Gc.pVm)
+		GC::Gc.ClearRoots();
+		GC::Gc.pVm->AddToRoots();
+    	GC::Gc.Collect();
     }
 }
 
@@ -41,6 +44,7 @@ GC::GC()
 {
 	bytesAllocated = 0;
 	nextGC = 1024 * 1024;
+	pVm = NULL;
 }
 
 /**
@@ -136,16 +140,16 @@ void GC::Collect()
 {
 	Mark();
 
-#ifdef DEBUG_LOG_GC
+// #ifdef DEBUG_LOG_GC
 	Dump("After mark:");
-#endif
+// #endif
 
 	Sweep();
 	nextGC = bytesAllocated * GC_HEAP_GROW_FACTOR;
 
-#ifdef DEBUG_LOG_GC
+// #ifdef DEBUG_LOG_GC
 	Dump("After sweep:");
-#endif
+// #endif
 }
 
 void GC::AddObject(Traceable* o)
@@ -166,4 +170,9 @@ void GC::AddRoot(Traceable* root)
 void GC::RemoveRoot(Traceable* root)
 {
 	m_oRoots.erase(root);
+}
+
+void GC::ClearRoots()
+{
+	m_oRoots.clear();
 }

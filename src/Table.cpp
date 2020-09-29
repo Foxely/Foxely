@@ -108,7 +108,7 @@ bool Table::Get(ObjectString *key, Value& value)
 {
     if (m_iCount == 0)
         return false;
-		
+
     Entry& entry = FindEntry(key);
     if (entry.m_pKey == NULL)
         return false;

@@ -1,5 +1,5 @@
 
-fib :: fun(n)
+/*fib :: fun(n)
 {
 	if (n < 2)
 		return n;
@@ -7,5 +7,13 @@ fib :: fun(n)
 }
 
 start: var = clock();
-print fib(35) == 9227465;
+print fib(50) == 9227465;
 print clock() - start;
+*/
+
+test :: fun()
+{
+	print "hbhb";
+}
+
+test();

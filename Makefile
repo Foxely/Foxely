@@ -26,6 +26,7 @@ ifeq ($(BUILD),debug)
 CFLAGS += -O0 -g3 -std=c++17
 CFLAGS += -DDEBUG -DDEBUG_TRACE_EXECUTION
 CFLAGS += $(if $(DEBUG_TOKEN),-DDEBUG_TOKEN)
+CFLAGS += $(if $(DEBUG_LOG_GC),-DDEBUG_LOG_GC)
 else
 # "Release" build - optimization, and no debug symbols
 CFLAGS += -O3 -s -DNDEBUG

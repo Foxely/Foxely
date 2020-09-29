@@ -137,20 +137,23 @@ public:
     }
 };
 
-struct ObjectClass {
+class ObjectClass : public Object
+{
     Object obj;
     ObjectString *name;
     // table_t methods;
 };
 
-struct ObjectInstance {
+class ObjectInstance : public Object
+{
     Object obj;
     ObjectClass *klass;
     // table_t fields;
 };
 
 
-struct ObjectBoundMethod {
+class ObjectBoundMethod : public Object
+{
     Object obj;
     Value receiver;
     ObjectClosure *method;
