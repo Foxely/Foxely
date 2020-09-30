@@ -15,10 +15,13 @@ VM::VM()
 	stack[0] = Value();
     ResetStack();
 	DefineNative("clock", clockNative);
+	initString = NULL;
+	initString = m_oParser.CopyString("init");
 }
 
 VM::~VM()
 {
+	initString = NULL;
 }
 
 void VM::ResetStack()
@@ -109,10 +112,23 @@ bool VM::CallValue(Value callee, int argCount)
 			Push(result);
 			return true;
 		}
+		case OBJ_BOUND_METHOD:
+		{
+			ObjectBoundMethod* bound = AS_BOUND_METHOD(callee);
+			stackTop[-argCount - 1] = bound->receiver;
+			return Call(bound->method, argCount);
+		}
 		case OBJ_CLASS:
 		{
 			ObjectClass* klass = AS_CLASS(callee);
 			stackTop[-argCount - 1] = OBJ_VAL(new ObjectInstance(klass));
+			Value initializer;
+			if (klass->methods.Get(initString, initializer)) {
+				return Call(AS_CLOSURE(initializer), argCount);
+			} else if (argCount != 0) {
+				RuntimeError("Expected 0 arguments but got %d.", argCount);
+				return false;
+			}
 			return true;
 		}
 		case OBJ_CLOSURE:
@@ -165,6 +181,37 @@ void VM::DefineNative(const std::string& name, NativeFn function)
 	globals.Set(AS_STRING(stack[0]), stack[1]);
 	Pop();
 	Pop();
+}
+
+bool VM::InvokeFromClass(ObjectClass* klass, ObjectString* name, int argCount)
+{
+	Value method;
+	if (!klass->methods.Get(name, method)) {
+		RuntimeError("Undefined property '%s'.", name->string.c_str());
+		return false;
+	}
+
+	return Call(AS_CLOSURE(method), argCount);
+}
+
+bool VM::Invoke(ObjectString* name, int argCount)
+{
+	Value receiver = Peek(argCount);
+
+	if (!IS_INSTANCE(receiver)) {
+		RuntimeError("Only instances have methods.");
+		return false;
+	}
+
+	ObjectInstance* instance = AS_INSTANCE(receiver);
+
+	Value value;
+	if (instance->fields.Get(name, value)) {
+		stackTop[-argCount - 1] = value;
+		return CallValue(value, argCount);
+	}
+
+	return InvokeFromClass(instance->klass, name, argCount);
 }
 
 InterpretResult VM::interpret(const char* source)
@@ -284,6 +331,46 @@ InterpretResult VM::run()
 				break;
 			}
 
+			case OP_GET_PROPERTY:
+			{
+				if (!IS_INSTANCE(Peek(0)))
+				{
+					RuntimeError("Only instances have properties.");
+					return INTERPRET_RUNTIME_ERROR;
+				}
+
+				ObjectInstance* instance = AS_INSTANCE(Peek(0));
+				ObjectString* name = READ_STRING();
+
+				Value value;
+				if (instance->fields.Get(name, value)) {
+					Pop(); // Instance.
+					Push(value);
+					break;
+				}
+				
+				if (!BindMethod(instance->klass, name)) {
+					return INTERPRET_RUNTIME_ERROR;
+				}
+				break;
+			}
+
+			case OP_SET_PROPERTY:
+			{
+				if (!IS_INSTANCE(Peek(1))) {
+					RuntimeError("Only instances have fields.");
+					return INTERPRET_RUNTIME_ERROR;
+				}
+
+				ObjectInstance* instance = AS_INSTANCE(Peek(1));
+				instance->fields.Set(READ_STRING(), Peek(0));
+
+				Value value = Pop();
+				Pop();
+				Push(value);
+				break;
+			}
+
             case OP_EQUAL: {
                 Value b = Pop();
                 Value a = Pop();
@@ -363,6 +450,21 @@ InterpretResult VM::run()
 			case OP_CLASS:
 				Push(OBJ_VAL(new ObjectClass(READ_STRING())));
 				break;
+			
+			case OP_METHOD:
+				DefineMethod(READ_STRING());
+				break;
+
+			case OP_INVOKE:
+			{
+				ObjectString* method = READ_STRING();
+				int argCount = READ_BYTE();
+				if (!Invoke(method, argCount)) {
+					return INTERPRET_RUNTIME_ERROR;
+				}
+				frame = &frames[frameCount - 1];
+				break;
+			}
 
 			case OP_CLOSURE:
 			{
@@ -452,6 +554,7 @@ void VM::AddToRoots()
 
 	AddTableToRoot(globals);
 	AddCompilerToRoots();
+	AddObjectToRoot((Object *)initString);
 }
 
 void VM::AddTableToRoot(Table& table)
@@ -518,10 +621,17 @@ void VM::BlackenObject(Object* object)
 			AddTableToRoot(instance->fields);
 		break;
 		}
+		case OBJ_BOUND_METHOD: {
+			ObjectBoundMethod* bound = (ObjectBoundMethod*)object;
+			AddValueToRoot(bound->receiver);
+			AddObjectToRoot((Object*)bound->method);
+			break;
+		}
 		case OBJ_CLASS:
 		{
 			ObjectClass* klass = (ObjectClass*)object;
 			AddObjectToRoot((Object *)klass->name);
+			AddTableToRoot(klass->methods);
 			break;
 		}
 		case OBJ_CLOSURE:
@@ -547,4 +657,26 @@ void VM::BlackenObject(Object* object)
 		case OBJ_STRING:
 			break;
 	}
+}
+
+void VM::DefineMethod(ObjectString* name)
+{
+	Value method = Peek(0);
+	ObjectClass* klass = AS_CLASS(Peek(1));
+	klass->methods.Set(name, method);
+	Pop();
+}
+
+bool VM::BindMethod(ObjectClass* klass, ObjectString* name)
+{
+	Value method;
+	if (!klass->methods.Get(name, method)) {
+		RuntimeError("Undefined property '%s'.", name->string.c_str());
+		return false;
+	}
+
+	ObjectBoundMethod* bound = new ObjectBoundMethod(Peek(0), AS_CLOSURE(method));
+	Pop();
+	Push(OBJ_VAL(bound));
+	return true;
 }

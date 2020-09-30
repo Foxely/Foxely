@@ -94,12 +94,13 @@ struct ParseRule
     Precedence precedence;
 };
 
-// struct ClassCompiler
-// {
-//     struct ClassCompiler *enclosing;
-//     Token name;
-//     bool has_superclass;
-// };
+struct ClassCompiler
+{
+	explicit ClassCompiler(Token& n) : name(n) {}
+   	ClassCompiler *enclosing;
+    Token& name;
+    bool hasSuperclass;
+};
 
 class Parser : public ParserHelper
 {
@@ -108,6 +109,7 @@ public:
     ParseRule rules[TOKEN_MAX];
 	VM* m_pVm;
     Compiler *currentCompiler;
+	ClassCompiler* currentClass;
     // ClassCompiler *comp_class;
 
     Parser();
@@ -162,8 +164,13 @@ struct Compiler
 
 		Local* local = &locals[localCount++];
 		local->depth = 0;
-		local->name.m_strText = "";
         local->isCaptured = false;
+
+		if (eType != TYPE_FUNCTION) {
+			local->name.m_strText = "this";
+		} else {
+			local->name.m_strText = "";
+		}
 	}
 
     Compiler *enclosing;
@@ -205,3 +212,4 @@ void Function(Parser& parser, FunctionType type, const Token& name);
 void FuncDeclaration(Parser& parser, Token name);
 int ResolveUpvalue(Parser& parser, Compiler *comp, Token& name);
 void ClassDeclaration(Parser& parser, Token& name);
+uint8_t ArgumentList(Parser& parser);

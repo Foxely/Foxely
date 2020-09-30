@@ -147,6 +147,7 @@ public:
 	{
 		type = OBJ_CLASS;
 		name = n;
+		methods = Table();
 	}
 };
 
@@ -167,8 +168,16 @@ public:
 
 class ObjectBoundMethod : public Object
 {
+public:
     Value receiver;
     ObjectClosure *method;
+
+	explicit ObjectBoundMethod(Value r, ObjectClosure* m)
+	{
+		type = OBJ_BOUND_METHOD;
+		receiver = r;
+		method = m;
+	}
 };
 
 

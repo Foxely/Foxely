@@ -19,6 +19,7 @@ void Parser::SetCurrentChunk(Chunk& chunk)
 Parser::Parser()
 {
 	currentCompiler = NULL;
+	currentClass = NULL;
 
     oLexer.Define(TOKEN_NEW_LINE,"\n", true);
     oLexer.Define(TOKEN_WS,"[ \t\r\b]+", true);
@@ -403,28 +404,28 @@ void RuleOr(Parser& parser, bool can_assign)
 
 void Dot(Parser& parser, bool can_assign)
 {
-    // Consume(TOKEN_IDENTIFIER, "Expect property name after '.'.");
-    // uint8_t name = IdentifierConstant(CurrentToken());
+    parser.Consume(TOKEN_IDENTIFIER, "Expect property name after '.'.");
+    uint8_t name = parser.IdentifierConstant(parser.PreviousToken());
 
-    // if (can_assign && Match(TOKEN_EQUAL)) {
-    //     Expression();
-    //     EmitBytes(OP_SET_PROPERTY, name);
-    // } else if (Match(TOKEN_LEFT_PAREN)) {
-    //     uint8_t arg_count = ArgumentList();
-    //     EmitBytes(OP_INVOKE, name);
-    //     EmitByte(arg_count);
-    // } else {
-    //     EmitBytes(OP_GET_PROPERTY, name);
-    // }
+    if (can_assign && parser.Match(TOKEN_EQUAL)) {
+        Expression(parser);
+        parser.EmitBytes(OP_SET_PROPERTY, name);
+    } else if (parser.Match(TOKEN_LEFT_PAREN)) {
+        uint8_t arg_count = ArgumentList(parser);
+        parser.EmitBytes(OP_INVOKE, name);
+        parser.EmitByte(arg_count);
+    } else {
+        parser.EmitBytes(OP_GET_PROPERTY, name);
+    }
 }
 
 void RuleThis(Parser& parser, bool can_assign)
 {
-    // if (parser->comp_class == NULL) {
-    //     Error("Cannot use 'this' outside of a class.");
-    //     return;
-    // }
-    // Variable(false);
+    if (parser.currentClass == NULL) {
+        parser.Error("Cannot use 'this' outside of a class.");
+        return;
+    }
+   	Variable(parser, false);
 }
 
 void RuleSuper(Parser& parser, bool can_assign)
@@ -950,6 +951,18 @@ void Parser::EndScope()
 	}
 }
 
+void Method(Parser& parser)
+{
+	parser.Consume(TOKEN_IDENTIFIER, "Expect method name.");
+	uint8_t constant = parser.IdentifierConstant(parser.PreviousToken());
+	FunctionType type = TYPE_METHOD;
+	if (parser.PreviousToken().GetText() == "init") {
+		type = TYPE_INITIALIZER;
+	}
+	Function(parser, type, parser.PreviousToken());
+	parser.EmitBytes(OP_METHOD, constant);
+}
+
 void ClassDeclaration(Parser& parser, Token& name)
 {
 	uint8_t nameConstant = parser.IdentifierConstant(name);
@@ -958,6 +971,18 @@ void ClassDeclaration(Parser& parser, Token& name)
 	parser.EmitBytes(OP_CLASS, nameConstant);
 	DefineVariable(parser, nameConstant);
 
+	ClassCompiler classCompiler(name);
+	classCompiler.enclosing = parser.currentClass;
+	parser.currentClass = &classCompiler;
+
+	NamedVariable(parser, name, false);
+
 	parser.Consume(TOKEN_LEFT_BRACE, "Expect '{' before class body.");
+	while (!parser.PeekTokenIsType(TOKEN_RIGHT_BRACE) && !parser.PeekTokenIsType(TOKEN_EOF)) {
+		Method(parser);
+	}
 	parser.Consume(TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
+	parser.EmitByte(OP_POP);
+
+	parser.currentClass = parser.currentClass->enclosing;
 }

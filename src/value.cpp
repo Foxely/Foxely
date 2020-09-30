@@ -76,6 +76,9 @@ void printObject(Value value)
 		case OBJ_INSTANCE:
 			std::cout << AS_INSTANCE(value)->klass->name->string << " instance";
 			break;
+		case OBJ_BOUND_METHOD:
+			PrintFunction(AS_BOUND_METHOD(value)->method->function);
+			break;
     }
 }
 

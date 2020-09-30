@@ -43,6 +43,7 @@ public:
 	Table strings;
 	Table globals;
 	ObjectUpvalue* openUpvalues;
+	ObjectString* initString;
 	// std::vector<GCObject*> m_oObjects;
 
 	// static VM vm;
@@ -72,6 +73,10 @@ public:
 	void AddCompilerToRoots();
 	void AddArrayToRoot(ValueArray* array);
 	void BlackenObject(Object* object);
+	void DefineMethod(ObjectString* name);
+	bool BindMethod(ObjectClass* klass, ObjectString* name);
+	bool Invoke(ObjectString* name, int argCount);
+	bool InvokeFromClass(ObjectClass* klass, ObjectString* name, int argCount);
 
 private:
     InterpretResult run();
