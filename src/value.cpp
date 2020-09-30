@@ -70,6 +70,12 @@ void printObject(Value value)
         case OBJ_UPVALUE:
             printf("upvalue");
             break;
+		case OBJ_CLASS:
+			std::cout << AS_CLASS(value)->name->string;
+			break;
+		case OBJ_INSTANCE:
+			std::cout << AS_INSTANCE(value)->klass->name->string << " instance";
+			break;
     }
 }
 

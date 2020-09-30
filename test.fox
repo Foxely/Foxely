@@ -11,9 +11,5 @@ print fib(50) == 9227465;
 print clock() - start;
 */
 
-test :: fun()
-{
-	print "hbhb";
-}
-
-test();
+Brioche :: class {}
+print Brioche;

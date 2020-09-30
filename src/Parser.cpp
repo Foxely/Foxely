@@ -1,7 +1,6 @@
 
 #include <cstring>
 #include "Parser.h"
-#include "compiler.h"
 #include "object.hpp"
 #include "gc.hpp"
 #include "vm.hpp"
@@ -9,7 +8,6 @@
 
 Chunk* Parser::GetCurrentChunk()
 {
-  	// return compilingChunk;
 	return &currentCompiler->function->chunk;
 }
 
@@ -151,7 +149,6 @@ ObjectFunction* Compile(Parser& parser, const std::string& strText, Chunk* chunk
 		Declaration(parser);
 	}
 	ObjectFunction *func = parser.EndCompiler();
-    // parser.Advance();
     return parser.hadError ? NULL : func;
 }
 
@@ -197,7 +194,6 @@ int Parser::EmitJump(uint8_t instruction)
 	EmitByte(instruction);
 	EmitByte(0xff);
 	EmitByte(0xff);
-	// return compilingChunk->m_iCount - 2;
 	return GetCurrentChunk()->m_vCode.size() - 2;
 }
 
@@ -290,6 +286,10 @@ void ParsePrecedence(Parser& parser, Precedence preced)
     }
 }
 
+
+// -----------------------------------------
+//		Rules				   		   	   -
+// -----------------------------------------
 
 void Number(Parser& parser, bool can_assign)
 {
@@ -456,9 +456,12 @@ void Variable(Parser& parser, bool can_assign)
 	{
 		VarDeclaration(parser, name);
 	}
-	else if (parser.IsToken(TOKEN_DOUBLE_COLON) && parser.IsToken(TOKEN_FUN))
+	else if (parser.IsToken(TOKEN_DOUBLE_COLON))
 	{
-		FuncDeclaration(parser, name);
+		if (parser.IsToken(TOKEN_FUN))
+			FuncDeclaration(parser, name);
+		else if (parser.IsToken(TOKEN_CLASS))
+    		ClassDeclaration(parser, name);
 	}
 	else
     	NamedVariable(parser, name, can_assign);
@@ -493,28 +496,10 @@ void CallCompiler(Parser& parser, bool can_assign)
 
 void Declaration(Parser& parser)
 {
-	// Token name;
-	// if (parser.IsTokenThenAssign(TOKEN_IDENTIFIER, name))
-	// {
-		// if (parser.Match(TOKEN_CLASS)) {
-        // 	// ClassDeclaration(parser);
-		// } else if (parser.Match(TOKEN_FUN)) {
-		// 	// FunctionDeclaration(parser);
-		// } else {
-		// 	if (parser.IsToken(TOKEN_VAR)) {
-		// 		// VarDeclaration(parser);
-		// 	} else
-				Statement(parser);
-		// }
-	// }
+	Statement(parser);
     if (parser.panicMode)
         Synchronize(parser);
 }
-
-// bool Check(int type)
-// {
-// 	return CurrentToken().m_oType.m_id == type;
-// }
 
 void Block(Parser& parser)
 {
@@ -553,6 +538,12 @@ void Synchronize(Parser& parser)
 		parser.Advance();
 	}
 }
+
+
+
+// -----------------------------------------
+//		Variable				   		   -
+// -----------------------------------------
 
 void NamedVariable(Parser& parser, Token name, bool can_assign)
 {
@@ -596,19 +587,12 @@ void DeclareVariable(Parser& parser, Token name)
 
 uint8_t ParseVariable(Parser& parser, Token& name, const char *msg)
 {
-    // parser.Consume(TOKEN_IDENTIFIER, msg);
 	DeclareVariable(parser, name);
 
   	if (parser.currentCompiler->scopeDepth > 0)
 		return 0;
 
 	uint8_t name_id = parser.IdentifierConstant(name);
-	// std::cout << parser.PreviousToken().GetText() << std::endl;
-	// parser.Consume(TOKEN_COLON, "Expect ':'.");
-	// parser.Consume(TOKEN_IDENTIFIER, "Expect variable type.");
-    // DeclareVariable(parser);
-    // if (parser.comp->scope_depth > 0)
-    //     return (0);
     return name_id;
 }
 
@@ -621,6 +605,11 @@ void DefineVariable(Parser& parser, uint8_t global)
     parser.EmitBytes(OP_DEFINE_GLOBAL, global);
 }
 
+/*
+ * @brief Cette fonction permet de déclarer une nouvelle variable
+ * @param parser c'est la ref vers le parser
+ * @param name c'est le nom de la variable
+*/
 void VarDeclaration(Parser& parser, Token name)
 {
     uint8_t global = ParseVariable(parser, name, "Expect variable name.");
@@ -634,6 +623,17 @@ void VarDeclaration(Parser& parser, Token name)
     DefineVariable(parser, global);
 }
 
+
+
+// -----------------------------------------
+//		Function				   		   -
+// -----------------------------------------
+
+/*
+ * @brief Cette fonction permet de déclarer une nouvelle fonction
+ * @param parser c'est la ref vers le parser
+ * @param name c'est le nom de la fonction
+*/
 void FuncDeclaration(Parser& parser, Token name)
 {
 	uint8_t global = ParseVariable(parser, name, "Expect function name.");
@@ -642,154 +642,13 @@ void FuncDeclaration(Parser& parser, Token name)
 	DefineVariable(parser, global);
 }
 
-
-int ResolveLocal(Parser& parser, Compiler *comp, Token& name)
-{
-    for (int i = comp->localCount - 1; i >= 0; i--) {
-        Local* loc = &comp->locals[i];
-        if (IdentifiersEqual(name, loc->name))
-		{
-            if (loc->depth == -1)
-				parser.Error("Cannot read local variable in its own initializer.");
-            return i;
-        }
-    }
-    return -1;
-}
-
-int AddUpvalue(Parser& parser, Compiler *comp, uint8_t index, bool is_local)
-{
-    int upvalue_count = comp->function->upValueCount;
-    for (int i = 0; i < upvalue_count; i++) {
-        Upvalue *up = &comp->upvalues[i];
-        if (up->index == index && up->isLocal == is_local) {
-            return i;
-        }
-    }
-    if (upvalue_count == UINT8_COUNT) {
-        parser.Error("Too many closure variables in function.");
-        return 0;
-    }
-    comp->upvalues[upvalue_count].isLocal = is_local;
-    comp->upvalues[upvalue_count].index = index;
-    return comp->function->upValueCount++;
-}
-
-int ResolveUpvalue(Parser& parser, Compiler *comp, Token& name)
-{
-    if (comp->enclosing == NULL)
-        return -1;
-    int local = ResolveLocal(parser, comp->enclosing, name);
-    if (local != -1) {
-        comp->enclosing->locals[local].isCaptured = true;
-        return (AddUpvalue(parser, comp, (uint8_t) local, true));
-    }
-    int upvalue = ResolveUpvalue(parser, comp->enclosing, name);
-    if (upvalue != -1) {
-        return AddUpvalue(parser, comp, (uint8_t)upvalue, false);
-    }
-    return (-1);
-}
-
-void AddLocal(Parser& parser, Token name)
-{
-    if (parser.currentCompiler->localCount == UINT8_COUNT) {
-        parser.Error("Too many local variables in function.");
-        return;
-    }
-
-    Local *loc = &parser.currentCompiler->locals[parser.currentCompiler->localCount++];
-    loc->name = name;
-    loc->depth = -1;
-    loc->isCaptured = false;
-}
-
-uint32_t Parser::hashString(const std::string& str)
-{
-  	uint32_t hash = 2166136261u;
-
-	for (int i = 0; i < str.size(); i++) {
-		hash ^= str[i];
-		hash *= 16777619;
-	}
-  	return hash;
-}
-
-ObjectString* Parser::AllocateString(const std::string& str, uint32_t hash)
-{
-    // ObjectString* string = New<ObjectString>(*m_pAllocator, str);
-    // ObjectString* string = Pointer<ObjectString>(str);
-    ObjectString* string = new ObjectString(str);
-    string->type = OBJ_STRING;
-	string->hash = hash;
-
-	if (m_pVm)
-	{
-		m_pVm->Push(OBJ_VAL(string));
-		m_pVm->strings.Set(string, NIL_VAL);
-		m_pVm->Pop();
-	}
-    return string;
-}
-
-ObjectString* Parser::CopyString(const std::string& value)
-{
-	uint32_t hash = hashString(value);
-    ObjectString* interned = NULL;
-
-	if (m_pVm)
-		interned = m_pVm->strings.FindString(value, hash);
-
-  	if (interned != NULL)
-	  return interned;
-
-    return AllocateString(value, hash);
-}
-
-ObjectString* Parser::TakeString(const std::string& value)
-{
-	uint32_t hash = hashString(value);
-	ObjectString* interned = NULL;
-
-	if (m_pVm)
-		interned = m_pVm->strings.FindString(value, hash);
-	if (interned != NULL)
-		return interned;
-
-    return AllocateString(value, hash);
-}
-
-uint8_t Parser::IdentifierConstant(const Token& name)
-{
-  	return MakeConstant(OBJ_VAL(CopyString(name.GetText())));
-}
-
-bool IdentifiersEqual(Token& a, Token& b)
-{
-	if (a.m_iLength != b.m_iLength)
-		return false;
-	return a.GetText() == b.GetText();
-}
-
-void Parser::BeginScope()
-{
-  	currentCompiler->scopeDepth++;
-}
-
-void Parser::EndScope()
-{
-  	currentCompiler->scopeDepth--;
-
-	while (currentCompiler->localCount > 0 && currentCompiler->locals[currentCompiler->localCount - 1].depth > currentCompiler->scopeDepth) {
-		if (currentCompiler->locals[currentCompiler->localCount - 1].isCaptured) {
-	      EmitByte(OP_CLOSE_UPVALUE);
-	    } else {
-	      EmitByte(OP_POP);
-	    }
-		currentCompiler->localCount--;
-	}
-}
-
+/*
+ * @brief Cette fonction permet d'initializer une fonction
+ * @param parser c'est la ref vers le parser
+ * @param type c'est le type de fonction (voir l'enum FunctionType)
+ * @param name c'est le nom de la fonction
+ * @return true si les deux sont égaux sinon false dans le cas contraire
+*/
 void Function(Parser& parser, FunctionType type, const Token& name)
 {
 	Compiler compiler(parser, type, name.GetText());
@@ -825,4 +684,280 @@ void Function(Parser& parser, FunctionType type, const Token& name)
 	    parser.EmitByte(compiler.upvalues[i].isLocal ? 1 : 0);
 	    parser.EmitByte(compiler.upvalues[i].index);
 	}
+}
+
+
+
+// -----------------------------------------
+//		UpValue				   			   -
+// -----------------------------------------
+
+/*
+ * @brief Cette fonction permet de hasher la string passé en paramètre
+ * @param parser c'est la ref vers le parser
+ * @param comp c'est la ref vers un compiler
+ * @param index c'est la position de la variable dans le tableau des variables locales
+ * @param is_local ça permet de savoir si la variable est local ou pas
+ * @return un index qui correspond à la position de la variable local dans la upvalue
+*/
+int AddUpvalue(Parser& parser, Compiler *comp, uint8_t index, bool is_local)
+{
+    int upvalue_count = comp->function->upValueCount;
+    for (int i = 0; i < upvalue_count; i++) {
+        Upvalue *up = &comp->upvalues[i];
+        if (up->index == index && up->isLocal == is_local) {
+            return i;
+        }
+    }
+    if (upvalue_count == UINT8_COUNT) {
+        parser.Error("Too many closure variables in function.");
+        return 0;
+    }
+    comp->upvalues[upvalue_count].isLocal = is_local;
+    comp->upvalues[upvalue_count].index = index;
+    return comp->function->upValueCount++;
+}
+
+/*
+ * @brief Cette fonction permet de chercher dans la liste du block au dessus le nom de la variable local correspondant et résoudre les problèmes comme l'initialisation et le rajouter dans la liste des upvalues du block actuel
+ * @param parser c'est la ref vers le parser
+ * @param comp c'est la ref vers un compiler
+ * @param name c'est le nom de la variable
+ * @return un index qui correspond à la position de la variable local dans la upvalue
+ * @note:
+		// Block1
+		{
+			a: var;		<- Variable Local
+			
+			// Block 2
+			{
+				b: var;		<- Variable Local
+
+				// Block 3
+				{
+					print a; 		<- UpValue
+				}
+			}
+		}
+
+		Voila ce qui se passe en interne
+
+		Block1:
+			locals:
+				- a
+			upvalues:
+			Block2:
+				locals:
+					- b
+				upvalues:
+					- a
+				Block 3:
+					locals:
+					upvalues:
+						- a
+						- b
+	Comme ça on peut accéder à la variable 'a' dans le Block3 facilement
+*/
+int ResolveUpvalue(Parser& parser, Compiler *comp, Token& name)
+{
+    if (comp->enclosing == NULL)
+        return -1;
+	// Chercher dans la liste des variables locales
+    int local = ResolveLocal(parser, comp->enclosing, name);
+    if (local != -1) {
+        comp->enclosing->locals[local].isCaptured = true;
+        return (AddUpvalue(parser, comp, (uint8_t) local, true));
+    }
+	// Si la variable n'est pas local au block actuel, chercher dans le block au-dessus et l'enregistrer en tant que upvalue
+    int upvalue = ResolveUpvalue(parser, comp->enclosing, name);
+    if (upvalue != -1) {
+        return AddUpvalue(parser, comp, (uint8_t)upvalue, false);
+    }
+	// Sinon on n'a rien trouvé, la variable n'existe pas
+    return (-1);
+}
+
+
+// -----------------------------------------
+//		Local Variable				   	   -
+// -----------------------------------------
+
+/*
+ * @brief Cette fonction permet de chercher dans la liste le nom de la variable local correspondant et résoudre les problèmes comme l'initialisation
+ * @param parser c'est la ref vers le parser
+ * @param comp c'est la ref vers un compiler
+ * @param name c'est le nom de la variable
+ * @return un index qui correspond à la position de la variable local
+*/
+int ResolveLocal(Parser& parser, Compiler *comp, Token& name)
+{
+    for (int i = comp->localCount - 1; i >= 0; i--) {
+        Local* loc = &comp->locals[i];
+        if (IdentifiersEqual(name, loc->name))
+		{
+            if (loc->depth == -1)
+				parser.Error("Cannot read local variable in its own initializer.");
+            return i;
+        }
+    }
+    return -1;
+}
+
+/*
+ * @brief Cette fonction permet d'ajouter une variable locale
+ * @param parser c'est la ref vers le parser
+ * @param name c'est le nom de la variable
+*/
+void AddLocal(Parser& parser, Token name)
+{
+    if (parser.currentCompiler->localCount == UINT8_COUNT) {
+        parser.Error("Too many local variables in function.");
+        return;
+    }
+
+    Local *loc = &parser.currentCompiler->locals[parser.currentCompiler->localCount++];
+    loc->name = name;
+    loc->depth = -1;
+    loc->isCaptured = false;
+}
+
+
+// -----------------------------------------
+//		String Manipulation				   -
+// -----------------------------------------
+
+/*
+ * @brief Cette fonction permet de hasher la string passé en paramètre
+ * @param str la chaine de caractère qui sera hasher
+ * @return un nombre unique qui correspond à la position de la string dans le tableau
+ * @note Hasher veut dire produire un identifiant unique crypté
+*/
+uint32_t Parser::hashString(const std::string& str)
+{
+  	uint32_t hash = 2166136261u;
+
+	for (int i = 0; i < str.size(); i++) {
+		hash ^= str[i];
+		hash *= 16777619;
+	}
+  	return hash;
+}
+
+
+/*
+ * @brief Cette fonction permet de transformer la string passé en param en ObjectString compréhensible par le langage
+ * @param str la chaine de caractère qui sera stocker
+ * @param hash l'identifiant unique de la string après un hashage (passage dans une fonction de hashage comme 'hashString')
+ * @return un pointeur ObjectString alloué dans le garbage Collector
+*/
+ObjectString* Parser::AllocateString(const std::string& str, uint32_t hash)
+{
+    ObjectString* string = new ObjectString(str);
+    string->type = OBJ_STRING;
+	string->hash = hash;
+
+	if (m_pVm)
+	{
+		m_pVm->Push(OBJ_VAL(string));
+		m_pVm->strings.Set(string, NIL_VAL);
+		m_pVm->Pop();
+	}
+    return string;
+}
+
+/*
+ * @brief Cette fonction permet de copier une string passé en param et return un ObjectString compréhensible par le langage
+ * @param value la chaine de caractère qui sera copier
+ * @return une copie de la string sous un pointeur ObjectString alloué dans le garbage Collector
+*/
+ObjectString* Parser::CopyString(const std::string& value)
+{
+	uint32_t hash = hashString(value);
+    ObjectString* interned = NULL;
+
+	if (m_pVm)
+		interned = m_pVm->strings.FindString(value, hash);
+
+  	if (interned != NULL)
+	  return interned;
+
+    return AllocateString(value, hash);
+}
+
+/*
+ * @brief Cette fonction fait la même chose que 'CopyString'
+*/
+ObjectString* Parser::TakeString(const std::string& value)
+{
+	uint32_t hash = hashString(value);
+	ObjectString* interned = NULL;
+
+	if (m_pVm)
+		interned = m_pVm->strings.FindString(value, hash);
+	if (interned != NULL)
+		return interned;
+
+    return AllocateString(value, hash);
+}
+
+/*
+ * @brief Cette fonction permet de créer un nombre unique pour le nom de l'identifer passer en paramètre 
+ * @param name le Token qui contient le nom de l'identifier
+ * @return un index de l'emplacement où est stocker l'identifier
+ * @note test::func() { ... }: test est un Identifer
+ *		 a: var; : a est un Identifer
+*/
+uint8_t Parser::IdentifierConstant(const Token& name)
+{
+  	return MakeConstant(OBJ_VAL(CopyString(name.GetText())));
+}
+
+/*
+ * @brief Cette fonction permet de comparer le nom de deux Identifiers
+ * @param a le Token qui sera comparé
+ * @param b le Token qui sera comparé
+ * @return true si les deux sont égaux sinon false dans le cas contraire
+*/
+bool IdentifiersEqual(Token& a, Token& b)
+{
+	if (a.m_iLength != b.m_iLength)
+		return false;
+	return a.GetText() == b.GetText();
+}
+
+/*
+ * @brief Cette fonction permet d'incrementer la scope
+*/
+void Parser::BeginScope()
+{
+  	currentCompiler->scopeDepth++;
+}
+
+/*
+ * @brief Cette fonction permet d'décrementer la scope
+*/
+void Parser::EndScope()
+{
+  	currentCompiler->scopeDepth--;
+
+	while (currentCompiler->localCount > 0 && currentCompiler->locals[currentCompiler->localCount - 1].depth > currentCompiler->scopeDepth) {
+		if (currentCompiler->locals[currentCompiler->localCount - 1].isCaptured) {
+	      EmitByte(OP_CLOSE_UPVALUE);
+	    } else {
+	      EmitByte(OP_POP);
+	    }
+		currentCompiler->localCount--;
+	}
+}
+
+void ClassDeclaration(Parser& parser, Token& name)
+{
+	uint8_t nameConstant = parser.IdentifierConstant(name);
+	DeclareVariable(parser, name);
+
+	parser.EmitBytes(OP_CLASS, nameConstant);
+	DefineVariable(parser, nameConstant);
+
+	parser.Consume(TOKEN_LEFT_BRACE, "Expect '{' before class body.");
+	parser.Consume(TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
 }

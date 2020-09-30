@@ -15,6 +15,7 @@
 #include "chunk.hpp"
 #include "value.hpp"
 #include "gc.hpp"
+#include "Table.hpp"
 
 #define OBJ_TYPE(val)         (AS_OBJ(val)->type)
 
@@ -65,8 +66,7 @@ class ObjectString : public Object
 {
 public:
     explicit ObjectString(const std::string& v) : string(v) {}
-    // int length;
-    // char *chars;
+
     uint32_t hash;
     std::string string;
 };
@@ -139,22 +139,34 @@ public:
 
 class ObjectClass : public Object
 {
-    Object obj;
+public:
     ObjectString *name;
-    // table_t methods;
+    Table methods;
+
+	explicit ObjectClass(ObjectString* n)
+	{
+		type = OBJ_CLASS;
+		name = n;
+	}
 };
 
 class ObjectInstance : public Object
 {
-    Object obj;
+public:
     ObjectClass *klass;
-    // table_t fields;
+    Table fields;
+
+	explicit ObjectInstance(ObjectClass *k)
+	{
+		type = OBJ_INSTANCE;
+		klass = k;
+		fields = Table();
+	}
 };
 
 
 class ObjectBoundMethod : public Object
 {
-    Object obj;
     Value receiver;
     ObjectClosure *method;
 };

@@ -5,7 +5,6 @@
 #include "Lexer.h"
 #include "ParserHelper.h"
 #include "chunk.hpp"
-#include "PointerMath.h"
 #include "object.hpp"
 
 #define UINT8_COUNT (UINT8_MAX + 1)
@@ -205,3 +204,4 @@ int ResolveLocal(Parser& parser, Compiler *comp, Token& name);
 void Function(Parser& parser, FunctionType type, const Token& name);
 void FuncDeclaration(Parser& parser, Token name);
 int ResolveUpvalue(Parser& parser, Compiler *comp, Token& name);
+void ClassDeclaration(Parser& parser, Token& name);

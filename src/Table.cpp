@@ -7,6 +7,7 @@
 
 #include <string>
 #include <iostream>
+#include "object.hpp"
 #include "Table.hpp"
 
 #define GROW_CAPACITY(capacity) \

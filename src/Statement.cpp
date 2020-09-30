@@ -1,6 +1,5 @@
 
 #include "Parser.h"
-#include "compiler.h"
 #include "object.hpp"
 #include "vm.hpp"
 #include "gc.hpp"

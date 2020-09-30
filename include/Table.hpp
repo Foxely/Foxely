@@ -1,6 +1,7 @@
 #pragma once
 
-#include "object.hpp"
+
+class ObjectString;
 
 #define TABLE_MAX_LOAD (0.75)
 

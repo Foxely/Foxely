@@ -109,6 +109,12 @@ bool VM::CallValue(Value callee, int argCount)
 			Push(result);
 			return true;
 		}
+		case OBJ_CLASS:
+		{
+			ObjectClass* klass = AS_CLASS(callee);
+			stackTop[-argCount - 1] = OBJ_VAL(new ObjectInstance(klass));
+			return true;
+		}
 		case OBJ_CLOSURE:
         	return Call(AS_CLOSURE(callee), argCount);
 		default:
@@ -330,6 +336,7 @@ InterpretResult VM::run()
 				frame->ip += offset;
 				break;
 			}
+
 			case OP_JUMP_IF_FALSE:
 			{
 				uint16_t offset = READ_SHORT();
@@ -352,6 +359,10 @@ InterpretResult VM::run()
 				frame = &frames[frameCount - 1];
 				break;
 			}
+
+			case OP_CLASS:
+				Push(OBJ_VAL(new ObjectClass(READ_STRING())));
+				break;
 
 			case OP_CLOSURE:
 			{
@@ -500,6 +511,19 @@ void VM::BlackenObject(Object* object)
 #endif
 	switch (object->type)
 	{
+		case OBJ_INSTANCE:
+		{
+			ObjectInstance* instance = (ObjectInstance *)object;
+			AddObjectToRoot((Object *)instance->klass);
+			AddTableToRoot(instance->fields);
+		break;
+		}
+		case OBJ_CLASS:
+		{
+			ObjectClass* klass = (ObjectClass*)object;
+			AddObjectToRoot((Object *)klass->name);
+			break;
+		}
 		case OBJ_CLOSURE:
 		{
 			ObjectClosure* closure = (ObjectClosure*)object;
