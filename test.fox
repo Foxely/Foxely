@@ -1,9 +1,24 @@
+Doughnut :: class
+{
+	cook()
+	{
+		print "Dunk in the fryer.";
+		this.finish("sprinkles");
+	}
 
-Scone::class {
-  topping(first, second) {
-    print "scone with " + first + " and " + second;
-  }
+	finish(ingredient)
+	{
+		print "Finish with " + ingredient;
+	}
 }
 
-scone: var = Scone();
-scone.topping("berries", "cream");
+Cruller :: class < Doughnut
+{
+	finish(ingredient)
+	{
+		super.finish("icing");
+	}
+}
+
+f: var = Cruller();
+f.finish("scs");

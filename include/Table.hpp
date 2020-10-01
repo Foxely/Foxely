@@ -22,7 +22,7 @@ public:
 	void AdjustCapacity(int capacity);
 	Entry& FindEntry(ObjectString* pKey);
 	bool Set(ObjectString *key, Value value);
-	void AddAll(Table& from, Table& to);
+	void AddAll(Table& from);
 	bool Get(ObjectString *key, Value& value);
 	bool Delete(ObjectString *key);
 	ObjectString *FindString(const char *chars, int length, uint32_t hash);

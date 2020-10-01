@@ -450,6 +450,20 @@ InterpretResult VM::run()
 			case OP_CLASS:
 				Push(OBJ_VAL(new ObjectClass(READ_STRING())));
 				break;
+
+			case OP_INHERIT:
+			{
+				Value superclass = Peek(1);
+				
+				if (!IS_CLASS(superclass)) {
+					RuntimeError("Superclass must be a class.");
+					return INTERPRET_RUNTIME_ERROR;
+				}
+				ObjectClass* subclass = AS_CLASS(Peek(0));
+				subclass->methods.AddAll(AS_CLASS(superclass)->methods);
+				Pop(); // Subclass.
+				break;
+			}
 			
 			case OP_METHOD:
 				DefineMethod(READ_STRING());
@@ -460,6 +474,18 @@ InterpretResult VM::run()
 				ObjectString* method = READ_STRING();
 				int argCount = READ_BYTE();
 				if (!Invoke(method, argCount)) {
+					return INTERPRET_RUNTIME_ERROR;
+				}
+				frame = &frames[frameCount - 1];
+				break;
+			}
+
+			case OP_SUPER_INVOKE:
+			{
+				ObjectString* method = READ_STRING();
+				int argCount = READ_BYTE();
+				ObjectClass* superclass = AS_CLASS(Pop());
+				if (!InvokeFromClass(superclass, method, argCount)) {
 					return INTERPRET_RUNTIME_ERROR;
 				}
 				frame = &frames[frameCount - 1];
@@ -488,6 +514,16 @@ InterpretResult VM::run()
 		        CloseUpvalues(stackTop - 1);
 		        Pop();
 		        break;
+			
+			case OP_GET_SUPER:
+			{
+				ObjectString* name = READ_STRING();
+				ObjectClass* superclass = AS_CLASS(Pop());
+				if (!BindMethod(superclass, name)) {
+					return INTERPRET_RUNTIME_ERROR;
+				}
+				break;
+			}
 
             case OP_RETURN:
 			{

@@ -140,16 +140,16 @@ void GC::Collect()
 {
 	Mark();
 
-// #ifdef DEBUG_LOG_GC
+#ifdef DEBUG_LOG_GC
 	Dump("After mark:");
-// #endif
+#endif
 
 	Sweep();
 	nextGC = bytesAllocated * GC_HEAP_GROW_FACTOR;
 
-// #ifdef DEBUG_LOG_GC
+#ifdef DEBUG_LOG_GC
 	Dump("After sweep:");
-// #endif
+#endif
 }
 
 void GC::AddObject(Traceable* o)
