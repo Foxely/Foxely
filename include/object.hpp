@@ -24,6 +24,7 @@
 #define IS_LIB(val)           is_obj_type(val, OBJ_LIB)
 #define IS_BOUND_METHOD(val)  is_obj_type(val, OBJ_BOUND_METHOD)
 #define IS_CLASS(val)         is_obj_type(val, OBJ_CLASS)
+#define IS_NATIVE_CLASS(val)         is_obj_type(val, OBJ_NATIVE_CLASS)
 #define IS_CLOSURE(val)       is_obj_type(val, OBJ_CLOSURE)
 #define IS_INSTANCE(val)      is_obj_type(val, OBJ_INSTANCE)
 #define IS_FUNCTION(val)      is_obj_type(val, OBJ_FUNCTION)
@@ -34,6 +35,7 @@
 #define AS_LIB(val)           ((ObjectLib *)AS_OBJ(val))
 #define AS_BOUND_METHOD(val)  ((ObjectBoundMethod *)AS_OBJ(val))
 #define AS_CLASS(val)         ((ObjectClass *)AS_OBJ(val))
+#define AS_NATIVE_CLASS(val)         ((ObjectNativeClass *)AS_OBJ(val))
 #define AS_CLOSURE(val)       ((ObjectClosure *)AS_OBJ(val))
 #define AS_FUNCTION(val)      ((ObjectFunction *)AS_OBJ(val))
 #define AS_INSTANCE(val)        ((ObjectInstance *)AS_OBJ(val))
@@ -48,6 +50,7 @@ typedef enum {
     OBJ_FUNCTION,
     OBJ_INSTANCE,
     OBJ_NATIVE,
+    OBJ_NATIVE_CLASS,
     OBJ_LIB,
     OBJ_STRING,
     OBJ_UPVALUE,
@@ -110,11 +113,34 @@ class ObjectNative : public Object
 {
 public:
     NativeFn function;
+    int arity;
 
 	explicit ObjectNative(NativeFn func)
 	{
 		function = func;
 		type = OBJ_NATIVE;
+        arity = 0;
+	}
+
+    explicit ObjectNative(NativeFn func, int a)
+	{
+		function = func;
+		type = OBJ_NATIVE;
+        arity = a;
+	}
+};
+
+class ObjectNativeClass : public Object
+{
+public:
+    ObjectString *name;
+    Table methods;
+
+	explicit ObjectNativeClass(ObjectString* n)
+	{
+		type = OBJ_NATIVE_CLASS;
+		name = n;
+		methods = Table();
 	}
 };
 

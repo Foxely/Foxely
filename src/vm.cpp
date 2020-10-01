@@ -5,6 +5,7 @@
 #include "debug.h"
 #include "Parser.h"
 #include "vm.hpp"
+#include "Foxely_Standard/os.h"
 
 // VM VM::vm;
 
@@ -15,6 +16,15 @@ VM::VM()
 	stack[0] = Value();
     ResetStack();
 	DefineNative("clock", clockNative);
+
+	NativeMethods methods =
+	{
+		std::make_pair<std::string, Native>("which", std::make_pair<NativeFn, int>(whichNative, 0)),
+		std::make_pair<std::string, Native>("shell", std::make_pair<NativeFn, int>(shellNative, 1)),
+		std::make_pair<std::string, Native>("getenv", std::make_pair<NativeFn, int>(getEnvNative, 1)),
+	};
+	DefineClass("os", methods);
+
 	initString = NULL;
 	initString = m_oParser.CopyString("init");
 }
@@ -22,6 +32,12 @@ VM::VM()
 VM::~VM()
 {
 	initString = NULL;
+}
+
+VM* VM::GetInstance()
+{
+	static VM m_oInstance;
+	return &m_oInstance;
 }
 
 void VM::ResetStack()
@@ -106,6 +122,12 @@ bool VM::CallValue(Value callee, int argCount)
 		// 	return Call(AS_FUNCTION(callee), argCount);
 		case OBJ_NATIVE:
 		{
+			ObjectNative* objNative = (ObjectNative *) AS_OBJ(callee);
+			if (objNative->arity != argCount)
+			{
+				RuntimeError("Expected %d arguments but got %d.", objNative->arity, argCount);
+				return false;
+			}
 			NativeFn native = AS_NATIVE(callee);
 			Value result = native(argCount, stackTop - argCount);
 			stackTop -= argCount + 1;
@@ -183,6 +205,30 @@ void VM::DefineNative(const std::string& name, NativeFn function)
 	Pop();
 }
 
+void VM::DefineClass(const std::string& name, NativeMethods& functions)
+{
+	Push(OBJ_VAL(m_oParser.CopyString(name)));
+	Push(OBJ_VAL(new ObjectNativeClass(AS_STRING(stack[0]))));
+	globals.Set(AS_STRING(stack[0]), stack[1]);
+	ObjectNativeClass* klass = AS_NATIVE_CLASS(Pop());
+	Pop();
+	Push(OBJ_VAL(klass));
+	for (auto& it : functions)
+	{
+		NativeFn func = it.second.first;
+		int arity = it.second.second;
+
+		Push(OBJ_VAL(m_oParser.CopyString(it.first)));
+		Push(OBJ_VAL(new ObjectNative(func, arity)));
+
+		klass->methods.Set(AS_STRING(stack[1]), stack[2]);
+
+		Pop();
+		Pop();
+	}
+	Pop();
+}
+
 bool VM::InvokeFromClass(ObjectClass* klass, ObjectString* name, int argCount)
 {
 	Value method;
@@ -198,20 +244,32 @@ bool VM::Invoke(ObjectString* name, int argCount)
 {
 	Value receiver = Peek(argCount);
 
-	if (!IS_INSTANCE(receiver)) {
-		RuntimeError("Only instances have methods.");
+	if (!IS_INSTANCE(receiver) && !IS_NATIVE_CLASS(receiver)) {
+		RuntimeError("Only instances && module have methods.");
 		return false;
 	}
 
-	ObjectInstance* instance = AS_INSTANCE(receiver);
-
 	Value value;
-	if (instance->fields.Get(name, value)) {
-		stackTop[-argCount - 1] = value;
-		return CallValue(value, argCount);
-	}
+	if (IS_INSTANCE(receiver))
+	{
+		ObjectInstance* instance = AS_INSTANCE(receiver);
 
-	return InvokeFromClass(instance->klass, name, argCount);
+		if (instance->fields.Get(name, value)) {
+			stackTop[-argCount - 1] = value;
+			return CallValue(value, argCount);
+		}
+		return InvokeFromClass(instance->klass, name, argCount);
+	}
+	else if (IS_NATIVE_CLASS(receiver))
+	{
+		ObjectNativeClass* instance = AS_NATIVE_CLASS(receiver);
+		Value method;
+		if (!instance->methods.Get(name, method)) {
+			RuntimeError("Undefined property '%s'.", name->string.c_str());
+			return false;
+		}
+		return CallValue(method, argCount);
+	}
 }
 
 InterpretResult VM::interpret(const char* source)

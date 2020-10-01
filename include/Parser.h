@@ -213,3 +213,5 @@ void FuncDeclaration(Parser& parser, Token name);
 int ResolveUpvalue(Parser& parser, Compiler *comp, Token& name);
 void ClassDeclaration(Parser& parser, Token& name);
 uint8_t ArgumentList(Parser& parser);
+void DeclareVariable(Parser& parser, Token name);
+void DefineVariable(Parser& parser, uint8_t global);

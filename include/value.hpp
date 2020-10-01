@@ -17,7 +17,9 @@ enum ValueType {
     VAL_OBJ
 };
 
-struct Value {
+class Value
+{
+public:
     ValueType type;
     union {
         bool boolean;

@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <time.h>
+#include <utility>
 #include "chunk.hpp"
 #include "value.hpp"
 #include "object.hpp"
@@ -31,6 +32,9 @@ typedef enum
 
 class VM
 {
+	using Native = std::pair<NativeFn, int>;
+	using NativeMethods = std::map<std::string, Native>;
+
 public:
 	CallFrame frames[FRAMES_MAX];
   	int frameCount;
@@ -44,12 +48,12 @@ public:
 	Table globals;
 	ObjectUpvalue* openUpvalues;
 	ObjectString* initString;
-	// std::vector<GCObject*> m_oObjects;
-
-	// static VM vm;
 
     VM();
 	~VM();
+
+	static VM* GetInstance();
+
     InterpretResult interpret(const char* source);
 
     void ResetStack();
@@ -63,6 +67,7 @@ public:
 	bool CallValue(Value callee, int argCount);
 	bool Call(ObjectClosure* closure, int argCount);
 	void DefineNative(const std::string& name, NativeFn function);
+	void DefineClass(const std::string& name, NativeMethods& functions);
 	ObjectUpvalue* CaptureUpvalue(Value* local);
 	void CloseUpvalues(Value* last);
 

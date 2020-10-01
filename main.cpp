@@ -13,8 +13,7 @@
 
 void repl()
 {
-    VM vm;
-    GC::Gc.pVm = &vm;
+    GC::Gc.pVm = VM::GetInstance();
     char line[1024] = "";
     for (;;)
     {
@@ -24,18 +23,17 @@ void repl()
             printf("\n");
             break;
         }
-        vm.interpret(line);
+        VM::GetInstance()->interpret(line);
     }
 }
 
 void runFile(const char* path)
 {
-    VM vm;
-    GC::Gc.pVm = &vm;
+    GC::Gc.pVm = VM::GetInstance();
 	std::ifstream t(path);
 	std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
 
-    InterpretResult result = vm.interpret(str.c_str());
+    InterpretResult result = VM::GetInstance()->interpret(str.c_str());
 
     if (result == INTERPRET_COMPILE_ERROR) exit(65);
     if (result == INTERPRET_RUNTIME_ERROR) exit(70);

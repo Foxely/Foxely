@@ -1,9 +1,4 @@
 
-Scone::class {
-  topping(first, second) {
-    print "scone with " + first + " and " + second;
-  }
-}
+print os.which();
 
-scone: var = Scone();
-scone.topping("berries", "cream");
+os.shell("echo Hello");
