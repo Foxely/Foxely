@@ -226,35 +226,6 @@ struct ObjectCustomField {
     field_destroyer destroy;
 };
 
-
-
-// ObjectCustomField *
-// new_custom_field(VM *vm, char *type, void *field, field_destroyer destroy);
-
-// obj_lib *new_lib(VM *vm);
-// void define_lib(VM *vm, const char *name, lib_reg *regs);
-
-// ObjectBoundMethod *
-// new_bound_method(VM *vm, Value receiver, ObjectClosure *method);
-
-// ObjectInstance *new_instance(VM *vm, ObjectClass *klass);
-// ObjectClass *new_class(VM *vm, ObjectString *name);
-
-// ObjectUpValue *new_upValue(VM *vm, Value *slot);
-
-// ObjectClosure *new_closure(VM *vm, ObjectFunction *function);
-
-// ObjectNative *new_native(VM *vm, native_fn function);
-// // void define_native(VM *vm, table_t *table, const char *name, native_fn func);
-
-ObjectFunction *NewFunction();
-// void print_function(ObjectFunction *function);
-
-// void concatenate_number(VM *vm);
-// ObjectString* takeString(const std::string& value);
-// ObjectString* copyString(const std::string& value);
-// Object* allocateObject(ObjType type);
-
 static inline bool is_obj_type(Value val, ObjType type)
 {
     return IS_OBJ(val) && AS_OBJ(val)->type == type;

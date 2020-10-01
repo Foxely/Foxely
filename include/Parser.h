@@ -166,10 +166,10 @@ struct Compiler
 		local->depth = 0;
         local->isCaptured = false;
 
-		if (eType != TYPE_FUNCTION) {
-			local->name.m_strText = "this";
+		if (type != TYPE_FUNCTION) {
+			local->name = Token("this", (std::size_t) 4);
 		} else {
-			local->name.m_strText = "";
+			local->name = Token("", (std::size_t) 0);
 		}
 	}
 

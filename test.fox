@@ -1,3 +1,10 @@
+Doughnut :: class
+{
+	cook()
+	{
+		print "Dunk in the fryer.";
+		this.finish("sprinkles");
+	}
 
 print os.which();
 

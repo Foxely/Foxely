@@ -95,12 +95,12 @@ bool Table::Set(ObjectString *key, Value value)
 }
 
 
-void Table::AddAll(Table& from, Table& to)
+void Table::AddAll(Table& from)
 {
     for (int i = 0; i <= from.m_iCapacity; i++) {
         Entry& entry = from.m_vEntries[i];
         if (entry.m_pKey != NULL) {
-            to.Set(entry.m_pKey, entry.m_oValue);
+            Set(entry.m_pKey, entry.m_oValue);
         }
     }
 }

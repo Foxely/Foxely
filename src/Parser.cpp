@@ -430,24 +430,24 @@ void RuleThis(Parser& parser, bool can_assign)
 
 void RuleSuper(Parser& parser, bool can_assign)
 {
-    // if (parser->comp_class == NULL) {
-    //     Error("Cannot use 'super' outside of a class.");
-    // } else if (!parser->comp_class->has_superclass) {
-    //     Error("Cannot use 'super' in a class with no superclass.");
-    // }
-    // Consume(TOKEN_DOT, "Expect '.' after 'super'.");
-    // Consume(TOKEN_IDENTIFIER, "Expect superclass method name.");
-    // uint8_t name = IdentifierConstant(&parser->previous);
-    // NamedVariable(SyntheticToken("this"), false);
-    // if (Match(TOKEN_LEFT_PAREN)) {
-    //     uint8_t arg_count = ArgumentList();
-    //     NamedVariable(SyntheticToken("super"), false);
-    //     EmitBytes(OP_SUPER_INVOKE, name);
-    //     EmitByte(arg_count);
-    // } else {
-    //     NamedVariable(SyntheticToken("super"), false);
-    //     EmitBytes(OP_GET_SUPER, name);
-    // }
+    if (parser.currentClass == NULL) {
+        parser.Error("Cannot use 'super' outside of a class.");
+    } else if (!parser.currentClass->hasSuperclass) {
+        parser.Error("Cannot use 'super' in a class with no superclass.");
+    }
+    parser.Consume(TOKEN_DOT, "Expect '.' after 'super'.");
+    parser.Consume(TOKEN_IDENTIFIER, "Expect superclass method name.");
+    uint8_t name = parser.IdentifierConstant(parser.PreviousToken());
+    NamedVariable(parser, Token("this", 4), false);
+    if (parser.Match(TOKEN_LEFT_PAREN)) {
+        uint8_t arg_count = ArgumentList(parser);
+        NamedVariable(parser, Token("super", 5), false);
+        parser.EmitBytes(OP_SUPER_INVOKE, name);
+        parser.EmitByte(arg_count);
+    } else {
+        NamedVariable(parser, Token("super", 5), false);
+        parser.EmitBytes(OP_GET_SUPER, name);
+    }
 }
 
 void Variable(Parser& parser, bool can_assign)
@@ -973,7 +973,24 @@ void ClassDeclaration(Parser& parser, Token& name)
 
 	ClassCompiler classCompiler(name);
 	classCompiler.enclosing = parser.currentClass;
+	classCompiler.hasSuperclass = false;
 	parser.currentClass = &classCompiler;
+
+	if (parser.Match(TOKEN_LESS))
+	{
+		parser.Consume(TOKEN_IDENTIFIER, "Expect superclass name.");
+		Variable(parser, false);
+		Token superName = parser.PreviousToken();
+		if (IdentifiersEqual(name, superName)) {
+			parser.Error("A class cannot inherit from itself.");
+		}
+		parser.BeginScope();
+		AddLocal(parser, Token("super", 5));
+		DefineVariable(parser, 0);
+		NamedVariable(parser, name, false);
+		parser.EmitByte(OP_INHERIT);
+		classCompiler.hasSuperclass = true;
+	}
 
 	NamedVariable(parser, name, false);
 
@@ -983,6 +1000,10 @@ void ClassDeclaration(Parser& parser, Token& name)
 	}
 	parser.Consume(TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
 	parser.EmitByte(OP_POP);
+
+	if (classCompiler.hasSuperclass) {
+		parser.EndScope();
+	}
 
 	parser.currentClass = parser.currentClass->enclosing;
 }
