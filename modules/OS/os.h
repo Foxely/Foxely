@@ -17,6 +17,8 @@ public:
     /// Handle a command from the application.
     virtual bool onCommand(const char* node, const char* data, unsigned int size);
 
+	virtual bool CallMethod(const char* name, int argCount, Value* args, Value& result);
+
     // Return the last error message as a char pointer.
     /// If no error is set a nullptr will be returned.
     virtual const char* lastError() const;
@@ -34,7 +36,10 @@ public:
     virtual const char* cValue() const;
 
     virtual const char* GetClassName() const;
-    virtual NativeMethods GetMethods() const;
+
+	Value WhichNative(int argCount, Value* args);
+	Value ShellNative(int argCount, Value* args);
+	Value GetEnvNative(int argCount, Value* args);
 
 
 #if PLUGA_ENABLE_STL

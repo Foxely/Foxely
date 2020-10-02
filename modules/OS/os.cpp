@@ -14,7 +14,7 @@
 SCY_PLUGIN(OSPlugin, "OS Module", "0.1.0")
 
 
-Value whichNative(int argCount, Value* args)
+Value OSPlugin::WhichNative(int argCount, Value* args)
 {
     #ifdef _WIN32
         return Fox_StringToValue("windows");
@@ -29,13 +29,13 @@ Value whichNative(int argCount, Value* args)
     return Fox_StringToValue("nil");
 }
 
-Value shellNative(int argCount, Value* args)
+Value OSPlugin::ShellNative(int argCount, Value* args)
 {
     system(Fox_ValueToCString(args[0]));
     return NIL_VAL;
 }
 
-Value getEnvNative(int argCount, Value* args)
+Value OSPlugin::GetEnvNative(int argCount, Value* args)
 {
     return Fox_StringToValue(getenv(Fox_ValueToCString(args[0])));
 }
@@ -44,7 +44,13 @@ Value getEnvNative(int argCount, Value* args)
 
 OSPlugin::OSPlugin()
 {
+	using namespace std::placeholders;
+
     std::cout << "OSPlugin: Create" << std::endl;
+
+	m_oMethods.insert(std::make_pair<std::string, Native>("which", std::bind(&OSPlugin::WhichNative, this, _1, _2)));
+	// m_oMethods.insert(std::make_pair<std::string, Native>("shell", std::bind(&OSPlugin::ShellNative, this, _1, _2)));
+	// m_oMethods.insert(std::make_pair<std::string, Native>("getenv", std::bind(&OSPlugin::GetEnvNative, this, _1, _2)));
 }
 
 
@@ -95,6 +101,13 @@ bool OSPlugin::onCommand(const char* node, const char* data,
 }
 
 
+bool OSPlugin::CallMethod(const char* name, int argCount, Value* args, Value& result)
+{
+	result = m_oMethods[name](argCount, args);
+	return true;
+}
+
+
 void OSPlugin::setValue(const char* value)
 {
     std::cout << "TestPlugin: Set value: " << value << std::endl;
@@ -136,15 +149,4 @@ int gimmeFive()
 const char* OSPlugin::GetClassName() const
 {
     return "os";
-}
-
-std::map<std::string, std::pair<NativeFn, int>> OSPlugin::GetMethods() const
-{
-    NativeMethods methods =
-	{
-		std::make_pair<std::string, Native>("which", std::make_pair<NativeFn, int>(whichNative, 0)),
-		std::make_pair<std::string, Native>("shell", std::make_pair<NativeFn, int>(shellNative, 1)),
-		std::make_pair<std::string, Native>("getenv", std::make_pair<NativeFn, int>(getEnvNative, 1)),
-	};
-    return methods;
 }

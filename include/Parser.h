@@ -9,8 +9,6 @@
 
 #define UINT8_COUNT (UINT8_MAX + 1)
 
-ObjectString* CopyString(const std::string& value);
-
 // class ObjectFunction;
 class VM;
 
@@ -122,6 +120,11 @@ public:
 	Chunk* GetCurrentChunk();
 	void SetCurrentChunk(Chunk& chunk);
 
+	ObjectString* CopyString(const std::string& value);
+	ObjectString* TakeString(const std::string& value);
+	ObjectString* AllocateString(const std::string& str, uint32_t hash);
+	uint32_t hashString(const std::string& str);
+
 
 	void EmitByte(uint8_t byte);
 	void EmitBytes(uint8_t byte1, uint8_t byte2);
@@ -156,7 +159,7 @@ struct Compiler
 		parser.currentCompiler = this;
 
 		if (eType != TYPE_SCRIPT) {
-			parser.currentCompiler->function->name = CopyString(name);
+			parser.currentCompiler->function->name = parser.CopyString(name);
 		}
 
 		Local* local = &locals[localCount++];
@@ -178,12 +181,6 @@ struct Compiler
     Upvalue upvalues[UINT8_COUNT];
     int scopeDepth;
 };
-
-ObjectString* TakeString(const std::string& value);
-extern "C" {
-ObjectString* AllocateString(const std::string& str, uint32_t hash);
-uint32_t hashString(const std::string& str);
-}
 
 ObjectFunction* Compile(Parser& parser, const std::string &strText, Chunk* chunk);
 void Expression(Parser& parser);

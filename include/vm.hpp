@@ -13,6 +13,11 @@
 namespace fox
 {
    class SharedLibrary;
+
+	namespace pluga
+	{
+		class IPlugin;
+	}
 }
 
 class Parser;
@@ -29,9 +34,9 @@ struct CallFrame {
 
 typedef enum
 {
-  INTERPRET_OK,
-  INTERPRET_COMPILE_ERROR,
-  INTERPRET_RUNTIME_ERROR
+	INTERPRET_OK,
+	INTERPRET_COMPILE_ERROR,
+	INTERPRET_RUNTIME_ERROR
 } InterpretResult;
 
 class VM
@@ -56,9 +61,10 @@ public:
 
     VM();
 	~VM();
-	void Load();
 
 	static VM* GetInstance();
+
+	void Load();
 
     InterpretResult interpret(const char* source);
 
@@ -74,6 +80,7 @@ public:
 	bool Call(ObjectClosure* closure, int argCount);
 	void DefineNative(const std::string& name, NativeFn function);
 	void DefineNativeClass(const std::string& name, NativeMethods& functions);
+	void DefineLib(const std::string &name, fox::pluga::IPlugin *plugin);
 	ObjectUpvalue* CaptureUpvalue(Value* local);
 	void CloseUpvalues(Value* last);
 

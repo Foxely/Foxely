@@ -472,7 +472,7 @@ void Variable(Parser& parser, bool can_assign)
 
 void String(Parser& parser, bool can_assign)
 {
-    parser.EmitConstant(OBJ_VAL(CopyString(parser.PreviousToken().GetText())));
+    parser.EmitConstant(OBJ_VAL(parser.CopyString(parser.PreviousToken().GetText())));
 }
 
 uint8_t ArgumentList(Parser& parser)
@@ -824,69 +824,68 @@ void AddLocal(Parser& parser, Token name)
     loc->isCaptured = false;
 }
 
-
 // -----------------------------------------
 //		String Manipulation				   -
 // -----------------------------------------
 
 /*
- * @brief Cette fonction permet de hasher la string passé en paramètre
- * @param str la chaine de caractère qui sera hasher
- * @return un nombre unique qui correspond à la position de la string dans le tableau
- * @note Hasher veut dire produire un identifiant unique crypté
+* @brief Cette fonction permet de hasher la string passé en paramètre
+* @param str la chaine de caractère qui sera hasher
+* @return un nombre unique qui correspond à la position de la string dans le tableau
+* @note Hasher veut dire produire un identifiant unique crypté
 */
-uint32_t hashString(const std::string& str)
+uint32_t Parser::hashString(const std::string& str)
 {
-  	uint32_t hash = 2166136261u;
+	uint32_t hash = 2166136261u;
 
 	for (int i = 0; i < str.size(); i++) {
 		hash ^= str[i];
 		hash *= 16777619;
 	}
-  	return hash;
+	return hash;
 }
 
 
 /*
- * @brief Cette fonction permet de transformer la string passé en param en ObjectString compréhensible par le langage
- * @param str la chaine de caractère qui sera stocker
- * @param hash l'identifiant unique de la string après un hashage (passage dans une fonction de hashage comme 'hashString')
- * @return un pointeur ObjectString alloué dans le garbage Collector
+* @brief Cette fonction permet de transformer la string passé en param en ObjectString compréhensible par le langage
+* @param str la chaine de caractère qui sera stocker
+* @param hash l'identifiant unique de la string après un hashage (passage dans une fonction de hashage comme 'hashString')
+* @return un pointeur ObjectString alloué dans le garbage Collector
 */
-ObjectString* AllocateString(const std::string& str, uint32_t hash)
+ObjectString* Parser::AllocateString(const std::string& str, uint32_t hash)
 {
-    ObjectString* string = new ObjectString(str);
-    string->type = OBJ_STRING;
+	ObjectString* string = new ObjectString(str);
+	string->type = OBJ_STRING;
 	string->hash = hash;
 
-    VM::GetInstance()->Push(OBJ_VAL(string));
-    VM::GetInstance()->strings.Set(string, NIL_VAL);
-    VM::GetInstance()->Pop();
-    return string;
+	VM::GetInstance()->Push(OBJ_VAL(string));
+	VM::GetInstance()->strings.Set(string, NIL_VAL);
+	VM::GetInstance()->Pop();
+	return string;
 }
 
 /*
- * @brief Cette fonction permet de copier une string passé en param et return un ObjectString compréhensible par le langage
- * @param value la chaine de caractère qui sera copier
- * @return une copie de la string sous un pointeur ObjectString alloué dans le garbage Collector
+* @brief Cette fonction permet de copier une string passé en param et return un ObjectString compréhensible par le langage
+* @param value la chaine de caractère qui sera copier
+* @return une copie de la string sous un pointeur ObjectString alloué dans le garbage Collector
 */
-ObjectString* CopyString(const std::string& value)
+ObjectString* Parser::CopyString(const std::string& value)
 {
 	uint32_t hash = hashString(value);
-    ObjectString* interned = NULL;
+	ObjectString* interned = NULL;
 
 	interned = VM::GetInstance()->strings.FindString(value, hash);
 
-  	if (interned != NULL)
-	  return interned;
+	if (interned != NULL)
+		return interned;
 
-    return AllocateString(value, hash);
+	return AllocateString(value, hash);
 }
 
 /*
- * @brief Cette fonction fait la même chose que 'CopyString'
+* @brief Cette fonction fait la même chose que 'CopyString'
 */
-ObjectString* TakeString(const std::string& value)
+ObjectString* Parser::TakeString(const std::string& value)
 {
 	uint32_t hash = hashString(value);
 	ObjectString* interned = NULL;
@@ -895,20 +894,20 @@ ObjectString* TakeString(const std::string& value)
 	if (interned != NULL)
 		return interned;
 
-    return AllocateString(value, hash);
+	return AllocateString(value, hash);
 }
 
-ObjectString* TakeString(const char* value)
-{
-	uint32_t hash = hashString(value);
-	ObjectString* interned = NULL;
+// ObjectString* Parser::TakeCString(const char* value)
+// {
+// 	uint32_t hash = hashString(value);
+// 	ObjectString* interned = NULL;
 
-	interned = VM::GetInstance()->strings.FindString(value, hash);
-	if (interned != NULL)
-		return interned;
+// 	interned = VM::GetInstance()->strings.FindString(value, hash);
+// 	if (interned != NULL)
+// 		return interned;
 
-    return AllocateString(value, hash);
-}
+// 	return AllocateString(value, hash);
+// }
 
 /*
  * @brief Cette fonction permet de créer un nombre unique pour le nom de l'identifer passer en paramètre 

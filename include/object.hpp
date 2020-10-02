@@ -17,6 +17,14 @@
 #include "gc.hpp"
 #include "Table.hpp"
 
+namespace fox
+{
+	namespace pluga
+	{
+		class IPlugin;
+	}
+}
+
 #define OBJ_TYPE(val)         (AS_OBJ(val)->type)
 
 
@@ -25,23 +33,25 @@
 #define IS_BOUND_METHOD(val)  is_obj_type(val, OBJ_BOUND_METHOD)
 #define IS_CLASS(val)         is_obj_type(val, OBJ_CLASS)
 #define IS_NATIVE_CLASS(val)         is_obj_type(val, OBJ_NATIVE_CLASS)
+#define IS_LIB(val)         is_obj_type(val, OBJ_LIB)
 #define IS_CLOSURE(val)       is_obj_type(val, OBJ_CLOSURE)
 #define IS_INSTANCE(val)      is_obj_type(val, OBJ_INSTANCE)
 #define IS_FUNCTION(val)      is_obj_type(val, OBJ_FUNCTION)
 #define IS_NATIVE(val)        is_obj_type(val, OBJ_NATIVE)
 #define IS_STRING(val)        is_obj_type(val, OBJ_STRING)
 
-#define AS_CUSTOM(val)         ((ObjectCustomField *)AS_OBJ(val))
-#define AS_LIB(val)           ((ObjectLib *)AS_OBJ(val))
-#define AS_BOUND_METHOD(val)  ((ObjectBoundMethod *)AS_OBJ(val))
-#define AS_CLASS(val)         ((ObjectClass *)AS_OBJ(val))
-#define AS_NATIVE_CLASS(val)         ((ObjectNativeClass *)AS_OBJ(val))
-#define AS_CLOSURE(val)       ((ObjectClosure *)AS_OBJ(val))
-#define AS_FUNCTION(val)      ((ObjectFunction *)AS_OBJ(val))
+#define AS_CUSTOM(val)         	((ObjectCustomField *)AS_OBJ(val))
+#define AS_LIB(val)           	((ObjectLib *)AS_OBJ(val))
+#define AS_BOUND_METHOD(val)  	((ObjectBoundMethod *)AS_OBJ(val))
+#define AS_CLASS(val)         	((ObjectClass *)AS_OBJ(val))
+#define AS_NATIVE_CLASS(val)	((ObjectNativeClass *)AS_OBJ(val))
+#define AS_LIB(val)         	((ObjectLib *)AS_OBJ(val))
+#define AS_CLOSURE(val)       	((ObjectClosure *)AS_OBJ(val))
+#define AS_FUNCTION(val)      	((ObjectFunction *)AS_OBJ(val))
 #define AS_INSTANCE(val)        ((ObjectInstance *)AS_OBJ(val))
-#define AS_NATIVE(val)        (((ObjectNative *)AS_OBJ(val))->function)
-#define AS_STRING(val)        ((ObjectString *)AS_OBJ(val))
-#define AS_CSTRING(val)       (((ObjectString *)AS_OBJ(val))->string.c_str())
+#define AS_NATIVE(val)        	(((ObjectNative *)AS_OBJ(val))->function)
+#define AS_STRING(val)        	((ObjectString *)AS_OBJ(val))
+#define AS_CSTRING(val)       	(((ObjectString *)AS_OBJ(val))->string.c_str())
 
 typedef enum {
     OBJ_BOUND_METHOD,
@@ -126,6 +136,27 @@ public:
 	{
 		function = func;
 		type = OBJ_NATIVE;
+        arity = a;
+	}
+};
+
+class ObjectLib : public Object
+{
+public:
+    fox::pluga::IPlugin* plugin;
+    int arity;
+
+	explicit ObjectLib(fox::pluga::IPlugin* plug)
+	{
+		plugin = plug;
+		type = OBJ_LIB;
+        arity = 0;
+	}
+
+    explicit ObjectLib(fox::pluga::IPlugin* plug, int a)
+	{
+		plugin = plug;
+		type = OBJ_LIB;
         arity = a;
 	}
 };

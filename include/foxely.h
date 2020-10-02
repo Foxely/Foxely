@@ -1,44 +1,40 @@
 #pragma once
 
-#include <string>
-#include "Parser.h"
-#include "vm.hpp"
-#define FOXELY_API __attribute__((visibility ("default")))
-class Value;
+// #include <string>
+// #include "Parser.h"
+// #include "vm.hpp"
+// #define FOXELY_API __attribute__((visibility ("default")))
+#include "object.hpp"
+
+// class Value;
 
 extern "C"
 {
-    FOXELY_API ObjectString* TakeCString(const char* value);
-    Value Fox_StringToValue(const char* str)
-    {
-        return OBJ_VAL(TakeCString(str));
-    }
+    // FOXELY_API ObjectString* TakeCString(const char* value);
+    // FOXELY_API Value Fox_StringToValue(VM* vm, const char* str);
 
     static const char* Fox_ValueToCString(Value val)
     {
         return AS_CSTRING(val);
     }
 }
-// static inline void DefineClass()
-// {
-// 	uint8_t nameConstant = VM::GetInstance()->m_oParser.IdentifierConstant(name);
-// 	DeclareVariable(parser, name);
+// #ifdef __cpluscplus
+// 	class Value;
+// 	class VM;
+// 	extern "C" {
+// #else
+// 	struct Value;
+// 	struct VM;
+// 	typedef struct VM VM;
+// #endif
 
-// 	parser.EmitBytes(OP_CLASS, nameConstant);
-// 	DefineVariable(parser, nameConstant);
+// 	Value Fox_StringToValue(VM* vm, const char* str);
 
-// 	ClassCompiler classCompiler(name);
-// 	classCompiler.enclosing = parser.currentClass;
-// 	parser.currentClass = &classCompiler;
-
-// 	NamedVariable(parser, name, false);
-
-// 	parser.Consume(TOKEN_LEFT_BRACE, "Expect '{' before class body.");
-// 	while (!parser.PeekTokenIsType(TOKEN_RIGHT_BRACE) && !parser.PeekTokenIsType(TOKEN_EOF)) {
-// 		Method(parser);
+// 	static const char* Fox_ValueToCString(Value val)
+// 	{
+// 		return AS_CSTRING(val);
 // 	}
-// 	parser.Consume(TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
-// 	parser.EmitByte(OP_POP);
 
-// 	parser.currentClass = parser.currentClass->enclosing;
-// }
+// #ifdef __cpluscplus
+// 	}
+// #endif

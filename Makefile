@@ -41,7 +41,7 @@ run: lib_make all
 	@./bin/$(EXECUTABLE) $(ARGS)
 
 bin/$(EXECUTABLE): $(MAIN_OBJ) $(OBJ)
-	@$(CC) -o $@ $(MAIN_OBJ) $(OBJ) $(CFLAGS) $(INC_FLAGS) $(LDFLAGS)
+	@$(CC) -export-dynamic -o $@ $(MAIN_OBJ) $(OBJ) $(CFLAGS) $(INC_FLAGS) $(LDFLAGS)
 
 %.o: %.cpp
 	@$(CC) $(INC_FLAGS) $(CFLAGS) -c $< -o $@
