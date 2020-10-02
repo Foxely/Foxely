@@ -5,6 +5,8 @@
 ** Created by besseausamuel
 */
 
+#include "Lexer.h"
+#include "Token.h"
 #include "ParserHelper.h"
 #include <cstring>
 

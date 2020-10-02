@@ -5,33 +5,119 @@
 #include "debug.h"
 #include "Parser.h"
 #include "vm.hpp"
-#include "Foxely_Standard/os.h"
+#include "scy/pluga/pluga.h"
+#include "scy/pluga/sharedlibrary.h"
+#include "scy/pluga/plugin_api.h"
 
-// VM VM::vm;
+// Value Fox_StringToValue(const char* str)
+// {
+// 	return OBJ_VAL(TakeString(str));
+// }
+
+void VM::Load()
+{
+	        // Set the plugin shared library location
+        std::string path;
+        path += "./modules/OS/";
+#if WIN32
+#ifdef _DEBUG
+        path += "plugatestplugind.dll";
+#else
+        path += "plugatestplugin.dll";
+#endif
+#else
+#ifdef _DEBUG
+        path += "plugatestplugind.so";
+#else
+        path += "plugatestplugin.so";
+#endif
+#endif
+
+        try {
+            // Load the shared library
+            std::cout << "Loading: " << path << std::endl;
+            fox::SharedLibrary lib;
+            lib.open(path);
+
+            // Get plugin descriptor and exports
+            fox::pluga::PluginDetails* info;
+            lib.sym("exports", reinterpret_cast<void**>(&info));
+            std::cout << "Plugin Info: "
+                 << "\n\tAPI Version: " << info->apiVersion
+                 << "\n\tFile Name: " << info->fileName
+                 << "\n\tClass Name: " << info->className
+                 << "\n\tPlugin Name: " << info->pluginName
+                 << "\n\tPlugin Version: " << info->pluginVersion
+				 << std::endl;
+
+            // API version checking
+            // if (info->apiVersion != SCY_PLUGIN_API_VERSION)
+            //     throw std::runtime_error(util::format(
+            //         "Plugin version mismatch. Expected %s, got %s.",
+            //         SCY_PLUGIN_API_VERSION, info->apiVersion));
+
+            // Instantiate the plugin
+            auto plugin = reinterpret_cast<fox::pluga::IPlugin*>(info->initializeFunc());
+			NativeMethods methods = plugin->GetMethods();
+			DefineNativeClass(plugin->GetClassName(), methods);
+
+//             // Call string accessor methods
+//             plugin->setValue("abracadabra");
+//             expect(strcmp(plugin->cValue(), "abracadabra") == 0);
+// #if PLUGA_ENABLE_STL
+//             expect(plugin->sValue() == "abracadabra");
+// #endif
+
+//             // Call command methods
+//             expect(plugin->onCommand("options:set", "rendomdata", 10));
+//             expect(plugin->lastError() == nullptr);
+//             expect(plugin->onCommand("unknown:command", "rendomdata", 10) == false);
+//             expect(strcmp(plugin->lastError(), "Unknown command") == 0);
+
+//             // Call a C function
+//             GimmeFiveFunc gimmeFive;
+//             lib.sym("gimmeFive", reinterpret_cast<void**>(&gimmeFive));
+//             expect(gimmeFive() == 5);
+
+            // Close the plugin and free memory
+			m_vLibraryImported.push_back(lib);
+        } catch (std::exception& exc) {
+            std::cerr << "Error: " << exc.what() << std::endl;
+            // expect(false);
+        }
+
+        std::cout << "Ending" << std::endl;
+}
 
 VM::VM()
 {
+    std::cout << "VM" << std::endl;
 	m_oParser.m_pVm = this;
 	openUpvalues = NULL;
 	stack[0] = Value();
     ResetStack();
-	DefineNative("clock", clockNative);
+	// DefineNative("clock", clockNative);
 
-	NativeMethods methods =
-	{
-		std::make_pair<std::string, Native>("which", std::make_pair<NativeFn, int>(whichNative, 0)),
-		std::make_pair<std::string, Native>("shell", std::make_pair<NativeFn, int>(shellNative, 1)),
-		std::make_pair<std::string, Native>("getenv", std::make_pair<NativeFn, int>(getEnvNative, 1)),
-	};
-	DefineClass("os", methods);
+	// NativeMethods methods =
+	// {
+	// 	std::make_pair<std::string, Native>("which", std::make_pair<NativeFn, int>(whichNative, 0)),
+	// 	std::make_pair<std::string, Native>("shell", std::make_pair<NativeFn, int>(shellNative, 1)),
+	// 	std::make_pair<std::string, Native>("getenv", std::make_pair<NativeFn, int>(getEnvNative, 1)),
+	// };
+	// DefineNativeClass("os", methods);
 
 	initString = NULL;
-	initString = m_oParser.CopyString("init");
 }
 
 VM::~VM()
 {
 	initString = NULL;
+
+	for (auto& lib : m_vLibraryImported)
+	{
+		lib.close();
+	}
+	
 }
 
 VM* VM::GetInstance()
@@ -198,16 +284,16 @@ void VM::CloseUpvalues(Value* last)
 
 void VM::DefineNative(const std::string& name, NativeFn function)
 {
-	Push(OBJ_VAL(m_oParser.CopyString(name)));
+	Push(OBJ_VAL(CopyString(name)));
 	Push(OBJ_VAL(new ObjectNative(function)));
 	globals.Set(AS_STRING(stack[0]), stack[1]);
 	Pop();
 	Pop();
 }
 
-void VM::DefineClass(const std::string& name, NativeMethods& functions)
+void VM::DefineNativeClass(const std::string& name, NativeMethods& functions)
 {
-	Push(OBJ_VAL(m_oParser.CopyString(name)));
+	Push(OBJ_VAL(CopyString(name)));
 	Push(OBJ_VAL(new ObjectNativeClass(AS_STRING(stack[0]))));
 	globals.Set(AS_STRING(stack[0]), stack[1]);
 	ObjectNativeClass* klass = AS_NATIVE_CLASS(Pop());
@@ -218,7 +304,7 @@ void VM::DefineClass(const std::string& name, NativeMethods& functions)
 		NativeFn func = it.second.first;
 		int arity = it.second.second;
 
-		Push(OBJ_VAL(m_oParser.CopyString(it.first)));
+		Push(OBJ_VAL(CopyString(it.first)));
 		Push(OBJ_VAL(new ObjectNative(func, arity)));
 
 		klass->methods.Set(AS_STRING(stack[1]), stack[2]);
@@ -274,6 +360,9 @@ bool VM::Invoke(ObjectString* name, int argCount)
 
 InterpretResult VM::interpret(const char* source)
 {
+	initString = CopyString("init");
+	Load();
+
     Chunk oChunk;
     ObjectFunction *function = Compile(m_oParser, source, &oChunk);
 
@@ -626,7 +715,7 @@ void VM::Concatenate()
 	Pop();
 	Pop();
 
-    ObjectString* result = m_oParser.TakeString(a->string + b->string);
+    ObjectString* result = TakeString(a->string + b->string);
     Push(OBJ_VAL(result));
 }
 

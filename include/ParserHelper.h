@@ -10,8 +10,9 @@
 #define DIRECTORY_TEST_PARSERHELPER_H
 
 #include <string>
-#include "Lexer.h"
-#include "Token.h"
+
+class Lexer;
+class Token;
 
 class ParserHelper
 {

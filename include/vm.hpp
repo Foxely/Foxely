@@ -10,6 +10,10 @@
 #include "object.hpp"
 #include "Table.hpp"
 
+namespace fox
+{
+   class SharedLibrary;
+}
 
 class Parser;
 
@@ -48,9 +52,11 @@ public:
 	Table globals;
 	ObjectUpvalue* openUpvalues;
 	ObjectString* initString;
+	std::vector<fox::SharedLibrary> m_vLibraryImported;
 
     VM();
 	~VM();
+	void Load();
 
 	static VM* GetInstance();
 
@@ -67,7 +73,7 @@ public:
 	bool CallValue(Value callee, int argCount);
 	bool Call(ObjectClosure* closure, int argCount);
 	void DefineNative(const std::string& name, NativeFn function);
-	void DefineClass(const std::string& name, NativeMethods& functions);
+	void DefineNativeClass(const std::string& name, NativeMethods& functions);
 	ObjectUpvalue* CaptureUpvalue(Value* local);
 	void CloseUpvalues(Value* last);
 

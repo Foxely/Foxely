@@ -18,7 +18,7 @@ OBJ = $(SRC:%.cpp=%.o)
 
 # CFLAGS += -std=c++17 -W -Wall -Wextra $(if $(DEBUG),-g3) $(if $(DEBUG),-DDEBUG -DDEBUG_TRACE_EXECUTION)
 # CFLAGS += $(if $(DEBUG_TOKEN),-DDEBUG_TOKEN)
-LDFLAGS = -Llib -llexer
+LDFLAGS = -Llib -llexer -ldl
 INC_FLAGS = -Iinclude -Ilib/GenericLexer/include
 
 ifeq ($(BUILD),debug)
@@ -67,3 +67,6 @@ valgrind:
 debug:
 	@make "BUILD=debug" -sC lib/GenericLexer
 	@make "BUILD=debug"
+
+alls:
+	g++ -Iinclude tests/plugatests.cpp -ldl

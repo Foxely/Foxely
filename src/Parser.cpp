@@ -1,5 +1,7 @@
 
 #include <cstring>
+#include "Lexer.h"
+#include "Token.h"
 #include "Parser.h"
 #include "object.hpp"
 #include "gc.hpp"
@@ -470,7 +472,7 @@ void Variable(Parser& parser, bool can_assign)
 
 void String(Parser& parser, bool can_assign)
 {
-    parser.EmitConstant(OBJ_VAL(parser.CopyString(parser.PreviousToken().GetText())));
+    parser.EmitConstant(OBJ_VAL(CopyString(parser.PreviousToken().GetText())));
 }
 
 uint8_t ArgumentList(Parser& parser)
@@ -833,7 +835,7 @@ void AddLocal(Parser& parser, Token name)
  * @return un nombre unique qui correspond à la position de la string dans le tableau
  * @note Hasher veut dire produire un identifiant unique crypté
 */
-uint32_t Parser::hashString(const std::string& str)
+uint32_t hashString(const std::string& str)
 {
   	uint32_t hash = 2166136261u;
 
@@ -851,18 +853,15 @@ uint32_t Parser::hashString(const std::string& str)
  * @param hash l'identifiant unique de la string après un hashage (passage dans une fonction de hashage comme 'hashString')
  * @return un pointeur ObjectString alloué dans le garbage Collector
 */
-ObjectString* Parser::AllocateString(const std::string& str, uint32_t hash)
+ObjectString* AllocateString(const std::string& str, uint32_t hash)
 {
     ObjectString* string = new ObjectString(str);
     string->type = OBJ_STRING;
 	string->hash = hash;
 
-	if (m_pVm)
-	{
-		m_pVm->Push(OBJ_VAL(string));
-		m_pVm->strings.Set(string, NIL_VAL);
-		m_pVm->Pop();
-	}
+    VM::GetInstance()->Push(OBJ_VAL(string));
+    VM::GetInstance()->strings.Set(string, NIL_VAL);
+    VM::GetInstance()->Pop();
     return string;
 }
 
@@ -871,13 +870,12 @@ ObjectString* Parser::AllocateString(const std::string& str, uint32_t hash)
  * @param value la chaine de caractère qui sera copier
  * @return une copie de la string sous un pointeur ObjectString alloué dans le garbage Collector
 */
-ObjectString* Parser::CopyString(const std::string& value)
+ObjectString* CopyString(const std::string& value)
 {
 	uint32_t hash = hashString(value);
     ObjectString* interned = NULL;
 
-	if (m_pVm)
-		interned = m_pVm->strings.FindString(value, hash);
+	interned = VM::GetInstance()->strings.FindString(value, hash);
 
   	if (interned != NULL)
 	  return interned;
@@ -888,13 +886,24 @@ ObjectString* Parser::CopyString(const std::string& value)
 /*
  * @brief Cette fonction fait la même chose que 'CopyString'
 */
-ObjectString* Parser::TakeString(const std::string& value)
+ObjectString* TakeString(const std::string& value)
 {
 	uint32_t hash = hashString(value);
 	ObjectString* interned = NULL;
 
-	if (m_pVm)
-		interned = m_pVm->strings.FindString(value, hash);
+	interned = VM::GetInstance()->strings.FindString(value, hash);
+	if (interned != NULL)
+		return interned;
+
+    return AllocateString(value, hash);
+}
+
+ObjectString* TakeString(const char* value)
+{
+	uint32_t hash = hashString(value);
+	ObjectString* interned = NULL;
+
+	interned = VM::GetInstance()->strings.FindString(value, hash);
 	if (interned != NULL)
 		return interned;
 

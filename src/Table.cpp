@@ -62,9 +62,10 @@ void Table::AdjustCapacity(int capacity)
 		ent.m_oValue = NIL_VAL;
 		oTemp.m_vEntries.push_back(ent);
     }
+    
     m_iCount = 0;
     for (int i = 0; i <= m_iCapacity; i++) {
-        Entry& entry = oTemp.m_vEntries[i];
+        Entry& entry = m_vEntries[i];
         if (entry.m_pKey == NULL)
             continue;
         Entry& dest = oTemp.FindEntry(entry.m_pKey);

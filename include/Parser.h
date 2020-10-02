@@ -9,6 +9,8 @@
 
 #define UINT8_COUNT (UINT8_MAX + 1)
 
+ObjectString* CopyString(const std::string& value);
+
 // class ObjectFunction;
 class VM;
 
@@ -136,11 +138,6 @@ public:
     bool Match(int type);
     ParseRule *GetRule(int type);
 
-	uint32_t hashString(const std::string& str);
-    ObjectString* AllocateString(const std::string& str, uint32_t hash);
-    ObjectString* CopyString(const std::string& value);
-    ObjectString* TakeString(const std::string& value);
-
 	uint8_t IdentifierConstant(const Token& name);
 
 	void BeginScope();
@@ -159,7 +156,7 @@ struct Compiler
 		parser.currentCompiler = this;
 
 		if (eType != TYPE_SCRIPT) {
-			parser.currentCompiler->function->name = parser.CopyString(name);
+			parser.currentCompiler->function->name = CopyString(name);
 		}
 
 		Local* local = &locals[localCount++];
@@ -181,6 +178,12 @@ struct Compiler
     Upvalue upvalues[UINT8_COUNT];
     int scopeDepth;
 };
+
+ObjectString* TakeString(const std::string& value);
+extern "C" {
+ObjectString* AllocateString(const std::string& str, uint32_t hash);
+uint32_t hashString(const std::string& str);
+}
 
 ObjectFunction* Compile(Parser& parser, const std::string &strText, Chunk* chunk);
 void Expression(Parser& parser);

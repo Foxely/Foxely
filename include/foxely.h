@@ -3,19 +3,22 @@
 #include <string>
 #include "Parser.h"
 #include "vm.hpp"
-
+#define FOXELY_API __attribute__((visibility ("default")))
 class Value;
 
-static inline Value Fox_StringToValue(const std::string& str)
+extern "C"
 {
-    return OBJ_VAL(VM::GetInstance()->m_oParser.TakeString(str));
-}
+    FOXELY_API ObjectString* TakeCString(const char* value);
+    Value Fox_StringToValue(const char* str)
+    {
+        return OBJ_VAL(TakeCString(str));
+    }
 
-static const char* Fox_ValueToCString(Value val)
-{
-    return AS_CSTRING(val);
+    static const char* Fox_ValueToCString(Value val)
+    {
+        return AS_CSTRING(val);
+    }
 }
-
 // static inline void DefineClass()
 // {
 // 	uint8_t nameConstant = VM::GetInstance()->m_oParser.IdentifierConstant(name);
