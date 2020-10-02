@@ -14,7 +14,8 @@
 // 	return OBJ_VAL(TakeString(str));
 // }
 
-void VM::Load() {
+void VM::Load()
+{
 	// Set the plugin shared library location
 	std::string path;
 	path += "./modules/OS/";
@@ -55,37 +56,14 @@ void VM::Load() {
 		//         SCY_PLUGIN_API_VERSION, info->apiVersion));
 
 		// Instantiate the plugin
-		auto plugin = reinterpret_cast<fox::pluga::IPlugin *>(info->initializeFunc());
-		plugin->SetEnv(this);
-		DefineLib(plugin->GetClassName(), plugin);
-		// NativeMethods methods = plugin->GetMethods();
-		// DefineNativeClass(plugin->GetClassName(), methods);
-
-		//             // Call string accessor methods
-		//             plugin->setValue("abracadabra");
-		//             expect(strcmp(plugin->cValue(), "abracadabra") == 0);
-		// #if PLUGA_ENABLE_STL
-		//             expect(plugin->sValue() == "abracadabra");
-		// #endif
-
-		//             // Call command methods
-		//             expect(plugin->onCommand("options:set", "rendomdata",
-		//             10)); expect(plugin->lastError() == nullptr);
-		//             expect(plugin->onCommand("unknown:command", "rendomdata",
-		//             10) == false); expect(strcmp(plugin->lastError(),
-		//             "Unknown command") == 0);
-
-		//             // Call a C function
-		//             GimmeFiveFunc gimmeFive;
-		//             lib.sym("gimmeFive",
-		//             reinterpret_cast<void**>(&gimmeFive)); expect(gimmeFive()
-		//             == 5);
+		auto plugin = reinterpret_cast<fox::pluga::IModule *>(info->initializeFunc());
+		NativeMethods methods = plugin->GetMethods();
+		DefineNativeClass(plugin->GetClassName(), methods);
 
 		// Close the plugin and free memory
 		m_vLibraryImported.push_back(lib);
 	} catch (std::exception &exc) {
 		std::cerr << "Error: " << exc.what() << std::endl;
-		// expect(false);
 	}
 
 	std::cout << "Ending" << std::endl;
@@ -96,19 +74,10 @@ VM::VM() {
 	openUpvalues = NULL;
 	stack[0] = Value();
 	ResetStack();
-	// DefineNative("clock", clockNative);
-
-	// NativeMethods methods =
-	// {
-	// 	std::make_pair<std::string, Native>("which", std::make_pair<NativeFn,
-	// int>(whichNative, 0)), 	std::make_pair<std::string, Native>("shell",
-	// std::make_pair<NativeFn, int>(shellNative, 1)),
-	// 	std::make_pair<std::string, Native>("getenv", std::make_pair<NativeFn,
-	// int>(getEnvNative, 1)),
-	// };
-	// DefineNativeClass("os", methods);
-
+	DefineNative("clock", clockNative);
 	initString = NULL;
+	initString = m_oParser.CopyString("init");
+	Load();
 }
 
 VM::~VM() {
@@ -282,14 +251,14 @@ void VM::DefineNative(const std::string &name, NativeFn function)
 	Pop();
 }
 
-void VM::DefineLib(const std::string &name, fox::pluga::IPlugin *plugin)
-{
-	Push(OBJ_VAL(m_oParser.CopyString(name)));
-	Push(OBJ_VAL(new ObjectLib(plugin)));
-	globals.Set(AS_STRING(stack[0]), stack[1]);
-	Pop();
-	Pop();
-}
+// void VM::DefineLib(const std::string &name, fox::pluga::IPlugin *plugin)
+// {
+// 	Push(OBJ_VAL(m_oParser.CopyString(name)));
+// 	Push(OBJ_VAL(new ObjectLib(plugin)));
+// 	globals.Set(AS_STRING(stack[0]), stack[1]);
+// 	Pop();
+// 	Pop();
+// }
 
 void VM::DefineNativeClass(const std::string &name, NativeMethods &functions) {
 	Push(OBJ_VAL(m_oParser.CopyString(name)));
@@ -349,32 +318,30 @@ bool VM::Invoke(ObjectString *name, int argCount) {
 		}
 		return CallValue(method, argCount);
 	}
-	else if (IS_LIB(receiver))
-	{
-		ObjectLib *instance = AS_LIB(receiver);
+	// else if (IS_LIB(receiver))
+	// {
+	// 	ObjectLib *instance = AS_LIB(receiver);
 
-		// if (instance->arity != argCount) {
-		// 	RuntimeError( "Expected %d arguments but got %d.", instance->arity, argCount);
-		// 	return false;
-		// }
+	// 	// if (instance->arity != argCount) {
+	// 	// 	RuntimeError( "Expected %d arguments but got %d.", instance->arity, argCount);
+	// 	// 	return false;
+	// 	// }
 
-		Value result;
-		if (!instance->plugin->CallMethod(name->string.c_str(), argCount, stackTop - argCount, result))
-		{
-			RuntimeError("Undefined property '%s'.", name->string.c_str());
-			return false;
-		}
+	// 	Value result;
+	// 	if (!instance->plugin->CallMethod(name->string.c_str(), argCount, stackTop - argCount, result))
+	// 	{
+	// 		RuntimeError("Undefined property '%s'.", name->string.c_str());
+	// 		return false;
+	// 	}
 
-		stackTop -= argCount + 1;
-		Push(result);
-		return true;
-	}
+	// 	stackTop -= argCount + 1;
+	// 	Push(result);
+	// 	return true;
+	// }
 }
 
-InterpretResult VM::interpret(const char *source) {
-	initString = m_oParser.CopyString("init");
-	Load();
-
+InterpretResult VM::interpret(const char *source)
+{
 	Chunk oChunk;
 	ObjectFunction *function = Compile(m_oParser, source, &oChunk);
 

@@ -858,9 +858,9 @@ ObjectString* Parser::AllocateString(const std::string& str, uint32_t hash)
 	string->type = OBJ_STRING;
 	string->hash = hash;
 
-	VM::GetInstance()->Push(OBJ_VAL(string));
-	VM::GetInstance()->strings.Set(string, NIL_VAL);
-	VM::GetInstance()->Pop();
+	m_pVm->Push(OBJ_VAL(string));
+	m_pVm->strings.Set(string, NIL_VAL);
+	m_pVm->Pop();
 	return string;
 }
 
@@ -874,7 +874,7 @@ ObjectString* Parser::CopyString(const std::string& value)
 	uint32_t hash = hashString(value);
 	ObjectString* interned = NULL;
 
-	interned = VM::GetInstance()->strings.FindString(value, hash);
+	interned = m_pVm->strings.FindString(value, hash);
 
 	if (interned != NULL)
 		return interned;
@@ -890,24 +890,12 @@ ObjectString* Parser::TakeString(const std::string& value)
 	uint32_t hash = hashString(value);
 	ObjectString* interned = NULL;
 
-	interned = VM::GetInstance()->strings.FindString(value, hash);
+	interned = m_pVm->strings.FindString(value, hash);
 	if (interned != NULL)
 		return interned;
 
 	return AllocateString(value, hash);
 }
-
-// ObjectString* Parser::TakeCString(const char* value)
-// {
-// 	uint32_t hash = hashString(value);
-// 	ObjectString* interned = NULL;
-
-// 	interned = VM::GetInstance()->strings.FindString(value, hash);
-// 	if (interned != NULL)
-// 		return interned;
-
-// 	return AllocateString(value, hash);
-// }
 
 /*
  * @brief Cette fonction permet de créer un nombre unique pour le nom de l'identifer passer en paramètre 

@@ -4,7 +4,6 @@
 #define SCY_Pluga_H
 
 
-
 // Shared library exports
 #if defined(SCY_WIN) && defined(SCY_SHARED_LIBRARY)
     #if defined(Pluga_EXPORTS)
@@ -22,7 +21,7 @@ namespace pluga {
 
 
 // Forward declare the plugin class which must be defined externally.
-class Pluga_API IPlugin;
+class Pluga_API IModule;
 
 // Define the API version.
 // This value is incremented whenever there are ABI breaking changes.
@@ -35,7 +34,7 @@ class Pluga_API IPlugin;
 #endif
 
 // Define a type for the static function pointer.
-Pluga_API typedef IPlugin* (*GetPluginFunc)();
+Pluga_API typedef IModule* (*GetPluginFunc)();
 
 // Plugin details structure that's exposed to the application.
 struct PluginDetails
@@ -52,7 +51,7 @@ struct PluginDetails
 
 #define SCY_PLUGIN(classType, pluginName, pluginVersion)                       \
     extern "C" {                                                               \
-    SCY_PLUGIN_EXPORT fox::pluga::IPlugin* getPlugin()                         \
+    SCY_PLUGIN_EXPORT fox::pluga::IModule* getPlugin()                         \
     {                                                                          \
         static classType singleton;                                            \
         return &singleton;                                                     \
@@ -72,6 +71,3 @@ struct PluginDetails
 
 
 #endif // SCY_Pluga_H
-
-
-/// @\}

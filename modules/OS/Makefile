@@ -5,6 +5,3 @@
 
 all:
 	@g++ -Wall -Wno-write-strings -g -fPIC -shared -I../../include -I../../lib/GenericLexer/include os.h os.cpp -o plugatestplugin.so
-
-debug:
-	@g++ -g3 -Wall -Wno-write-strings -g -fPIC -shared -I../../include ../../include/foxely.cpp -I../../lib/GenericLexer/include os.h os.cpp -o plugatestplugin.so

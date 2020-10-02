@@ -110,7 +110,6 @@ public:
 	VM* m_pVm;
     Compiler *currentCompiler;
 	ClassCompiler* currentClass;
-    // ClassCompiler *comp_class;
 
     Parser();
 	bool IsEnd();
