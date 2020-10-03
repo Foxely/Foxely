@@ -31,7 +31,8 @@ bool ValuesEqual(Value a, Value b)
 {
     if (a.type != b.type) return false;
 
-    switch (a.type) {
+    switch (a.type)
+    {
         case VAL_BOOL:   return AS_BOOL(a) == AS_BOOL(b);
         case VAL_NIL:    return true;
         case VAL_NUMBER: return AS_NUMBER(a) == AS_NUMBER(b);
@@ -78,6 +79,18 @@ void printObject(Value value)
 			break;
 		case OBJ_BOUND_METHOD:
 			PrintFunction(AS_BOUND_METHOD(value)->method->function);
+			break;
+        case OBJ_NATIVE_CLASS:
+			std::cout << "<native class " << AS_NATIVE_CLASS(value)->name->string << ">";
+			break;
+        case OBJ_NATIVE_INSTANCE:
+			std::cout << AS_NATIVE_INSTANCE(value)->klass->name->string << " native instance";
+			break;
+        case OBJ_ABSTRACT:
+			std::cout << AS_ABSTRACT(value)->abstractType->name << " Abstract";
+			break;
+        case OBJ_LIB:
+			std::cout << AS_LIB(value)->name->string << " Lib";
 			break;
     }
 }

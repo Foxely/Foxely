@@ -1,7 +1,6 @@
 
-# SRC_DIR = ../../src
-# SRC = $(shell find $(SRC_DIR) -name '*.cpp')
-# SRCLEXER = $(shell find ../../lib/GenericLexer -name '*.cpp')
+SRC = os.cpp
+LIBNAME = os
 
 all:
-	@g++ -Wall -Wno-write-strings -g -fPIC -shared -I../../include -I../../lib/GenericLexer/include os.h os.cpp -o plugatestplugin.so
+	@g++ -Wall -Wno-write-strings -g -fPIC -shared -I./ -I../../include -I../../lib/GenericLexer/include $(SRC) -o $(LIBNAME).so

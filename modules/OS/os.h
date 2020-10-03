@@ -1,5 +1,5 @@
-#ifndef SCY_TestPlugin_H
-#define SCY_TestPlugin_H
+#ifndef FOX_OSPlugin_H
+#define FOX_OSPlugin_H
 
 
 #include "scy/pluga/plugin_api.h"

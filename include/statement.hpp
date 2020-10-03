@@ -8,3 +8,4 @@ void ForStatement(Parser& parser);
 void WhileStatement(Parser& parser);
 void for_loop(Parser& parser, int *exit_jump);
 void for_increment(Parser& parser, int *loop_start);
+void ImportStatement(Parser& parser);

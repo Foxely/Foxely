@@ -39,11 +39,10 @@ typedef enum
 	INTERPRET_RUNTIME_ERROR
 } InterpretResult;
 
+using NativeMethods = std::map<std::string, NativeFn>;
+
 class VM
 {
-	using Native = std::pair<NativeFn, int>;
-	using NativeMethods = std::map<std::string, Native>;
-
 public:
 	CallFrame frames[FRAMES_MAX];
   	int frameCount;
@@ -65,6 +64,7 @@ public:
 	static VM* GetInstance();
 
 	void Load();
+	void LoadStandard(const std::string& name);
 
     InterpretResult interpret(const char* source);
 
@@ -72,6 +72,7 @@ public:
     void Push(Value value);
     Value Pop();
     Value Peek(int distance);
+	Value PeekStart(int distance);
     void RuntimeError(const char* format, ...);
 
     void EmitByte(uint8_t byte);
@@ -80,7 +81,7 @@ public:
 	bool Call(ObjectClosure* closure, int argCount);
 	void DefineNative(const std::string& name, NativeFn function);
 	void DefineNativeClass(const std::string& name, NativeMethods& functions);
-	void DefineLib(const std::string &name, fox::pluga::IPlugin *plugin);
+	void DefineLib(const std::string &name, NativeMethods &functions);
 	ObjectUpvalue* CaptureUpvalue(Value* local);
 	void CloseUpvalues(Value* last);
 
@@ -95,14 +96,21 @@ public:
 	bool BindMethod(ObjectClass* klass, ObjectString* name);
 	bool Invoke(ObjectString* name, int argCount);
 	bool InvokeFromClass(ObjectClass* klass, ObjectString* name, int argCount);
+	bool InvokeFromNativeClass(ObjectNativeClass *klass, ObjectString *name, int argCount);
 
 private:
     InterpretResult run();
+	static VM m_oInstance;
+
+	InterpretResult result;
+	bool isInit;
 };
 
 static Value clockNative(int argCount, Value* args)
 {
   return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
 }
+
+// VM *GetInstance();
 
 #endif

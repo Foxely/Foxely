@@ -25,15 +25,12 @@ namespace fox {
         /// Virtual base class for plugins
         class IModule
         {
-        protected:
-            using Native = std::pair<NativeFn, int>;
-            using NativeMethods = std::map<std::string, Native>;
         public:
             IModule(){};
             virtual ~IModule(){};
 
             virtual const char* GetClassName() const = 0;
-            virtual NativeMethods GetMethods() const = 0;
+            virtual NativeMethods GetMethods() = 0;
         };
 
     } // namespace pluga

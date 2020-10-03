@@ -59,10 +59,10 @@ void Statement(Parser& parser)
 	{
 		ReturnStatement(parser);
 	}
-	// else if (parser.Match(TOKEN_IMPORT))
-	// {
-
-	// }
+	else if (parser.Match(TOKEN_IMPORT))
+	{
+        ImportStatement(parser);
+	}
 	else if (parser.Match(TOKEN_WHILE))
 	{
 		WhileStatement(parser);
@@ -77,6 +77,16 @@ void Statement(Parser& parser)
 	{
 		ExpressionStatement(parser);
 	}
+}
+
+void ImportStatement(Parser& parser)
+{
+    parser.Consume(TOKEN_STRING, "Expect string after import.");
+
+    int import_constant = parser.MakeConstant(OBJ_VAL(parser.CopyString(parser.PreviousToken().GetText())));
+
+    parser.Consume(TOKEN_SEMICOLON, "Expect ';' after import.");
+    parser.EmitBytes(OP_IMPORT, import_constant);
 }
 
 void PrintStatement(Parser& parser)
@@ -166,18 +176,4 @@ void ForStatement(Parser& parser)
         parser.EmitByte(OP_POP);
     }
     parser.EndScope();
-    // parser.EndScope(parser->currentCompiler);
 }
-
-// void import_statement(parser_t *parser, scanner_t *scanner)
-// {
-//     consume(TOKEN_STRING, "Expect string after import.");
-
-//     int import_constant = make_constant(parser, OBJ_VAL(copy_string(
-//             parser->vm,
-//             parser->previous.start + 1, parser->previous.length - 2)));
-
-//     consume(TOKEN_SEMICOLON, "Expect ';' after import.");
-
-//     parser.EmitBytes(parser, OP_IMPORT, import_constant);
-// }

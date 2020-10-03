@@ -3,6 +3,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string.h>
+#include <fstream>
 #include "foxely.h"
 
 SCY_PLUGIN(OSPlugin, "OS Module", "0.1.0")
@@ -38,12 +39,12 @@ Value getEnvNative(int argCount, Value* args)
 
 OSPlugin::OSPlugin()
 {
-    std::cout << "OSPlugin: Create" << std::endl;
+    // std::cout << "OSPlugin: Create" << std::endl;
 }
 
 OSPlugin::~OSPlugin()
 {
-    std::cout << "OSPlugin: Destroy" << std::endl;
+    // std::cout << "OSPlugin: Destroy" << std::endl;
 }
 
 const char* OSPlugin::GetClassName() const
@@ -51,12 +52,13 @@ const char* OSPlugin::GetClassName() const
     return "os";
 }
 
-std::map<std::string, std::pair<NativeFn, int>> OSPlugin::GetMethods() const
+NativeMethods OSPlugin::GetMethods() const
 {
 	NativeMethods methods =
 	{
-		std::make_pair<std::string, Native>("which", std::make_pair<NativeFn, int>(whichNative, 0)), 	std::make_pair<std::string, Native>("shell", std::make_pair<NativeFn, int>(shellNative, 1)),
-		std::make_pair<std::string, Native>("getenv", std::make_pair<NativeFn, int>(getEnvNative, 1)),
+		std::make_pair<std::string, NativeFn>("which", whichNative),
+        std::make_pair<std::string, NativeFn>("shell", shellNative),
+		std::make_pair<std::string, NativeFn>("getenv", getEnvNative),
 	};
 	return methods;
 }

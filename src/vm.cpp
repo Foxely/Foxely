@@ -1,3 +1,8 @@
+#include <chrono>
+#include <algorithm>
+#include <stdarg.h>
+#include <stdio.h>
+
 #include "Parser.h"
 #include "common.h"
 #include "debug.h"
@@ -5,14 +10,21 @@
 #include "scy/pluga/plugin_api.h"
 #include "scy/pluga/sharedlibrary.h"
 #include "vm.hpp"
-#include <chrono>
-#include <stdarg.h>
-#include <stdio.h>
+#include "library/io.h"
+#include "library/os.h"
+#include "library/array.h"
 
-// Value Fox_StringToValue(const char* str)
-// {
-// 	return OBJ_VAL(TakeString(str));
-// }
+
+VM VM::m_oInstance = VM();
+
+using Standard = std::pair<std::string, fox::pluga::IModule>;
+
+std::vector<std::string> standardLib = 
+{
+	"os",
+	"io",
+	"array",
+};
 
 void VM::Load()
 {
@@ -35,19 +47,12 @@ void VM::Load()
 
 	try {
 		// Load the shared library
-		std::cout << "Loading: " << path << std::endl;
 		fox::SharedLibrary lib;
 		lib.open(path);
 
 		// Get plugin descriptor and exports
 		fox::pluga::PluginDetails *info;
 		lib.sym("exports", reinterpret_cast<void **>(&info));
-		std::cout << "Plugin Info: "
-				  << "\n\tAPI Version: " << info->apiVersion
-				  << "\n\tFile Name: " << info->fileName
-				  << "\n\tClass Name: " << info->className
-				  << "\n\tPlugin Name: " << info->pluginName
-				  << "\n\tPlugin Version: " << info->pluginVersion << std::endl;
 
 		// API version checking
 		// if (info->apiVersion != SCY_PLUGIN_API_VERSION)
@@ -58,29 +63,54 @@ void VM::Load()
 		// Instantiate the plugin
 		auto plugin = reinterpret_cast<fox::pluga::IModule *>(info->initializeFunc());
 		NativeMethods methods = plugin->GetMethods();
-		DefineNativeClass(plugin->GetClassName(), methods);
+		DefineLib(plugin->GetClassName(), methods);
 
 		// Close the plugin and free memory
 		m_vLibraryImported.push_back(lib);
 	} catch (std::exception &exc) {
 		std::cerr << "Error: " << exc.what() << std::endl;
 	}
-
-	std::cout << "Ending" << std::endl;
 }
 
-VM::VM() {
-	m_oParser.m_pVm = this;
-	openUpvalues = NULL;
-	stack[0] = Value();
-	ResetStack();
-	DefineNative("clock", clockNative);
-	initString = NULL;
-	initString = m_oParser.CopyString("init");
-	Load();
+void VM::LoadStandard(const std::string& name)
+{
+	NativeMethods methods;
+
+	OSPlugin os;
+	IOPlugin io;
+	ArrayPlugin array;
+
+	if (name == "os")
+	{
+		methods = os.GetMethods();
+		DefineLib(os.GetClassName(), methods);
+	}
+	else if (name == "io")
+	{
+		methods = io.GetMethods();
+		DefineLib(io.GetClassName(), methods);
+	}
+	else if (name == "array")
+	{
+		methods = array.GetMethods();
+		DefineNativeClass(array.GetClassName(), methods);
+	}
 }
 
-VM::~VM() {
+VM::VM()
+{
+	// m_oParser.m_pVm = this;
+	// openUpvalues = NULL;
+	// stack[0] = Value();
+	// ResetStack();
+	// DefineNative("clock", clockNative);
+	// initString = NULL;
+	// initString = m_oParser.CopyString("init");
+	// Load();
+}
+
+VM::~VM()
+{
 	initString = NULL;
 
 	for (auto &lib : m_vLibraryImported) {
@@ -88,8 +118,8 @@ VM::~VM() {
 	}
 }
 
-VM *VM::GetInstance() {
-	static VM m_oInstance;
+VM *VM::GetInstance()
+{
 	return &m_oInstance;
 }
 
@@ -110,6 +140,13 @@ Value VM::Pop() {
 
 Value VM::Peek(int distance) {
 	return stackTop[-1 - distance];
+}
+
+Value VM::PeekStart(int distance)
+{
+	if (!isInit)
+		return stack[distance];
+	return stack[distance + 1];
 }
 
 bool IsFalsey(Value value) {
@@ -137,10 +174,13 @@ void VM::RuntimeError(const char *format, ...) {
 		}
 	}
 
+	result = InterpretResult::INTERPRET_RUNTIME_ERROR;
+
 	ResetStack();
 }
 
-bool VM::Call(ObjectClosure *closure, int argCount) {
+bool VM::Call(ObjectClosure *closure, int argCount)
+{
 	// Check the number of args pass to the function call
 	if (argCount != closure->function->arity) {
 		RuntimeError(
@@ -163,45 +203,61 @@ bool VM::Call(ObjectClosure *closure, int argCount) {
 	return true;
 }
 
-bool VM::CallValue(Value callee, int argCount) {
-	if (IS_OBJ(callee)) {
-		switch (OBJ_TYPE(callee)) {
-		// case OBJ_FUNCTION:
-		// 	return Call(AS_FUNCTION(callee), argCount);
-		case OBJ_NATIVE: {
-			ObjectNative *objNative = (ObjectNative *)AS_OBJ(callee);
-			if (objNative->arity != argCount) {
-				RuntimeError(
-					"Expected %d arguments but got %d.",
-					objNative->arity,
-					argCount);
-				return false;
-			}
+bool VM::CallValue(Value callee, int argCount)
+{
+	if (IS_OBJ(callee))
+	{
+		switch (OBJ_TYPE(callee))
+		{
+		case OBJ_NATIVE:
+		{
 			NativeFn native = AS_NATIVE(callee);
 			Value result = native(argCount, stackTop - argCount);
 			stackTop -= argCount + 1;
 			Push(result);
 			return true;
 		}
-		case OBJ_BOUND_METHOD: {
+
+		case OBJ_BOUND_METHOD:
+		{
 			ObjectBoundMethod *bound = AS_BOUND_METHOD(callee);
 			stackTop[-argCount - 1] = bound->receiver;
 			return Call(bound->method, argCount);
 		}
-		case OBJ_CLASS: {
+
+		case OBJ_CLASS:
+		{
 			ObjectClass *klass = AS_CLASS(callee);
 			stackTop[-argCount - 1] = OBJ_VAL(new ObjectInstance(klass));
 			Value initializer;
-			if (klass->methods.Get(initString, initializer)) {
+			if (klass->methods.Get(initString, initializer))
 				return Call(AS_CLOSURE(initializer), argCount);
-			} else if (argCount != 0) {
+			else if (argCount != 0)
+			{
 				RuntimeError("Expected 0 arguments but got %d.", argCount);
 				return false;
 			}
 			return true;
 		}
+
+		case OBJ_NATIVE_CLASS:
+		{
+			ObjectNativeClass *klass = AS_NATIVE_CLASS(callee);
+			stackTop[-argCount - 1] = OBJ_VAL(new ObjectNativeInstance(klass));
+			
+			Value initializer;
+
+			if (klass->methods.Get(initString, initializer))
+			{
+				NativeFn native = AS_NATIVE(initializer);
+				native(argCount, stackTop - argCount);
+			}
+			return true;
+		}
+
 		case OBJ_CLOSURE:
 			return Call(AS_CLOSURE(callee), argCount);
+
 		default:
 			// Non-callable object type.
 			break;
@@ -212,7 +268,8 @@ bool VM::CallValue(Value callee, int argCount) {
 	return false;
 }
 
-ObjectUpvalue *VM::CaptureUpvalue(Value *local) {
+ObjectUpvalue *VM::CaptureUpvalue(Value *local)
+{
 	ObjectUpvalue *prevUpvalue = NULL;
 	ObjectUpvalue *upvalue = openUpvalues;
 
@@ -246,35 +303,25 @@ void VM::DefineNative(const std::string &name, NativeFn function)
 {
 	Push(OBJ_VAL(m_oParser.CopyString(name)));
 	Push(OBJ_VAL(new ObjectNative(function)));
-	globals.Set(AS_STRING(stack[0]), stack[1]);
+	globals.Set(AS_STRING(PeekStart(0)), PeekStart(1));
 	Pop();
 	Pop();
 }
 
-// void VM::DefineLib(const std::string &name, fox::pluga::IPlugin *plugin)
-// {
-// 	Push(OBJ_VAL(m_oParser.CopyString(name)));
-// 	Push(OBJ_VAL(new ObjectLib(plugin)));
-// 	globals.Set(AS_STRING(stack[0]), stack[1]);
-// 	Pop();
-// 	Pop();
-// }
-
-void VM::DefineNativeClass(const std::string &name, NativeMethods &functions) {
+void VM::DefineLib(const std::string &name, NativeMethods &functions)
+{
 	Push(OBJ_VAL(m_oParser.CopyString(name)));
-	Push(OBJ_VAL(new ObjectNativeClass(AS_STRING(stack[0]))));
-	globals.Set(AS_STRING(stack[0]), stack[1]);
-	ObjectNativeClass *klass = AS_NATIVE_CLASS(Pop());
+	Push(OBJ_VAL(new ObjectLib(AS_STRING(PeekStart(0)))));
+	globals.Set(AS_STRING(PeekStart(0)), PeekStart(1));
+	ObjectLib *klass = AS_LIB(Pop());
 	Pop();
 	Push(OBJ_VAL(klass));
-	for (auto &it : functions) {
-		NativeFn func = it.second.first;
-		int arity = it.second.second;
-
+	for (auto &it : functions)
+	{
 		Push(OBJ_VAL(m_oParser.CopyString(it.first)));
-		Push(OBJ_VAL(new ObjectNative(func, arity)));
+		Push(OBJ_VAL(new ObjectNative(it.second)));
 
-		klass->methods.Set(AS_STRING(stack[1]), stack[2]);
+		klass->methods.Set(AS_STRING(PeekStart(1)), PeekStart(2));
 
 		Pop();
 		Pop();
@@ -282,9 +329,33 @@ void VM::DefineNativeClass(const std::string &name, NativeMethods &functions) {
 	Pop();
 }
 
-bool VM::InvokeFromClass(ObjectClass *klass, ObjectString *name, int argCount) {
+void VM::DefineNativeClass(const std::string &name, NativeMethods &functions)
+{
+	Push(OBJ_VAL(m_oParser.CopyString(name)));
+	Push(OBJ_VAL(new ObjectNativeClass(AS_STRING(PeekStart(0)))));
+	globals.Set(AS_STRING(PeekStart(0)), PeekStart(1));
+	ObjectNativeClass *klass = AS_NATIVE_CLASS(Pop());
+	Pop();
+	Push(OBJ_VAL(klass));
+	for (auto &it : functions) {
+		NativeFn func = it.second;
+
+		Push(OBJ_VAL(m_oParser.CopyString(it.first)));
+		Push(OBJ_VAL(new ObjectNative(func)));
+
+		klass->methods.Set(AS_STRING(PeekStart(1)), PeekStart(2));
+
+		Pop();
+		Pop();
+	}
+	Pop();
+}
+
+bool VM::InvokeFromClass(ObjectClass *klass, ObjectString *name, int argCount)
+{
 	Value method;
-	if (!klass->methods.Get(name, method)) {
+	if (!klass->methods.Get(name, method))
+	{
 		RuntimeError("Undefined property '%s'.", name->string.c_str());
 		return false;
 	}
@@ -292,10 +363,23 @@ bool VM::InvokeFromClass(ObjectClass *klass, ObjectString *name, int argCount) {
 	return Call(AS_CLOSURE(method), argCount);
 }
 
-bool VM::Invoke(ObjectString *name, int argCount) {
+bool VM::InvokeFromNativeClass(ObjectNativeClass *klass, ObjectString *name, int argCount)
+{
+	Value method;
+	if (!klass->methods.Get(name, method))
+	{
+		RuntimeError("Undefined property '%s'.", name->string.c_str());
+		return false;
+	}
+	return CallValue(method, argCount);
+}
+
+bool VM::Invoke(ObjectString *name, int argCount)
+{
 	Value receiver = Peek(argCount);
 
-	if (!IS_INSTANCE(receiver) && !IS_NATIVE_CLASS(receiver) && !IS_LIB(receiver)) {
+	if (!IS_INSTANCE(receiver) && !IS_NATIVE_INSTANCE(receiver) && !IS_LIB(receiver))
+	{
 		RuntimeError("Only instances && module have methods.");
 		return false;
 	}
@@ -308,9 +392,23 @@ bool VM::Invoke(ObjectString *name, int argCount) {
 			stackTop[-argCount - 1] = value;
 			return CallValue(value, argCount);
 		}
+
 		return InvokeFromClass(instance->klass, name, argCount);
-	} else if (IS_NATIVE_CLASS(receiver)) {
-		ObjectNativeClass *instance = AS_NATIVE_CLASS(receiver);
+	}
+	else if (IS_NATIVE_INSTANCE(receiver))
+	{
+		ObjectNativeInstance *instance = AS_NATIVE_INSTANCE(receiver);
+
+		if (instance->fields.Get(name, value))
+		{
+			stackTop[-argCount - 1] = value;
+			return CallValue(value, argCount);
+		}
+		return InvokeFromNativeClass(instance->klass, name, argCount);
+	}
+	else if (IS_LIB(receiver))
+	{
+		ObjectLib *instance = AS_LIB(receiver);
 		Value method;
 		if (!instance->methods.Get(name, method)) {
 			RuntimeError("Undefined property '%s'.", name->string.c_str());
@@ -318,30 +416,22 @@ bool VM::Invoke(ObjectString *name, int argCount) {
 		}
 		return CallValue(method, argCount);
 	}
-	// else if (IS_LIB(receiver))
-	// {
-	// 	ObjectLib *instance = AS_LIB(receiver);
-
-	// 	// if (instance->arity != argCount) {
-	// 	// 	RuntimeError( "Expected %d arguments but got %d.", instance->arity, argCount);
-	// 	// 	return false;
-	// 	// }
-
-	// 	Value result;
-	// 	if (!instance->plugin->CallMethod(name->string.c_str(), argCount, stackTop - argCount, result))
-	// 	{
-	// 		RuntimeError("Undefined property '%s'.", name->string.c_str());
-	// 		return false;
-	// 	}
-
-	// 	stackTop -= argCount + 1;
-	// 	Push(result);
-	// 	return true;
-	// }
 }
 
 InterpretResult VM::interpret(const char *source)
 {
+	if (!isInit)
+	{
+		m_oParser.m_pVm = this;
+		openUpvalues = NULL;
+		stack[0] = Value();
+		ResetStack();
+		DefineNative("clock", clockNative);
+		initString = NULL;
+		initString = m_oParser.CopyString("init");
+		isInit = true;
+	}
+
 	Chunk oChunk;
 	ObjectFunction *function = Compile(m_oParser, source, &oChunk);
 
@@ -380,6 +470,8 @@ InterpretResult VM::run() {
 	} while (false)
 
 	for (;;) {
+		if (result == INTERPRET_RUNTIME_ERROR)
+			return result;
 #ifdef DEBUG_TRACE_EXECUTION
 		printf("          ");
 		for (Value *slot = stack; slot < stackTop; slot++) {
@@ -483,7 +575,8 @@ InterpretResult VM::run() {
 		}
 
 		case OP_SET_PROPERTY: {
-			if (!IS_INSTANCE(Peek(1))) {
+			if (!IS_INSTANCE(Peek(1)))
+			{
 				RuntimeError("Only instances have fields.");
 				return INTERPRET_RUNTIME_ERROR;
 			}
@@ -647,6 +740,16 @@ InterpretResult VM::run() {
 			if (!BindMethod(superclass, name)) {
 				return INTERPRET_RUNTIME_ERROR;
 			}
+			break;
+		}
+
+		case OP_IMPORT:
+		{
+			ObjectString *fileName = READ_STRING();
+			
+			std::vector<std::string>::iterator it = std::find(standardLib.begin(), standardLib.end(), fileName->string);
+			if (it != standardLib.end())
+				LoadStandard(*it);
 			break;
 		}
 

@@ -1,11 +1,5 @@
-Doughnut :: class
-{
-	cook()
-	{
-		print "Dunk in the fryer.";
-		this.finish("sprinkles");
-	}
+import "array";
 
-print os.which();
+myArray: var = array();
 
-os.shell("echo Hello");
+print myArray.get();
