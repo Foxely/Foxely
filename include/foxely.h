@@ -27,6 +27,12 @@ extern "C"
 		return AS_ABSTRACT(value);
 	}
 
+    static inline ObjectArray* Fox_ValueToArray(Value value)
+	{
+		return AS_ARRAY(value);
+	}
+
+
     static inline Value Fox_Abstract(void* data, ObjectAbstractType* type)
 	{
 		return OBJ_VAL(new ObjectAbstract(data, type));
@@ -94,5 +100,10 @@ extern "C"
     static inline bool Fox_Is(Value value, ValueType type)
 	{
         return value.type == type;
+	}
+
+    static inline Value Fox_Array()
+	{
+		return OBJ_VAL(new ObjectArray());
 	}
 }

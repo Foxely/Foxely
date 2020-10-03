@@ -24,7 +24,32 @@ void ValueArray::WriteValueArray(Value value)
 
 //   array->values[array->count] = value;
 //   array->count++;
+    m_iCount++;
     m_vValues.push_back(value);
+}
+
+bool CompareObject(Value a, Value b)
+{
+    if (AS_OBJ(a)->type != AS_OBJ(b)->type)
+        return false;
+    
+    switch (AS_OBJ(a)->type)
+    {
+    case OBJ_INSTANCE:
+        return *AS_INSTANCE(a) == *AS_INSTANCE(b);
+    case OBJ_NATIVE_INSTANCE:
+        return *AS_NATIVE_INSTANCE(a) == *AS_NATIVE_INSTANCE(b);
+    case OBJ_STRING:
+        return AS_STRING(a) == AS_STRING(b);
+    case OBJ_ARRAY:
+        return *AS_ARRAY(a) == *AS_ARRAY(b);
+    case OBJ_ABSTRACT:
+        return *AS_ABSTRACT(a) == *AS_ABSTRACT(b);
+    default:
+        break;
+    }
+    // std::cout << AS_OBJ(a)->type;
+    return false;
 }
 
 bool ValuesEqual(Value a, Value b)
@@ -36,10 +61,22 @@ bool ValuesEqual(Value a, Value b)
         case VAL_BOOL:   return AS_BOOL(a) == AS_BOOL(b);
         case VAL_NIL:    return true;
         case VAL_NUMBER: return AS_NUMBER(a) == AS_NUMBER(b);
-        case VAL_OBJ: return AS_OBJ(a) == AS_OBJ(b);
+        case VAL_OBJ:
+            return CompareObject(a, b);
         default:
-        return false; // Unreachable.
+            return false; // Unreachable.
     }
+}
+
+
+// bool operator==(const Value& a, const Value& b)
+// {
+//     return ValuesEqual(a, b);
+// }
+
+bool Value::operator==(const Value& other) const
+{
+    return ValuesEqual(*this, other);
 }
 
 void PrintFunction(ObjectFunction* function)

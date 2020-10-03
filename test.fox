@@ -1,5 +1,30 @@
 import "array";
 
-myArray: var = array();
+string1: var = "salut";
+string2: var = "salut";
 
-print myArray.get();
+print string1 == string2;
+
+
+f :: class
+{
+}
+
+c :: class < f
+{
+}
+
+d :: class < f
+{
+}
+
+array1: var = Array();
+array2: var = Array();
+
+array1.push("salut");
+array2.push("salut");
+
+f1: var = c();
+f2: var = d();
+
+print f1 == f2;

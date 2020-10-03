@@ -10,6 +10,7 @@
 #ifndef __OBJECT_H__
 #define __OBJECT_H__
 
+#include <iostream>
 #include <string>
 
 #include "chunk.hpp"
@@ -71,6 +72,11 @@ class Object : public Traceable
 {
 public:
     ObjType type;
+
+    bool operator==(const Object& other) const
+    {
+        return type == other.type;
+    }
 };
 
 class ObjectString : public Object
@@ -176,6 +182,11 @@ public:
 		klass = k;
 		fields = Table();
 	}
+
+    bool operator==(const ObjectNativeInstance& other) const
+    {
+        return klass == other.klass && fields.m_vEntries == other.fields.m_vEntries;
+    }
 };
 
 class ObjectClosure : public Object
@@ -200,15 +211,34 @@ public:
 class ObjectClass : public Object
 {
 public:
+    ObjectClass* superClass;
     ObjectString *name;
     Table methods;
+    int derivedCount;
 
 	explicit ObjectClass(ObjectString* n)
 	{
 		type = OBJ_CLASS;
 		name = n;
 		methods = Table();
+        superClass = NULL;
+        derivedCount = 0;
 	}
+
+    bool operator==(const ObjectClass& other) const
+    {
+        ObjectClass* cl = (ObjectClass*) this;
+        ObjectClass* end = (ObjectClass*) &other;
+        if (derivedCount < other.derivedCount)
+        {
+            cl = (ObjectClass*) &other;
+            end = (ObjectClass*) this;
+        }
+        while (cl && !(cl == end))
+            cl = cl->superClass;
+        
+        return cl != NULL;
+    }
 };
 
 class ObjectInstance : public Object
@@ -223,6 +253,11 @@ public:
 		klass = k;
 		fields = Table();
 	}
+
+    bool operator==(const ObjectInstance& other) const
+    {
+        return *klass == *other.klass && fields.m_vEntries == other.fields.m_vEntries;
+    }
 };
 
 
@@ -264,19 +299,28 @@ public:
         abstractType = aType;
         data = d;
 	}
+
+    bool operator==(const ObjectAbstract& other) const
+    {
+        return data == other.data && abstractType == other.abstractType;
+    }
 };
 
 class ObjectArray : public Object
 {
 public:
-    ValueArray array;
-    ValueType mainType;
-    ObjType objType;
+    std::vector<Value> m_vValues;
 
     explicit ObjectArray()
 	{
 		type = OBJ_ARRAY;
+        m_vValues = std::vector<Value>();
 	}
+
+    bool operator==(const ObjectArray& other) const
+    {
+        return m_vValues == other.m_vValues;
+    }
 };
 
 static inline bool is_obj_type(Value val, ObjType type)

@@ -1003,3 +1003,24 @@ void ClassDeclaration(Parser& parser, Token& name)
 
 	parser.currentClass = parser.currentClass->enclosing;
 }
+
+// ----------------------------
+//      Array
+// ----------------------------
+
+// static void List(Parser& parser, bool canAssign)
+// {
+//     parser.EmitByte(OP_NEW_LIST);
+
+//     do
+//     {
+//         if (parser.PeekNextTokenIsType(TOKEN_RIGHT_BRACKET))
+//             break;
+
+//         Expression(parser);
+//         parser.EmitByte(OP_ADD_LIST);
+//     }
+//     while (parser.Match(TOKEN_COMMA));
+
+//     parser.Consume(TOKEN_RIGHT_BRACKET, "Expected closing ']'");
+// }

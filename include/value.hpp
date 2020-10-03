@@ -26,7 +26,18 @@ public:
         double number;
         Object* obj;
     } as;
+
+    bool operator==(const Value& other) const;
 };
+
+
+bool ValuesEqual(Value a, Value b);
+void PrintValue(Value value);
+
+// inline bool operator==(const Value& a, const Value& b)
+// {
+//     return ValuesEqual(a, b);
+// }
 
 class ValueArray
 {
@@ -52,8 +63,5 @@ public:
 #define NIL_VAL           ((Value){ VAL_NIL, { .number = 0 } })
 #define NUMBER_VAL(val) ((Value){ VAL_NUMBER, { .number = val } })
 #define OBJ_VAL(object)   ((Value){ VAL_OBJ, { .obj = (Object *)object } })
-
-bool ValuesEqual(Value a, Value b);
-void PrintValue(Value value);
 
 #endif

@@ -24,7 +24,6 @@ void Chunk::WriteChunk(uint8_t byte, int line)
 //         oldCapacity, chunk.capacity);
 //   }
 
-//   chunk.code[chunk.count] = byte;
 	m_iCount++;
     m_vCode.push_back(byte);
     m_vLines.push_back(line);

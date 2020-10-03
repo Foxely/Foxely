@@ -9,6 +9,11 @@ struct Entry
 {
     ObjectString* m_pKey;
     Value m_oValue;
+
+	bool operator==(const Entry& other) const
+    {
+        return m_pKey == other.m_pKey && m_oValue == other.m_oValue;
+    }
 };
 
 class Table

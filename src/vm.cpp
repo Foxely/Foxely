@@ -153,7 +153,8 @@ bool IsFalsey(Value value) {
 	return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
 }
 
-void VM::RuntimeError(const char *format, ...) {
+void VM::RuntimeError(const char *format, ...)
+{
 	va_list args;
 	va_start(args, format);
 	vfprintf(stderr, format, args);
@@ -163,20 +164,18 @@ void VM::RuntimeError(const char *format, ...) {
 	for (int i = frameCount - 1; i >= 0; i--) {
 		CallFrame *frame = &frames[i];
 		ObjectFunction *function = frame->closure->function;
-		// -1 because the IP is sitting on the next instruction to be
-		// executed.
+
+		// -1 because the IP is sitting on the next instruction to be executed.
 		size_t instruction = frame->ip - function->chunk.m_vCode.begin() - 1;
 		fprintf(stderr, "[line %d] in ", function->chunk.m_vLines[instruction]);
-		if (function->name == NULL) {
+		if (function->name == NULL)
 			fprintf(stderr, "script\n");
-		} else {
+		else
 			fprintf(stderr, "%s()\n", function->name->string.c_str());
-		}
 	}
 
+	// ResetStack();
 	result = InterpretResult::INTERPRET_RUNTIME_ERROR;
-
-	ResetStack();
 }
 
 bool VM::Call(ObjectClosure *closure, int argCount)
@@ -251,6 +250,7 @@ bool VM::CallValue(Value callee, int argCount)
 			{
 				NativeFn native = AS_NATIVE(initializer);
 				native(argCount, stackTop - argCount);
+				stackTop -= argCount;
 			}
 			return true;
 		}
@@ -486,7 +486,8 @@ InterpretResult VM::run() {
 #endif
 		// auto startExec = std::chrono::steady_clock::now();
 		uint8_t instruction;
-		switch (instruction = READ_BYTE()) {
+		switch (instruction = READ_BYTE())
+		{
 		case OP_NIL:
 			Push(NIL_VAL);
 			break;
@@ -683,6 +684,8 @@ InterpretResult VM::run() {
 			}
 			ObjectClass *subclass = AS_CLASS(Peek(0));
 			subclass->methods.AddAll(AS_CLASS(superclass)->methods);
+			subclass->superClass = AS_CLASS(superclass);
+			subclass->derivedCount = AS_CLASS(superclass)->derivedCount + 1;
 			Pop(); // Subclass.
 			break;
 		}
@@ -922,8 +925,7 @@ bool VM::BindMethod(ObjectClass *klass, ObjectString *name) {
 		return false;
 	}
 
-	ObjectBoundMethod *bound =
-		new ObjectBoundMethod(Peek(0), AS_CLOSURE(method));
+	ObjectBoundMethod *bound = new ObjectBoundMethod(Peek(0), AS_CLOSURE(method));
 	Pop();
 	Push(OBJ_VAL(bound));
 	return true;

@@ -1,9 +1,8 @@
 #include "library/array.h"
-#include <fstream>
 #include <iostream>
 #include <stdexcept>
 #include <string.h>
-#include <fstream>
+#include <algorithm>
 #include "foxely.h"
 
 // SCY_PLUGIN(ArrayPlugin, "IO Module", "0.1.0")
@@ -13,27 +12,101 @@
 //     "core/file"
 // };
 
+bool ValidArgs(int argCount, Value* args)
+{
+    if (!Fox_Is(args[0], VAL_NUMBER))
+    {
+        Fox_RuntimeError("Expected index number");
+        return false;
+    }
+
+    int index = AS_NUMBER(args[0]);
+    if (index < 0)
+    {
+        Fox_RuntimeError("Expected positive index");
+        return false;
+    }
+
+    return true;
+}
+
 Value getNative(int argCount, Value* args)
 {
     Fox_FixArity(argCount, 1);
+    if (ValidArgs(argCount, args))
+    {
+        int index = AS_NUMBER(args[0]);
+        Value arrayField = Fox_GetInstanceField(args[-1], "m_oArray");
+        ObjectArray* array = Fox_ValueToArray(arrayField);
+        if (array->m_vValues.empty()) {
+            Fox_RuntimeError("Cannot access at index %d because the array is empty", index);
+        } else
+            return array->m_vValues[index];
+    }
     return NIL_VAL;
 }
 
 Value setNative(int argCount, Value* args)
 {
     Fox_FixArity(argCount, 2);
+    if (Fox_Is(args[0], VAL_NUMBER))
+    {
+        int index = AS_NUMBER(args[0]);
+        Value arrayField = Fox_GetInstanceField(args[-1], "m_oArray");
+        ObjectArray* array = Fox_ValueToArray(arrayField);
+        array->m_vValues[index] = args[1];
+    }
+    else
+        Fox_RuntimeError("Expected index number");
+    
     return NIL_VAL;
 }
 
 Value pushNative(int argCount, Value* args)
 {
     Fox_FixArity(argCount, 1);
+    Value arrayField = Fox_GetInstanceField(args[-1], "m_oArray");
+    ObjectArray* array = Fox_ValueToArray(arrayField);
+    array->m_vValues.push_back(args[0]);
     return NIL_VAL;
 }
 
 Value initNative(int argCount, Value* args)
 {
+    Fox_Arity(argCount, 0, 1);
+    Fox_SetInstanceField(args[-1], "m_oArray", Fox_Array());
+
+    if (argCount == 1)
+    {
+        if (Fox_Is(args[0], VAL_NUMBER))
+        {
+            int size = AS_NUMBER(args[0]);
+            Value arrayField = Fox_GetInstanceField(args[-1], "m_oArray");
+            ObjectArray* array = Fox_ValueToArray(arrayField);
+            array->m_vValues.reserve(size);
+        }
+        else
+            Fox_RuntimeError("Expected number.");
+    }
     return NIL_VAL;
+}
+
+Value sizeNative(int argCount, Value* args)
+{
+    Fox_FixArity(argCount, 0);
+    Value arrayField = Fox_GetInstanceField(args[-1], "m_oArray");
+    ObjectArray* array = Fox_ValueToArray(arrayField);
+    return NUMBER_VAL(array->m_vValues.size());
+}
+
+Value containNative(int argCount, Value* args)
+{
+    Fox_FixArity(argCount, 1);
+    Value arrayField = Fox_GetInstanceField(args[-1], "m_oArray");
+    ObjectArray* array = Fox_ValueToArray(arrayField);
+    Value search = args[0];
+    std::vector<Value>::iterator it = std::find(array->m_vValues.begin(), array->m_vValues.end(), search);
+    return BOOL_VAL(it != array->m_vValues.end());
 }
 
 // Value atNative(int argCount, Value* args)
@@ -64,7 +137,7 @@ ArrayPlugin::~ArrayPlugin()
 
 const char* ArrayPlugin::GetClassName() const
 {
-    return "array";
+    return "Array";
 }
 
 NativeMethods ArrayPlugin::GetMethods()
@@ -75,6 +148,8 @@ NativeMethods ArrayPlugin::GetMethods()
 		std::make_pair<std::string, NativeFn>("push", pushNative),
 		std::make_pair<std::string, NativeFn>("get", getNative),
 		std::make_pair<std::string, NativeFn>("set", setNative),
+		std::make_pair<std::string, NativeFn>("size", sizeNative),
+		std::make_pair<std::string, NativeFn>("contain", containNative),
 	};
 
 	return methods;
