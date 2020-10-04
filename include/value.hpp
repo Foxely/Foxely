@@ -4,6 +4,7 @@
 #define fox_value_h
 
 #include <vector>
+#include <string>
 #include "common.h"
 
 // typedef double Value;
@@ -33,6 +34,7 @@ public:
 
 bool ValuesEqual(Value a, Value b);
 void PrintValue(Value value);
+std::string ValueToString(Value value);
 
 // inline bool operator==(const Value& a, const Value& b)
 // {

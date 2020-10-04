@@ -41,6 +41,8 @@ void runFile(const char* path)
 
 int main(int ac, char** av)
 {
+    VM::GetInstance()->argc = ac;
+    VM::GetInstance()->argv = av;
     if (ac == 1) {
         repl();
     } else if (ac == 2) {

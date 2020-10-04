@@ -59,11 +59,19 @@ extern "C"
         Value klass;
         Value name = Fox_StringToValue(klassName);
         if (!VM::GetInstance()->globals.Get(AS_STRING(name), klass))
-        {
             return NIL_VAL;
-        }
 
 		return OBJ_VAL(new ObjectNativeInstance(AS_NATIVE_CLASS(klass)));
+	}
+
+    static inline void Fox_CallMethod(Value instance, const char* methodName, int argCount, Value* params)
+	{
+        Value method;
+        Value methodNameValue = Fox_StringToValue(methodName);
+        if (AS_NATIVE_INSTANCE(instance)->klass->methods.Get(AS_STRING(methodNameValue), method))
+        {
+            AS_NATIVE(method)(argCount, params);
+        }
 	}
 
     static inline Value Fox_SetInstanceField(Value instance, const char* fieldName, Value value)

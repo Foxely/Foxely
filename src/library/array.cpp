@@ -4,6 +4,7 @@
 #include <string.h>
 #include <algorithm>
 #include "foxely.h"
+#include "value.hpp"
 
 // SCY_PLUGIN(ArrayPlugin, "IO Module", "0.1.0")
 
@@ -109,6 +110,28 @@ Value containNative(int argCount, Value* args)
     return BOOL_VAL(it != array->m_vValues.end());
 }
 
+Value toStringNative(int argCount, Value* args)
+{
+    Fox_FixArity(argCount, 0);
+    Value arrayField = Fox_GetInstanceField(args[-1], "m_oArray");
+    ObjectArray* array = Fox_ValueToArray(arrayField);
+
+    std::string string;
+
+    string += "[";
+    int size = array->m_vValues.size();
+    for (auto& it : array->m_vValues)
+    {
+        size--;
+        string += ValueToString(it);
+        if (size > 0)
+            string += ", ";
+    }
+    string += "]";
+
+    return Fox_StringToValue(string.c_str());
+}
+
 // Value atNative(int argCount, Value* args)
 // {
 //     Fox_FixArity(argCount, 0);
@@ -150,6 +173,7 @@ NativeMethods ArrayPlugin::GetMethods()
 		std::make_pair<std::string, NativeFn>("set", setNative),
 		std::make_pair<std::string, NativeFn>("size", sizeNative),
 		std::make_pair<std::string, NativeFn>("contain", containNative),
+		std::make_pair<std::string, NativeFn>("toString", toStringNative),
 	};
 
 	return methods;

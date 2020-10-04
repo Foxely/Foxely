@@ -22,7 +22,7 @@ Value whichNative(int argCount, Value* args)
             return Fox_StringToValue("macOS");
         #endif
     #endif
-    return Fox_StringToValue("nil");
+    return Fox_StringToValue("Unknown OS");
 }
 
 Value shellNative(int argCount, Value* args)
@@ -39,6 +39,41 @@ Value getEnvNative(int argCount, Value* args)
     return Fox_StringToValue(getenv(Fox_ValueToCString(args[0])));
 }
 
+Value exitNative(int argCount, Value* args)
+{
+    Fox_Arity(argCount, 0, 1);
+    if (argCount == 1)
+    {
+        if (Fox_Is(args[0], VAL_NUMBER))
+            exit(Fox_ValueToNumber(args[0]));
+        else
+            Fox_RuntimeError("Expected number");
+    }
+    else
+        exit(0);
+    return NIL_VAL;
+}
+
+Value argsNative(int argCount, Value* args)
+{
+    Value instance = Fox_DefineInstanceOf("Array");
+    Fox_SetInstanceField(instance, "m_oArray", Fox_Array());
+    if (!Fox_Is(instance, VAL_NIL))
+    {
+        Value arrayField = Fox_GetInstanceField(instance, "m_oArray");
+        ObjectArray* array = Fox_ValueToArray(arrayField);
+        std::vector<Value> values;
+
+        for (int i = 1; i < VM::GetInstance()->argc; i++) {
+            values.push_back(Fox_StringToValue(VM::GetInstance()->argv[i]));
+        }
+
+        array->m_vValues = values;
+    }
+    else
+        Fox_RuntimeError("Array Library was not imported.");
+    return instance;
+}
 
 
 OSPlugin::OSPlugin()
@@ -63,6 +98,9 @@ NativeMethods OSPlugin::GetMethods()
 		std::make_pair<std::string, NativeFn>("which", whichNative),
         std::make_pair<std::string, NativeFn>("shell", shellNative),
 		std::make_pair<std::string, NativeFn>("getenv", getEnvNative),
+		std::make_pair<std::string, NativeFn>("exit", exitNative),
+		std::make_pair<std::string, NativeFn>("args", argsNative),
 	};
+    
 	return methods;
 }

@@ -68,77 +68,96 @@ bool ValuesEqual(Value a, Value b)
     }
 }
 
-
-// bool operator==(const Value& a, const Value& b)
-// {
-//     return ValuesEqual(a, b);
-// }
-
 bool Value::operator==(const Value& other) const
 {
     return ValuesEqual(*this, other);
 }
 
-void PrintFunction(ObjectFunction* function)
+
+
+std::string FunctionToString(ObjectFunction* function)
 {
+    std::string string = "";
 	if (function->name == NULL) {
-        std::cout << "<script>";
-		return;
+        string += "<script>";
+		return string;
 	}
 
-    std::cout << "<fn " << function->name->string << ">";
+    string += "<fn ";
+    string += function->name->string;
+    string += ">";
+
+    return string;
 }
 
-void printObject(Value value)
+std::string ObjectToString(Value value)
 {
+    std::string string = "";
     switch (OBJ_TYPE(value))
     {
         case OBJ_STRING:
-            std::cout << (AS_STRING(value))->string;
+            string += (AS_STRING(value))->string;
         	break;
 		case OBJ_FUNCTION:
-			PrintFunction(AS_FUNCTION(value));
+			string += FunctionToString(AS_FUNCTION(value));
 			break;
 		case OBJ_NATIVE:
-            std::cout << "<native fn>";
+            string += "<native fn>";
 			break;
         case OBJ_CLOSURE:
-            PrintFunction(AS_CLOSURE(value)->function);
+            string += FunctionToString(AS_CLOSURE(value)->function);
             break;
         case OBJ_UPVALUE:
-            printf("upvalue");
+            string += "upvalue";
             break;
 		case OBJ_CLASS:
-			std::cout << "<class " << AS_CLASS(value)->name->string << ">";
+			string += "<class ";
+            string += AS_CLASS(value)->name->string;
+            string += ">";
 			break;
 		case OBJ_INSTANCE:
-			std::cout << AS_INSTANCE(value)->klass->name->string << " instance";
+			string += AS_INSTANCE(value)->klass->name->string;
+            string += " instance";
 			break;
 		case OBJ_BOUND_METHOD:
-			PrintFunction(AS_BOUND_METHOD(value)->method->function);
+			string += FunctionToString(AS_BOUND_METHOD(value)->method->function);
 			break;
         case OBJ_NATIVE_CLASS:
-			std::cout << "<native class " << AS_NATIVE_CLASS(value)->name->string << ">";
+			string += "<native class ";
+            string += AS_NATIVE_CLASS(value)->name->string;
+            string += ">";
 			break;
         case OBJ_NATIVE_INSTANCE:
-			std::cout << AS_NATIVE_INSTANCE(value)->klass->name->string << " native instance";
+			string += AS_NATIVE_INSTANCE(value)->klass->name->string;
+            string += " native instance";
 			break;
         case OBJ_ABSTRACT:
-			std::cout << AS_ABSTRACT(value)->abstractType->name << " Abstract";
+			string += AS_ABSTRACT(value)->abstractType->name;
+            string += " Abstract";
 			break;
         case OBJ_LIB:
-			std::cout << AS_LIB(value)->name->string << " Lib";
+			string += AS_LIB(value)->name->string;
+            string += " Lib";
 			break;
     }
+
+    return string;
+}
+
+std::string ValueToString(Value value)
+{
+    std::string string = "";
+    switch (value.type)
+    {
+        case VAL_BOOL: string += (AS_BOOL(value) ? "true" : "false"); break;
+        case VAL_NIL:    string +=  "nil"; break;
+        case VAL_NUMBER: string +=  AS_NUMBER(value); break;
+        case VAL_OBJ: string += ObjectToString(value); break;
+    }
+    return string;
 }
 
 void PrintValue(Value value)
 {
-    switch (value.type)
-    {
-        case VAL_BOOL: std::cout << (AS_BOOL(value) ? "true" : "false"); break;
-        case VAL_NIL:    std::cout << "nil"; break;
-        case VAL_NUMBER: std::cout << AS_NUMBER(value); break;
-        case VAL_OBJ: printObject(value); break;
-    }
+    std::cout << ValueToString(value);
 }

@@ -58,6 +58,9 @@ public:
 	ObjectString* initString;
 	std::vector<fox::SharedLibrary> m_vLibraryImported;
 
+	int argc;
+	char** argv;
+
     VM();
 	~VM();
 
