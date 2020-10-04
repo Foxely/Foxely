@@ -5,7 +5,7 @@
 ## make an executable
 ##
 
-CC = g++
+CC = g++ -std=c++17
 
 EXECUTABLE	= main
 SRC_DIR = src

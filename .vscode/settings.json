@@ -51,6 +51,8 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "bit": "cpp",
-        "list": "cpp"
+        "list": "cpp",
+        "codecvt": "cpp",
+        "iomanip": "cpp"
     }
 }

@@ -53,7 +53,7 @@ Parser::Parser()
     oLexer.Define(TOKEN_TRUE, "true");
     oLexer.Define(TOKEN_FALSE, "false");
     oLexer.Define(TOKEN_FOR, "for");
-    oLexer.Define(TOKEN_FUN, "fun");
+    oLexer.Define(TOKEN_FUN, "func");
     oLexer.Define(TOKEN_IF, "if");
     oLexer.Define(TOKEN_IMPORT, "import");
     oLexer.Define(TOKEN_RETURN, "return");
@@ -69,7 +69,8 @@ Parser::Parser()
     // oLexer.Define("Open Square Bracket","\\[");
     // oLexer.Define("Close Square Bracket","\\]");
     // oLexer.Define("Arrow","->");
-    oLexer.Define(TOKEN_SINGLE_COMMENT,"//.*\n", true);
+    // oLexer.DefineArea(TOKEN_SINGLE_COMMENT,'//', '\n');
+    oLexer.Define(TOKEN_SINGLE_COMMENT,"//[^\n\r]*", true);
     oLexer.Define(TOKEN_MULTI_COMMENT,"/\\*.*\\*/", true);
     oLexer.Define(TOKEN_EOF,"[\0]");
 

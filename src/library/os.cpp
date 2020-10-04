@@ -1,10 +1,10 @@
 #include "library/os.h"
-#include <fstream>
 #include <iostream>
 #include <stdexcept>
 #include <string.h>
-#include <fstream>
+#include <filesystem>
 #include "foxely.h"
+namespace fs = std::filesystem;
 
 // SCY_PLUGIN(OSPlugin, "OS Module", "0.1.0")
 
@@ -56,6 +56,7 @@ Value exitNative(int argCount, Value* args)
 
 Value argsNative(int argCount, Value* args)
 {
+    Fox_FixArity(argCount, 0);
     Value instance = Fox_DefineInstanceOf("Array");
     Fox_SetInstanceField(instance, "m_oArray", Fox_Array());
     if (!Fox_Is(instance, VAL_NIL))
@@ -74,6 +75,15 @@ Value argsNative(int argCount, Value* args)
         Fox_RuntimeError("Array Library was not imported.");
     return instance;
 }
+
+// Value Native(int argCount, Value* args)
+// {
+//     std::string path = "/path/to/directory";
+//     for (const auto & entry : fs::directory_iterator(path))
+//         std::cout << entry.path() << std::endl;
+// }
+
+
 
 
 OSPlugin::OSPlugin()
