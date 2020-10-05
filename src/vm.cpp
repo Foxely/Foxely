@@ -39,7 +39,7 @@ void VM::LoadStandard(const std::string& name)
 	OSPlugin os;
 	IOPlugin io;
 	ArrayPlugin array;
-	SFMLPlugin sfml;
+	// SFMLPlugin sfml;
 
 	if (name == "os")
 	{
@@ -58,9 +58,8 @@ void VM::LoadStandard(const std::string& name)
 	}
 	else if (name == "sfml")
 	{
-		std::cout << "nbhbg";
-		methods = sfml.GetMethods();
-		DefineNativeClass(sfml.GetClassName(), methods);
+		// methods = sfml.GetMethods();
+		// DefineNativeClass(sfml.GetClassName(), methods);
 	}
 }
 

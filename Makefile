@@ -18,7 +18,7 @@ OBJ = $(SRC:%.cpp=%.o)
 
 # CFLAGS += -std=c++17 -W -Wall -Wextra $(if $(DEBUG),-g3) $(if $(DEBUG),-DDEBUG -DDEBUG_TRACE_EXECUTION)
 # CFLAGS += $(if $(DEBUG_TOKEN),-DDEBUG_TOKEN)
-LDFLAGS = -Llib -llexer -ldl -lsfml-graphics -lsfml-window -lsfml-system
+LDFLAGS = -Llib -llexer -ldl #-lsfml-graphics -lsfml-window -lsfml-system
 INC_FLAGS = -Iinclude -Ilib/GenericLexer/include
 
 ifeq ($(BUILD),debug)

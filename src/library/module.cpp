@@ -2,7 +2,6 @@
 #include <iostream>
 #include <stdexcept>
 #include <string.h>
-#include <filesystem>
 #include <fstream>
 #include <streambuf>
 #include "foxely.h"

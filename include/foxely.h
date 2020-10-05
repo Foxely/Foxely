@@ -1,7 +1,6 @@
 #pragma once
 
 // #define FOXELY_API __attribute__((visibility ("default")))
-#include <SFML/Graphics.hpp>
 #include "Parser.h"
 #include "vm.hpp"
 #include "object.hpp"
