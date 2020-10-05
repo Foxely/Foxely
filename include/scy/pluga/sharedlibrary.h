@@ -18,10 +18,10 @@ namespace fox
     };
     typedef lib_t lib_t;
 
-    static int fox__dlerror(lib_t* lib);
+    static inline int fox__dlerror(lib_t* lib);
 
 
-    int fox_dlopen(const char* filename, lib_t* lib)
+    static inline int fox_dlopen(const char* filename, lib_t* lib)
     {
         dlerror(); /* Reset error status. */
         lib->errmsg = NULL;
@@ -30,7 +30,7 @@ namespace fox
     }
 
 
-    void fox_dlclose(lib_t* lib)
+    static inline void fox_dlclose(lib_t* lib)
     {
         free(lib->errmsg);
         lib->errmsg = NULL;
@@ -43,7 +43,7 @@ namespace fox
     }
 
 
-    int fox_dlsym(lib_t* lib, const char* name, void** ptr)
+    static inline int fox_dlsym(lib_t* lib, const char* name, void** ptr)
     {
         dlerror(); /* Reset error status. */
         *ptr = dlsym(lib->handle, name);
@@ -51,7 +51,7 @@ namespace fox
     }
 
 
-    const char* fox_dlerror(const lib_t* lib)
+    static inline const char* fox_dlerror(const lib_t* lib)
     {
         return lib->errmsg ? lib->errmsg : "no error";
     }
@@ -89,6 +89,7 @@ namespace fox
                 setError("Cannot load library");
                 return false;
             }
+            m_strLibname = path;
             return true;
         }
 
@@ -121,9 +122,17 @@ namespace fox
 
         std::string error() const { return _error; }
 
+        bool operator==(const SharedLibrary& other) const
+        {
+            return m_strLibname == other.m_strLibname;
+        }
+
     protected:
         lib_t _lib;
         std::string _error;
+    
+    public:
+        std::string m_strLibname;
     };
 } // namespace fox
 

@@ -107,7 +107,20 @@ Value containNative(int argCount, Value* args)
     ObjectArray* array = Fox_ValueToArray(arrayField);
     Value search = args[0];
     std::vector<Value>::iterator it = std::find(array->m_vValues.begin(), array->m_vValues.end(), search);
+
     return BOOL_VAL(it != array->m_vValues.end());
+}
+
+Value findNative(int argCount, Value* args)
+{
+    Fox_FixArity(argCount, 1);
+    Value arrayField = Fox_GetInstanceField(args[-1], "m_oArray");
+    ObjectArray* array = Fox_ValueToArray(arrayField);
+    Value search = args[0];
+    std::vector<Value>::iterator it = std::find(array->m_vValues.begin(), array->m_vValues.end(), search);
+    int index = distance(array->m_vValues.begin(), it);
+
+    return NUMBER_VAL(index);
 }
 
 Value toStringNative(int argCount, Value* args)
@@ -173,6 +186,7 @@ NativeMethods ArrayPlugin::GetMethods()
 		std::make_pair<std::string, NativeFn>("set", setNative),
 		std::make_pair<std::string, NativeFn>("size", sizeNative),
 		std::make_pair<std::string, NativeFn>("contain", containNative),
+		std::make_pair<std::string, NativeFn>("find", findNative),
 		std::make_pair<std::string, NativeFn>("toString", toStringNative),
 	};
 

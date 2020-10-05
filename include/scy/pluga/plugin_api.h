@@ -1,13 +1,13 @@
-#ifndef SCY_TestPluginAPI_H
-#define SCY_TestPluginAPI_H
+#ifndef SCY_PluginAPI_H
+#define SCY_PluginAPI_H
 
-
-#include "scy/pluga/pluga.h"
-#include "Parser.h"
-#include "vm.hpp"
 #include <string>
 #include <map>
 #include <utility>
+#include "pluga.h"
+#include "Parser.h"
+#include "vm.hpp"
+
 
 class Value;
 
@@ -26,15 +26,15 @@ namespace fox {
         class IModule
         {
         public:
-            IModule(){};
-            virtual ~IModule(){};
+            IModule() {};
+            virtual ~IModule() {};
 
-            virtual const char* GetClassName() const = 0;
-            virtual NativeMethods GetMethods() = 0;
+            virtual const char* GetClassName() const {};
+            virtual NativeMethods GetMethods() {};
         };
 
     } // namespace pluga
-} // namespace scy
+} // namespace fox
 
 
 #endif

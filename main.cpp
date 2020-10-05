@@ -32,6 +32,7 @@ void runFile(const char* path)
     GC::Gc.pVm = VM::GetInstance();
 	std::ifstream t(path);
 	std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
+    t.close();
 
     InterpretResult result = VM::GetInstance()->interpret(str.c_str());
 
@@ -45,7 +46,7 @@ int main(int ac, char** av)
     VM::GetInstance()->argv = av;
     if (ac == 1) {
         repl();
-    } else if (ac == 2) {
+    } else if (ac >= 2) {
         runFile(av[1]);
     } else {
         fprintf(stderr, "Usage: clox [path]\n");

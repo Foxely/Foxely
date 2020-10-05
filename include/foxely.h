@@ -1,11 +1,15 @@
 #pragma once
 
 // #define FOXELY_API __attribute__((visibility ("default")))
+#include <SFML/Graphics.hpp>
+#include "Parser.h"
+#include "vm.hpp"
 #include "object.hpp"
 
 extern "C"
 {
 #define Fox_RuntimeError(msg, ...) VM::GetInstance()->RuntimeError(msg, ##__VA_ARGS__)
+#define Fox_PanicIfNot(cond, msg, ...) if (!(cond)) { Fox_RuntimeError(msg, ##__VA_ARGS__); return NIL_VAL; }
 
 	static inline Value Fox_StringToValue(const char* str)
 	{
@@ -108,6 +112,26 @@ extern "C"
     static inline bool Fox_Is(Value value, ValueType type)
 	{
         return value.type == type;
+	}
+
+    static inline bool Fox_IsObject(Value value)
+	{
+        return IS_OBJ(value);
+	}
+
+    static inline bool Fox_IsString(Value value)
+	{
+        return IS_STRING(value);
+	}
+
+    static inline bool Fox_IsNativeInstance(Value value)
+	{
+        return IS_NATIVE_INSTANCE(value);
+	}
+
+    static inline bool Fox_IsNumber(Value value)
+	{
+        return IS_NUMBER(value);
 	}
 
     static inline Value Fox_Array()

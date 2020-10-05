@@ -113,7 +113,7 @@ void ExpressionStatement(Parser& parser)
 
 void WhileStatement(Parser& parser)
 {
-    int loop_start = parser.compilingChunk->m_iCount;
+    int loop_start = parser.GetCurrentChunk()->m_iCount;
     parser.Consume(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
     Expression(parser);
     parser.Consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
@@ -138,7 +138,7 @@ void for_loop(Parser& parser, int *exit_jump)
 void for_increment(Parser& parser, int *loop_start)
 {
     int body_jump = parser.EmitJump(OP_JUMP);
-    int increment_start = parser.compilingChunk->m_iCount;
+    int increment_start = parser.GetCurrentChunk()->m_vCode.size();
 
     Expression(parser);
     parser.EmitByte(OP_POP);
@@ -154,15 +154,12 @@ void ForStatement(Parser& parser)
     // parser.BeginScope(parser->currentCompiler);
     parser.Consume(TOKEN_LEFT_PAREN, "Expect '(' after 'for'.");
     if (parser.Match(TOKEN_SEMICOLON)) {
-    } else if (parser.Match(TOKEN_VAR)) {
-        Token name = parser.PreviousToken();
-		if (parser.IsToken(TOKEN_COLON) && parser.IsToken(TOKEN_VAR)) {
-			VarDeclaration(parser, name);
-		}
+    } else if (parser.Match(TOKEN_IDENTIFIER)) {
+        Variable(parser, true);
     } else {
         ExpressionStatement(parser);
     }
-    int loop_start = parser.compilingChunk->m_iCount;
+    int loop_start = parser.GetCurrentChunk()->m_vCode.size();
 	int exit_jump = -1;
 
     if (!parser.Match(TOKEN_SEMICOLON))

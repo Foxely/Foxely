@@ -3,10 +3,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string.h>
-#include <fstream>
 #include "foxely.h"
-
-// SCY_PLUGIN(IOPlugin, "IO Module", "0.1.0")
 
 ObjectAbstractType foxely_file_type =
 {

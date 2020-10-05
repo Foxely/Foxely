@@ -9,6 +9,7 @@
 #include "value.hpp"
 #include "object.hpp"
 #include "Table.hpp"
+#include "plugin_manager.h"
 
 namespace fox
 {
@@ -54,9 +55,10 @@ public:
     Parser m_oParser;
 	Table strings;
 	Table globals;
+	Table imports;
 	ObjectUpvalue* openUpvalues;
 	ObjectString* initString;
-	std::vector<fox::SharedLibrary> m_vLibraryImported;
+	PluginManager manager;
 
 	int argc;
 	char** argv;

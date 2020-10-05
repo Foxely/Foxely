@@ -151,7 +151,7 @@ std::string ValueToString(Value value)
     {
         case VAL_BOOL: string += (AS_BOOL(value) ? "true" : "false"); break;
         case VAL_NIL:    string +=  "nil"; break;
-        case VAL_NUMBER: string +=  AS_NUMBER(value); break;
+        case VAL_NUMBER: string +=  std::to_string(AS_NUMBER(value)); break;
         case VAL_OBJ: string += ObjectToString(value); break;
     }
     return string;

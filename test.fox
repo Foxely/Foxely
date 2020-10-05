@@ -1,0 +1,9 @@
+
+
+test :: func(index)
+{
+    index = 10;
+}
+
+index: var = 0;
+test(index);

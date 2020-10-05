@@ -1,3 +1,7 @@
 
 
-declareNative();
+sources: var = Array();
+
+sources.push("test.cpp");
+
+// declareNative("name", sources);

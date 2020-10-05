@@ -2,11 +2,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string.h>
-#include <filesystem>
 #include "foxely.h"
-namespace fs = std::filesystem;
-
-// SCY_PLUGIN(OSPlugin, "OS Module", "0.1.0")
 
 
 Value whichNative(int argCount, Value* args)
@@ -75,14 +71,6 @@ Value argsNative(int argCount, Value* args)
         Fox_RuntimeError("Array Library was not imported.");
     return instance;
 }
-
-// Value Native(int argCount, Value* args)
-// {
-//     std::string path = "/path/to/directory";
-//     for (const auto & entry : fs::directory_iterator(path))
-//         std::cout << entry.path() << std::endl;
-// }
-
 
 
 

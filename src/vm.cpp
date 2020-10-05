@@ -2,6 +2,8 @@
 #include <algorithm>
 #include <stdarg.h>
 #include <stdio.h>
+#include <fstream>
+#include <streambuf>
 
 #include "Parser.h"
 #include "common.h"
@@ -13,6 +15,8 @@
 #include "library/io.h"
 #include "library/os.h"
 #include "library/array.h"
+#include "library/module.h"
+#include "library/sfml.h"
 
 
 VM VM::m_oInstance = VM();
@@ -24,53 +28,9 @@ std::vector<std::string> standardLib =
 	"os",
 	"io",
 	"array",
+	"math",
+	"sfml",
 };
-
-void VM::Load()
-{
-	// Set the plugin shared library location
-	std::string path;
-	path += "./modules/OS/";
-#if WIN32
-#ifdef _DEBUG
-	path += "plugatestplugind.dll";
-#else
-	path += "plugatestplugin.dll";
-#endif
-#else
-#ifdef _DEBUG
-	path += "plugatestplugind.so";
-#else
-	path += "plugatestplugin.so";
-#endif
-#endif
-
-	try {
-		// Load the shared library
-		fox::SharedLibrary lib;
-		lib.open(path);
-
-		// Get plugin descriptor and exports
-		fox::pluga::PluginDetails *info;
-		lib.sym("exports", reinterpret_cast<void **>(&info));
-
-		// API version checking
-		// if (info->apiVersion != SCY_PLUGIN_API_VERSION)
-		//     throw std::runtime_error(util::format(
-		//         "Plugin version mismatch. Expected %s, got %s.",
-		//         SCY_PLUGIN_API_VERSION, info->apiVersion));
-
-		// Instantiate the plugin
-		auto plugin = reinterpret_cast<fox::pluga::IModule *>(info->initializeFunc());
-		NativeMethods methods = plugin->GetMethods();
-		DefineLib(plugin->GetClassName(), methods);
-
-		// Close the plugin and free memory
-		m_vLibraryImported.push_back(lib);
-	} catch (std::exception &exc) {
-		std::cerr << "Error: " << exc.what() << std::endl;
-	}
-}
 
 void VM::LoadStandard(const std::string& name)
 {
@@ -79,6 +39,7 @@ void VM::LoadStandard(const std::string& name)
 	OSPlugin os;
 	IOPlugin io;
 	ArrayPlugin array;
+	SFMLPlugin sfml;
 
 	if (name == "os")
 	{
@@ -94,6 +55,12 @@ void VM::LoadStandard(const std::string& name)
 	{
 		methods = array.GetMethods();
 		DefineNativeClass(array.GetClassName(), methods);
+	}
+	else if (name == "sfml")
+	{
+		std::cout << "nbhbg";
+		methods = sfml.GetMethods();
+		DefineNativeClass(sfml.GetClassName(), methods);
 	}
 }
 
@@ -112,10 +79,6 @@ VM::VM()
 VM::~VM()
 {
 	initString = NULL;
-
-	for (auto &lib : m_vLibraryImported) {
-		lib.close();
-	}
 }
 
 VM *VM::GetInstance()
@@ -429,6 +392,10 @@ InterpretResult VM::interpret(const char *source)
 		DefineNative("clock", clockNative);
 		initString = NULL;
 		initString = m_oParser.CopyString("init");
+		ModulePlugin module;
+		NativeMethods methods = module.GetMethods();
+		DefineLib(module.GetClassName(), methods);
+		manager.GetAllLibrary();
 		isInit = true;
 	}
 
@@ -484,7 +451,6 @@ InterpretResult VM::run() {
 			frame->closure->function->chunk,
 			(int)(frame->ip - frame->closure->function->chunk.m_vCode.begin()));
 #endif
-		// auto startExec = std::chrono::steady_clock::now();
 		uint8_t instruction;
 		switch (instruction = READ_BYTE())
 		{
@@ -519,13 +485,15 @@ InterpretResult VM::run() {
 			break;
 		}
 
-		case OP_SET_LOCAL: {
+		case OP_SET_LOCAL:
+		{
 			uint8_t slot = READ_BYTE();
 			frame->slots[slot] = Peek(0);
 			break;
 		}
 
-		case OP_GET_GLOBAL: {
+		case OP_GET_GLOBAL:
+		{
 			ObjectString *name = READ_STRING();
 			Value value;
 			if (!globals.Get(name, value)) {
@@ -748,11 +716,37 @@ InterpretResult VM::run() {
 
 		case OP_IMPORT:
 		{
-			ObjectString *fileName = READ_STRING();
-			
-			std::vector<std::string>::iterator it = std::find(standardLib.begin(), standardLib.end(), fileName->string);
+			ObjectString *path = READ_STRING();
+			std::string file = path->string + ".fox";
+			if (!imports.Set(path, NIL_VAL) || !imports.Set(m_oParser.TakeString(file.c_str()), NIL_VAL))
+        		break;
+			std::vector<std::string>::iterator it = std::find(standardLib.begin(), standardLib.end(), path->string);
 			if (it != standardLib.end())
+			{
 				LoadStandard(*it);
+				break;
+			}
+
+			size_t lastindex = path->string.find_last_of("."); 
+			std::string rawname = path->string.substr(0, lastindex); 
+
+			if (manager.LoadLibrary(rawname))
+				break;
+
+			std::ifstream t(file);
+			std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
+
+			Chunk oChunk;
+			ObjectFunction *function = Compile(m_oParser, str.c_str(), &oChunk);
+			if (function == NULL) {
+				RuntimeError("Can't find '%s'.", file.c_str());
+				return INTERPRET_RUNTIME_ERROR;
+			}
+			Push(OBJ_VAL(function));
+			ObjectClosure *closure = new ObjectClosure(function);
+			Pop();
+			Call(closure, 0);
+			frame = &frames[frameCount - 1];
 			break;
 		}
 

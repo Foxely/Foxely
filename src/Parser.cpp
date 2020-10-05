@@ -66,6 +66,7 @@ Parser::Parser()
     oLexer.Define(TOKEN_EQUAL, "=");
     oLexer.Define(TOKEN_EQUAL_EQUAL, "==");
     oLexer.Define(TOKEN_IDENTIFIER,"[A-Za-z]+[0-9]*");
+    oLexer.Define(TOKEN_SHEBANG,"#[^\n\r]*", true);
     // oLexer.Define("Open Square Bracket","\\[");
     // oLexer.Define("Close Square Bracket","\\]");
     // oLexer.Define("Arrow","->");
@@ -457,9 +458,7 @@ void Variable(Parser& parser, bool can_assign)
 {
 	Token name = parser.PreviousToken();
 	if (parser.IsToken(TOKEN_COLON) && parser.IsToken(TOKEN_VAR))
-	{
 		VarDeclaration(parser, name);
-	}
 	else if (parser.IsToken(TOKEN_DOUBLE_COLON))
 	{
 		if (parser.IsToken(TOKEN_FUN))
