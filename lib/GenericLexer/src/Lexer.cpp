@@ -98,10 +98,10 @@ bool Lexer::Process(const std::string& strText)
 			if (define.second.m_cStart == m_strText[0])
 			{
 				m_strText.erase(0, 1);
-                size_t index = m_strText.find_first_of('"', 0);
                 helper::replaceAll(m_strText, "\\n", "\n");
                 helper::replaceAll(m_strText, "\\r", "\r");
                 helper::replaceAll(m_strText, "\\t", "\t");
+                size_t index = m_strText.find_first_of('"', 0);
 				oTokenList.emplace_back(define.first, m_strText, index, m_iLines);
 				m_strText.erase(0, index + 1);
 				break;

@@ -94,14 +94,10 @@ void PrintStatement(Parser& parser)
 	parser.Consume(TOKEN_STRING, "Expect string type for the print function.");
     parser.EmitConstant(OBJ_VAL(parser.CopyString(parser.PreviousToken().GetText())));
     int argCount = 1;
-    if (parser.Match(TOKEN_COMMA))
+    while (parser.Match(TOKEN_COMMA))
     {
-        do {
-            Expression(parser);
-            argCount++;
-        }
-        while (parser.Match(TOKEN_COMMA));
-        
+        Expression(parser);
+        argCount++;
     }
 	parser.Consume(TOKEN_SEMICOLON, "Expect ';' after value.");
     parser.EmitBytes(OP_PRINT, argCount);
