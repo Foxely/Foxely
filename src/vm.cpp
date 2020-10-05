@@ -613,11 +613,25 @@ InterpretResult VM::run() {
 		case OP_PRINT:
 		{
 			int argCount = READ_BYTE();
+			int percentCount = 0;
 			Value string = Peek(--argCount);
-			for (int i = 0; AS_STRING(string)->string[i]; i++) {
+			
+			for (int i = 0; AS_STRING(string)->string[i]; i++)
 				if (AS_STRING(string)->string[i] == '%')
+					percentCount++;
+			
+			if (argCount != percentCount)
+			{
+				RuntimeError("Expected %d arguments but got %d in print call.", percentCount, argCount);
+				break;
+			}
+			
+			for (int i = 0; AS_STRING(string)->string[i]; i++)
+			{
+				if (AS_STRING(string)->string[i] != '%') {
+					printf("%c", AS_STRING(string)->string[i]);
+				} else
 					PrintValue(Pop());
-				printf("%c\n", AS_STRING(string)->string[i]);
 			}
 			break;
 		}

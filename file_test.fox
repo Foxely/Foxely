@@ -1,8 +1,13 @@
-
 import "io";
 
-file: var = io.open("file_test.fox");
+start: var = clock();
 
-print "%ssfs\n", file.read();
+file: var = io.open(".replit");
+
+print "File Parsed:\n{\n";
+print "%\n", file.read();
+print "}\n";
 
 file.close();
+
+print "Time: %\n", clock() - start;

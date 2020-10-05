@@ -854,7 +854,6 @@ uint32_t Parser::hashString(const std::string& str)
 */
 ObjectString* Parser::AllocateString(const std::string& str, uint32_t hash)
 {
-    std::cout << str.c_str();
 	ObjectString* string = new ObjectString(str);
 	string->type = OBJ_STRING;
 	string->hash = hash;

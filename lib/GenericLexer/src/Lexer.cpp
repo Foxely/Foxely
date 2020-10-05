@@ -97,27 +97,20 @@ bool Lexer::Process(const std::string& strText)
 		{
 			if (define.second.m_cStart == m_strText[0])
 			{
-				char* current = (char *) m_strText.c_str();
-				const char* start = current;
-				const char* startContent = ++current;
-				while(current && *current != define.second.m_cEnd)
-					current++;
-				oTokenList.emplace_back(define.first, startContent, current, m_iLines);
-				if (*current == define.second.m_cEnd)
-					current++;
-				m_strText.erase(0, std::distance((char*)start, current));
+				m_strText.erase(0, 1);
+                size_t index = m_strText.find_first_of('"', 0);
+                helper::replaceAll(m_strText, "\\n", "\n");
+                helper::replaceAll(m_strText, "\\r", "\r");
+                helper::replaceAll(m_strText, "\\t", "\t");
+				oTokenList.emplace_back(define.first, m_strText, index, m_iLines);
+				m_strText.erase(0, index + 1);
 				break;
 			}
 		}
 
         for (auto& define : m_oAllDefines)
         {
-            // const char* pStart = nullptr;
-            // re.Compile(define.second.c_str());
-            // re_compile(define.second.c_str());
             int index = re_match(define.second.c_str(), m_strText.c_str(), &iLen);
-            // pStart = re.Search(m_strText.c_str(), &iLen);
-            // std::cout << define.second.c_str() << std::endl;
 
             if (index == 0)
             {
@@ -127,7 +120,6 @@ bool Lexer::Process(const std::string& strText)
                     maxLen = iLen;
                     pText = m_strText.substr(index, maxLen);
                 }
-                // std::cout << define.first << " - " << m_iLines << std::endl;
             }
         }
 

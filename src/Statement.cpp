@@ -91,7 +91,6 @@ void ImportStatement(Parser& parser)
 
 void PrintStatement(Parser& parser)
 {
-	// Expression(parser);
 	parser.Consume(TOKEN_STRING, "Expect string type for the print function.");
     parser.EmitConstant(OBJ_VAL(parser.CopyString(parser.PreviousToken().GetText())));
     int argCount = 1;
