@@ -3,6 +3,6 @@ import "io";
 
 file: var = io.open("file_test.fox");
 
-print file.read();
+print "%ssfs\n", file.read();
 
 file.close();

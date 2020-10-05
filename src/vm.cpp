@@ -610,9 +610,15 @@ InterpretResult VM::run() {
 			Push(NUMBER_VAL(-AS_NUMBER(Pop())));
 			break;
 		}
-		case OP_PRINT: {
-			PrintValue(Pop());
-			std::cout << std::endl;
+		case OP_PRINT:
+		{
+			int argCount = READ_BYTE();
+			Value string = Peek(--argCount);
+			for (int i = 0; AS_STRING(string)->string[i]; i++) {
+				if (AS_STRING(string)->string[i] == '%')
+					PrintValue(Pop());
+				printf("%c\n", AS_STRING(string)->string[i]);
+			}
 			break;
 		}
 
