@@ -192,3 +192,20 @@ NativeMethods ArrayPlugin::GetMethods()
 
 	return methods;
 }
+
+FOX_MODULE(array)
+{
+	NativeMethods methods =
+	{
+		std::make_pair<std::string, NativeFn>("init", initNative),
+		std::make_pair<std::string, NativeFn>("push", pushNative),
+		std::make_pair<std::string, NativeFn>("get", getNative),
+		std::make_pair<std::string, NativeFn>("set", setNative),
+		std::make_pair<std::string, NativeFn>("size", sizeNative),
+		std::make_pair<std::string, NativeFn>("contain", containNative),
+		std::make_pair<std::string, NativeFn>("find", findNative),
+		std::make_pair<std::string, NativeFn>("toString", toStringNative),
+	};
+
+	VM::GetInstance()->DefineNativeClass("Array", methods);
+}

@@ -1,0 +1,8 @@
+
+import "io";
+
+file: var = io.open("file_test.fox");
+
+print file.read();
+
+file.close();

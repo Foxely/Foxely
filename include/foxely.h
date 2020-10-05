@@ -7,6 +7,9 @@
 
 extern "C"
 {
+#define FOX_MODULE(name) void name##_entry()
+#define FOX_MODULE_CALL(name) name##_entry()
+
 #define Fox_RuntimeError(msg, ...) VM::GetInstance()->RuntimeError(msg, ##__VA_ARGS__)
 #define Fox_PanicIfNot(cond, msg, ...) if (!(cond)) { Fox_RuntimeError(msg, ##__VA_ARGS__); return NIL_VAL; }
 
@@ -67,6 +70,16 @@ extern "C"
 		return OBJ_VAL(new ObjectNativeInstance(AS_NATIVE_CLASS(klass)));
 	}
 
+	static inline Value Fox_DefineInstanceOfCStruct(const char* klassName, void* cStruct)
+	{
+        Value klass;
+        Value name = Fox_StringToValue(klassName);
+        if (!VM::GetInstance()->globals.Get(AS_STRING(name), klass))
+            return NIL_VAL;
+
+		return OBJ_VAL(new ObjectNativeInstance(AS_NATIVE_CLASS(klass), cStruct));
+	}
+
     static inline void Fox_CallMethod(Value instance, const char* methodName, int argCount, Value* params)
 	{
         Value method;
@@ -94,6 +107,11 @@ extern "C"
             return NIL_VAL;
         }
 		return value;
+	}
+
+	static inline void* Fox_GetInstanceCStruct(Value instance)
+	{
+        return AS_NATIVE_INSTANCE(instance)->cStruct;
 	}
 
     static inline void Fox_Arity(int argCount, int min, int max)

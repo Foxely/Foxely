@@ -31,7 +31,6 @@
 #define IS_CLOSURE(val)       is_obj_type(val, OBJ_CLOSURE)
 #define IS_INSTANCE(val)      is_obj_type(val, OBJ_INSTANCE)
 #define IS_NATIVE_INSTANCE(val)      is_obj_type(val, OBJ_NATIVE_INSTANCE)
-#define IS_ABSTRACT_INSTANCE(val)      is_obj_type(val, OBJ_ABSTRACT_INSTANCE)
 #define IS_FUNCTION(val)      is_obj_type(val, OBJ_FUNCTION)
 #define IS_NATIVE(val)        is_obj_type(val, OBJ_NATIVE)
 #define IS_STRING(val)        is_obj_type(val, OBJ_STRING)
@@ -47,7 +46,6 @@
 #define AS_FUNCTION(val)      	((ObjectFunction *)AS_OBJ(val))
 #define AS_INSTANCE(val)        ((ObjectInstance *)AS_OBJ(val))
 #define AS_NATIVE_INSTANCE(val) ((ObjectNativeInstance *)AS_OBJ(val))
-#define AS_ABSTRACT_INSTANCE(val) ((ObjectAbstractInstance *)AS_OBJ(val))
 #define AS_NATIVE(val)        	(((ObjectNative *)AS_OBJ(val))->function)
 #define AS_STRING(val)        	((ObjectString *)AS_OBJ(val))
 #define AS_CSTRING(val)       	(((ObjectString *)AS_OBJ(val))->string.c_str())
@@ -61,7 +59,6 @@ typedef enum {
     OBJ_FUNCTION,
     OBJ_INSTANCE,
     OBJ_NATIVE_INSTANCE,
-	OBJ_ABSTRACT_INSTANCE,
     OBJ_NATIVE,
     OBJ_NATIVE_CLASS,
     OBJ_LIB,
@@ -178,39 +175,27 @@ class ObjectNativeInstance : public Object
 public:
     ObjectNativeClass *klass;
     Table fields;
+	void* cStruct;
 
 	explicit ObjectNativeInstance(ObjectNativeClass *k)
 	{
 		type = OBJ_NATIVE_INSTANCE;
 		klass = k;
 		fields = Table();
+		cStruct = NULL;
+	}
+
+	explicit ObjectNativeInstance(ObjectNativeClass *k, void* c)
+	{
+		type = OBJ_NATIVE_INSTANCE;
+		klass = k;
+		fields = Table();
+		cStruct = c;
 	}
 
     bool operator==(const ObjectNativeInstance& other) const
     {
         return klass == other.klass && fields.m_vEntries == other.fields.m_vEntries;
-    }
-};
-
-class ObjectAbstractInstance : public Object
-{
-public:
-    ObjectString* name;
-    void* data;
-    Table methods;
-    Table fields;
-
-	explicit ObjectAbstractInstance(ObjectString* n)
-	{
-		type = OBJ_ABSTRACT_INSTANCE;
-		name = n;
-		fields = Table();
-		methods = Table();
-	}
-
-    bool operator==(const ObjectAbstractInstance& other) const
-    {
-        return name->string == other.name->string && fields.m_vEntries == other.fields.m_vEntries;
     }
 };
 

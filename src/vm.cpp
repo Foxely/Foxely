@@ -17,6 +17,7 @@
 #include "library/array.h"
 #include "library/module.h"
 #include "library/sfml.h"
+#include "foxely.h"
 
 
 VM VM::m_oInstance = VM();
@@ -31,6 +32,10 @@ std::vector<std::string> standardLib =
 	"math",
 	"sfml",
 };
+
+#define TRACE2(arg1) char arg1; \
+                            FOX_MODULE_CALL(arg1);
+#define TRACE(arg1,...)  TRACE2(arg1)
 
 void VM::LoadStandard(const std::string& name)
 {

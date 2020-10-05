@@ -16,19 +16,17 @@ Value openNative(int argCount, Value* args)
     FILE* fp = fopen(Fox_ValueToCString(args[0]), "r");
     if (fp)
     {
-        Value instance = Fox_DefineInstanceOf("File");
-        Fox_SetInstanceField(instance, "m_oFile", Fox_Abstract(fp, &foxely_file_type));
+        Value instance = Fox_DefineInstanceOfCStruct("File", fp);
         return instance;
     }
+	Fox_RuntimeError("'%s' doesn't exist.", Fox_ValueToCString(args[0]));
     return NIL_VAL;
 }
 
 Value readNative(int argCount, Value* args)
 {
     Fox_Arity(argCount, 0, 1);
-    Value fpField = Fox_GetInstanceField(args[-1], "m_oFile");
-
-    FILE* fp = (FILE *) Fox_AbstractGetData(Fox_ValueToAbstract(fpField));
+    FILE* fp = (FILE *) Fox_GetInstanceCStruct(args[-1]);
 
     if (argCount == 0)
     {
@@ -65,8 +63,7 @@ Value readNative(int argCount, Value* args)
 Value readLineNative(int argCount, Value* args)
 {
     Fox_FixArity(argCount, 0);
-    Value fpField = Fox_GetInstanceField(args[-1], "m_oFile");
-    FILE* fp = (FILE *) Fox_AbstractGetData(Fox_ValueToAbstract(fpField));
+    FILE* fp = (FILE *) Fox_GetInstanceCStruct(args[-1]);
     size_t len = 0;
     char* line = NULL;
     ssize_t read;
@@ -84,14 +81,9 @@ Value readLineNative(int argCount, Value* args)
 Value closeNative(int argCount, Value* args)
 {
     Fox_FixArity(argCount, 0);
-    Value fpField = Fox_GetInstanceField(args[-1], "m_oFile");
-
-    if (!ValuesEqual(fpField, NIL_VAL))
-    {
-        FILE* fp = (FILE *) Fox_AbstractGetData(Fox_ValueToAbstract(fpField));
+    FILE* fp = (FILE *) Fox_GetInstanceCStruct(args[-1]);
+	if (fp)
         fclose(fp);
-    }
-    
     return NIL_VAL;
 }
 
@@ -130,3 +122,4 @@ NativeMethods IOPlugin::GetMethods()
 
 	return methods;
 }
+
