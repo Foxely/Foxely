@@ -1,0 +1,20 @@
+import "os";
+
+// Reset
+RESET: var = "\033[0m";
+
+// Regular Colors
+RED: var = "\033[0;31m";
+GREEN: var = "\033[0;32m";
+
+assert :: func (name, condition)
+{
+    print "Test % .........................", name;
+    if (!condition)
+        print "%ERROR%\n", RED, RESET;
+    else
+        print "%OK%\n", GREEN, RESET;
+}
+
+assert("bool", true);
+assert("bool", true);

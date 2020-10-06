@@ -613,16 +613,17 @@ InterpretResult VM::run() {
 		case OP_PRINT:
 		{
 			int argCount = READ_BYTE();
+			int tempArgCount = argCount;
 			int percentCount = 0;
-			Value string = Peek(--argCount);
+			Value string = Peek(--tempArgCount);
 			
 			for (int i = 0; AS_STRING(string)->string[i]; i++)
 				if (AS_STRING(string)->string[i] == '%')
 					percentCount++;
 			
-			if (argCount != percentCount)
+			if (tempArgCount != percentCount)
 			{
-				RuntimeError("Expected %d arguments but got %d in print call.", percentCount, argCount);
+				RuntimeError("Expected %d arguments but got %d in print call.", percentCount, tempArgCount);
 				break;
 			}
 			
@@ -631,8 +632,9 @@ InterpretResult VM::run() {
 				if (AS_STRING(string)->string[i] != '%') {
 					printf("%c", AS_STRING(string)->string[i]);
 				} else
-					PrintValue(Pop());
+					PrintValue(Peek(--tempArgCount));
 			}
+			stackTop -= argCount;
 			break;
 		}
 

@@ -65,17 +65,18 @@ Parser::Parser()
     oLexer.Define(TOKEN_ELSE, "else");
     oLexer.Define(TOKEN_EQUAL, "=");
     oLexer.Define(TOKEN_EQUAL_EQUAL, "==");
-    oLexer.Define(TOKEN_IDENTIFIER,"[A-Za-z]+[0-9]*");
     oLexer.Define(TOKEN_SHEBANG,"#[^\n\r]*", true);
-    // oLexer.Define("Open Square Bracket","\\[");
-    // oLexer.Define("Close Square Bracket","\\]");
+    oLexer.Define(TOKEN_RIGHT_BRACKET,"\\[");
+    oLexer.Define(TOKEN_LEFT_BRACKET,"\\]");
+    oLexer.Define(TOKEN_IDENTIFIER,"[A-Za-z_]+[0-9]*");
     // oLexer.Define("Arrow","->");
-    // oLexer.DefineArea(TOKEN_SINGLE_COMMENT,'//', '\n');
     oLexer.Define(TOKEN_SINGLE_COMMENT,"//[^\n\r]*", true);
     oLexer.Define(TOKEN_MULTI_COMMENT,"/\\*.*\\*/", true);
     oLexer.Define(TOKEN_EOF,"[\0]");
 
 
+    rules[TOKEN_RIGHT_BRACKET] = { NULL, NULL, PREC_NONE };
+    rules[TOKEN_LEFT_BRACKET] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_LEFT_PAREN] = { Grouping, CallCompiler, PREC_CALL };
     rules[TOKEN_RIGHT_PAREN] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_LEFT_BRACE] = { NULL, NULL, PREC_NONE };

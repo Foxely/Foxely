@@ -101,6 +101,7 @@ bool Lexer::Process(const std::string& strText)
                 helper::replaceAll(m_strText, "\\n", "\n");
                 helper::replaceAll(m_strText, "\\r", "\r");
                 helper::replaceAll(m_strText, "\\t", "\t");
+                helper::replaceAll(m_strText, "\\033", "\033");
                 size_t index = m_strText.find_first_of('"', 0);
 				oTokenList.emplace_back(define.first, m_strText, index, m_iLines);
 				m_strText.erase(0, index + 1);
