@@ -72,6 +72,21 @@
 // SFMLPlugin::SFMLPlugin()
 // {
 //     // std::cout << "SFMLPlugin: Create" << std::endl;
+		// NativeMethods methods =
+		// {
+		// };
+
+		// NativeMethods windowMethods =
+		// {
+		// 	std::make_pair<std::string, NativeFn>("init", initWindowNative),
+		// 	std::make_pair<std::string, NativeFn>("isOpen", windowIsOpenNative),
+		// 	std::make_pair<std::string, NativeFn>("clear", windowClearNative),
+		// 	std::make_pair<std::string, NativeFn>("display", windowDisplayNative),
+		// };
+
+		// Fox_DefineClass("Window", windowMethods);
+//		m_oMethods = methods;
+
 // }
 
 // SFMLPlugin::~SFMLPlugin()
@@ -82,23 +97,4 @@
 // const char* SFMLPlugin::GetClassName() const
 // {
 //     return "sfml";
-// }
-
-// NativeMethods SFMLPlugin::GetMethods()
-// {
-// 	NativeMethods methods =
-// 	{
-// 	};
-
-//     NativeMethods windowMethods =
-// 	{
-// 		std::make_pair<std::string, NativeFn>("init", initWindowNative),
-// 		std::make_pair<std::string, NativeFn>("isOpen", windowIsOpenNative),
-// 		std::make_pair<std::string, NativeFn>("clear", windowClearNative),
-// 		std::make_pair<std::string, NativeFn>("display", windowDisplayNative),
-// 	};
-
-//     Fox_DefineClass("Window", windowMethods);
-
-// 	return methods;
 // }

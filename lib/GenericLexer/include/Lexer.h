@@ -99,7 +99,6 @@ public:
             return oEofToken;
     }
 
-    void AddArea(std::pair<char, char> cRange);
     void Define(const std::string& strId, const std::string& strValue, bool bAddInTrash = false);
 	void Define(const int id, const std::string& strRegex, bool bAddInTrash = false);
     void DefineArea(const std::string& strId, char cStart, char cEnd);

@@ -48,23 +48,19 @@ void VM::LoadStandard(const std::string& name)
 
 	if (name == "os")
 	{
-		methods = os.GetMethods();
-		DefineLib(os.GetClassName(), methods);
+		DefineLib(os.GetClassName(), os.m_oMethods);
 	}
 	else if (name == "io")
 	{
-		methods = io.GetMethods();
-		DefineLib(io.GetClassName(), methods);
+		DefineLib(io.GetClassName(), io.m_oMethods);
 	}
 	else if (name == "array")
 	{
-		methods = array.GetMethods();
-		DefineNativeClass(array.GetClassName(), methods);
+		DefineNativeClass(array.GetClassName(), array.m_oMethods);
 	}
 	else if (name == "sfml")
 	{
-		// methods = sfml.GetMethods();
-		// DefineNativeClass(sfml.GetClassName(), methods);
+		// DefineNativeClass(sfml.GetClassName(), sfml.m_oMethods);
 	}
 }
 
@@ -397,8 +393,7 @@ InterpretResult VM::interpret(const char *source)
 		initString = NULL;
 		initString = m_oParser.CopyString("init");
 		ModulePlugin module;
-		NativeMethods methods = module.GetMethods();
-		DefineLib(module.GetClassName(), methods);
+		DefineLib(module.GetClassName(), module.m_oMethods);
 		manager.GetAllLibrary();
 		isInit = true;
 	}

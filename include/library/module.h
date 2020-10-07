@@ -12,13 +12,6 @@ public:
     virtual ~ModulePlugin();
 
     virtual const char* GetClassName() const;
-    virtual NativeMethods GetMethods();
-
-protected:
-
-    std::string _error;
-    std::string _value;
-    NativeMethods m_oMethods;
 };
 
 

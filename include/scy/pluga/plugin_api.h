@@ -26,11 +26,12 @@ namespace fox {
         class IModule
         {
         public:
+    		NativeMethods m_oMethods;
+
             IModule() {};
             virtual ~IModule() {};
 
             virtual const char* GetClassName() const {};
-            virtual NativeMethods GetMethods() {};
         };
 
     } // namespace pluga

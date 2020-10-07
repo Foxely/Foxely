@@ -164,20 +164,7 @@ Value toStringNative(int argCount, Value* args)
 ArrayPlugin::ArrayPlugin()
 {
     // std::cout << "ArrayPlugin: Create" << std::endl;
-}
 
-ArrayPlugin::~ArrayPlugin()
-{
-    // std::cout << "ArrayPlugin: Destroy" << std::endl;
-}
-
-const char* ArrayPlugin::GetClassName() const
-{
-    return "Array";
-}
-
-NativeMethods ArrayPlugin::GetMethods()
-{
 	NativeMethods methods =
 	{
 		std::make_pair<std::string, NativeFn>("init", initNative),
@@ -190,7 +177,18 @@ NativeMethods ArrayPlugin::GetMethods()
 		std::make_pair<std::string, NativeFn>("toString", toStringNative),
 	};
 
-	return methods;
+	VM::GetInstance()->DefineNativeClass("Array", methods);
+	m_oMethods = methods;
+}
+
+ArrayPlugin::~ArrayPlugin()
+{
+    // std::cout << "ArrayPlugin: Destroy" << std::endl;
+}
+
+const char* ArrayPlugin::GetClassName() const
+{
+    return "Array";
 }
 
 FOX_MODULE(array)

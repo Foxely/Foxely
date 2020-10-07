@@ -1,0 +1,33 @@
+
+import "io";
+import "compiler/parser";
+
+main :: func()
+{
+/*
+	oParser: var = Parser();
+	// Read the file content
+	file: var = io.open("lexer_number.fox", "r");
+	content: var = file.read();
+	file.close();
+	
+	// Setup the Lexer
+	oParser.Define("WS", "[ \n\t\r]+", true);
+	oParser.Define("Identifier", "[a-zA-Z_]+[0-9]*", false);
+	oParser.Define("Number", "[0-9]+", false);
+	oParser.Define("Plus", "\+", false);
+	oParser.Define("Minus", "-", false);
+	oParser.Define("Star", "\*", false);
+	oParser.Define("Slash", "/", false);
+
+	// Process the file content
+	oParser.Process(content);
+
+	// Show the tokens
+	oParser.Dump();
+*/
+	// Free the memory of the Lexer
+	// oParser.m_oLexer.deinit();
+}
+
+print "nbhyv";

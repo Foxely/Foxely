@@ -12,11 +12,6 @@
 //     virtual ~SFMLPlugin();
 
 //     virtual const char* GetClassName() const;
-//     virtual NativeMethods GetMethods();
-
-// protected:
-
-//     NativeMethods m_oMethods;
 // };
 
 
