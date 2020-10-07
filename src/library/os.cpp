@@ -77,6 +77,17 @@ Value argsNative(int argCount, Value* args)
 OSPlugin::OSPlugin()
 {
     // std::cout << "OSPlugin: Create" << std::endl;
+
+	NativeMethods methods =
+	{
+		std::make_pair<std::string, NativeFn>("which", whichNative),
+        std::make_pair<std::string, NativeFn>("shell", shellNative),
+		std::make_pair<std::string, NativeFn>("getenv", getEnvNative),
+		std::make_pair<std::string, NativeFn>("exit", exitNative),
+		std::make_pair<std::string, NativeFn>("args", argsNative),
+	};
+
+	m_oMethods = methods;
 }
 
 OSPlugin::~OSPlugin()
@@ -87,18 +98,4 @@ OSPlugin::~OSPlugin()
 const char* OSPlugin::GetClassName() const
 {
     return "os";
-}
-
-NativeMethods OSPlugin::GetMethods()
-{
-	NativeMethods methods =
-	{
-		std::make_pair<std::string, NativeFn>("which", whichNative),
-        std::make_pair<std::string, NativeFn>("shell", shellNative),
-		std::make_pair<std::string, NativeFn>("getenv", getEnvNative),
-		std::make_pair<std::string, NativeFn>("exit", exitNative),
-		std::make_pair<std::string, NativeFn>("args", argsNative),
-	};
-    
-	return methods;
 }

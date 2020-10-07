@@ -102,7 +102,7 @@ const char* SFMLPlugin::GetClassName() const
     return "sfml";
 }
 
-NativeMethods SFMLPlugin::GetMethods()
+NativeMethods* SFMLPlugin::GetMethods()
 {
 	NativeMethods methods =
 	{

@@ -12,8 +12,11 @@ ObjectAbstractType foxely_file_type =
 
 Value openNative(int argCount, Value* args)
 {
-    Fox_FixArity(argCount, 1);
-    FILE* fp = fopen(Fox_ValueToCString(args[0]), "r");
+    Fox_FixArity(argCount, 2);
+	Fox_PanicIfNot(Fox_IsString(args[0]), "Expected string value");
+	Fox_PanicIfNot(Fox_IsString(args[1]), "Expected string value");
+	
+    FILE* fp = fopen(Fox_ValueToCString(args[0]), Fox_ValueToCString(args[1]));
     if (fp)
     {
         Value instance = Fox_DefineInstanceOfCStruct("File", fp);
@@ -92,20 +95,7 @@ Value closeNative(int argCount, Value* args)
 IOPlugin::IOPlugin()
 {
     // std::cout << "IOPlugin: Create" << std::endl;
-}
 
-IOPlugin::~IOPlugin()
-{
-    // std::cout << "IOPlugin: Destroy" << std::endl;
-}
-
-const char* IOPlugin::GetClassName() const
-{
-    return "io";
-}
-
-NativeMethods IOPlugin::GetMethods()
-{
 	NativeMethods methods =
 	{
 		std::make_pair<std::string, NativeFn>("open", openNative),
@@ -120,6 +110,15 @@ NativeMethods IOPlugin::GetMethods()
 
     Fox_DefineClass("File", fileMethods);
 
-	return methods;
+	m_oMethods = methods;
 }
 
+IOPlugin::~IOPlugin()
+{
+    // std::cout << "IOPlugin: Destroy" << std::endl;
+}
+
+const char* IOPlugin::GetClassName() const
+{
+    return "io";
+}

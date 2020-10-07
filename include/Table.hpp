@@ -34,4 +34,5 @@ public:
 	ObjectString *FindString(const std::string& string, uint32_t hash);
 	void MarkTable();
 	void RemoveWhite();
+	void Print();
 };

@@ -1,0 +1,9 @@
+import "lexer";
+
+lex: var = Lexer();
+
+lex.Define("Identifier", "[a-zA-Z_]+[0-9]*", false);
+
+lex.Process("Salut");
+
+lex.Dump();

@@ -48,27 +48,6 @@ bool Lexer::TokenMatch(Token oToken, const std::string& strString)
     return (oToken.GetText() == strString);
 }
 
-int Lexer::SkipComment(bool long_comment)
-{
-    int line = 0;
-    m_strCurrent += 2;
-    if (long_comment) {
-        while (*m_strCurrent != '*' && *(m_strCurrent + 1) != '/' && *m_strCurrent) {
-            if (*m_strCurrent == '\n' || *m_strCurrent == '\0')
-                ++line;
-            m_strCurrent++;
-        }
-        m_strCurrent++;
-    } else {
-        while (*m_strCurrent != '\n' && *m_strCurrent) {
-            m_strCurrent++;
-        }
-        ++line;
-    }
-
-    return (line);
-}
-
 bool Lexer::Process(const std::string& strText)
 {
     m_strText    = strText;
@@ -98,10 +77,6 @@ bool Lexer::Process(const std::string& strText)
 			if (define.second.m_cStart == m_strText[0])
 			{
 				m_strText.erase(0, 1);
-                helper::replaceAll(m_strText, "\\n", "\n");
-                helper::replaceAll(m_strText, "\\r", "\r");
-                helper::replaceAll(m_strText, "\\t", "\t");
-                helper::replaceAll(m_strText, "\\033", "\033");
                 size_t index = m_strText.find_first_of('"', 0);
 				oTokenList.emplace_back(define.first, m_strText, index, m_iLines);
 				m_strText.erase(0, index + 1);
@@ -198,11 +173,6 @@ void Lexer::Clear()
 bool Lexer::Finished() const
 {
     return (oTokenList.end() == oTokenIterator);
-}
-
-void Lexer::AddArea(std::pair<char, char> cRange)
-{
-    // m_oAreas.emplace_back(cRange);
 }
 
 // enum class Format {

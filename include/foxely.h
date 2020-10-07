@@ -38,6 +38,11 @@ extern "C"
 		return AS_ARRAY(value);
 	}
 
+	static inline bool Fox_ValueToBool(Value value)
+	{
+		return AS_BOOL(value);
+	}
+
 
     static inline Value Fox_Abstract(void* data, ObjectAbstractType* type)
 	{
@@ -114,6 +119,12 @@ extern "C"
         return AS_NATIVE_INSTANCE(instance)->cStruct;
 	}
 
+	static inline void* Fox_SetInstanceCStruct(Value instance, void* data)
+	{
+		AS_NATIVE_INSTANCE(instance)->cStruct = data;
+        return AS_NATIVE_INSTANCE(instance)->cStruct;
+	}
+
     static inline void Fox_Arity(int argCount, int min, int max)
 	{
         if (argCount < min && argCount > max)
@@ -149,6 +160,11 @@ extern "C"
     static inline bool Fox_IsNumber(Value value)
 	{
         return IS_NUMBER(value);
+	}
+
+	static inline bool Fox_IsBool(Value value)
+	{
+        return IS_BOOL(value);
 	}
 
     static inline Value Fox_Array()

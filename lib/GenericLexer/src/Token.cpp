@@ -34,10 +34,15 @@ Token::Token(const char* beg, const char* end)
 
 Token::Token(StringID type, const std::string& beg, std::size_t len, std::size_t lLines)
 {
+
     m_oType = type;
-    m_iLength = len;
-    m_strText = string(beg, 0, m_iLength);
+    m_strText = string(beg, 0, len);
     m_iLinesTraversed = lLines;
+	helper::replaceAll(m_strText, "\\n", "\n", len);
+	helper::replaceAll(m_strText, "\\r", "\r", len);
+	helper::replaceAll(m_strText, "\\t", "\t", len);
+	helper::replaceAll(m_strText, "\\033", "\033", len);
+    m_iLength = m_strText.size();
 }
 
 Token::Token(StringID type, const char *beg, const char *end, std::size_t lLines)
@@ -46,6 +51,12 @@ Token::Token(StringID type, const char *beg, const char *end, std::size_t lLines
     m_iLength = distance(beg, end);
     m_strText = string(beg, m_iLength);
     m_iLinesTraversed = lLines;
+
+	helper::replaceAll(m_strText, "\\n", "\n", m_iLength);
+	helper::replaceAll(m_strText, "\\r", "\r", m_iLength);
+	helper::replaceAll(m_strText, "\\t", "\t", m_iLength);
+	helper::replaceAll(m_strText, "\\033", "\033", m_iLength);
+    m_iLength = m_strText.size();
 }
 
 Token::~Token()

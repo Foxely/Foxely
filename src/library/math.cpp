@@ -32,6 +32,14 @@ Value cosNative(int argCount, Value* args)
 MathPlugin::MathPlugin()
 {
     // std::cout << "MathPlugin: Create" << std::endl;
+
+	NativeMethods methods =
+	{
+		std::make_pair<std::string, NativeFn>("sin", sinNative),
+		std::make_pair<std::string, NativeFn>("cos", cosNative),
+	};
+
+	m_oMethods = methods;
 }
 
 MathPlugin::~MathPlugin()
@@ -42,15 +50,4 @@ MathPlugin::~MathPlugin()
 const char* MathPlugin::GetClassName() const
 {
     return "math";
-}
-
-NativeMethods MathPlugin::GetMethods()
-{
-	NativeMethods methods =
-	{
-		std::make_pair<std::string, NativeFn>("sin", sinNative),
-		std::make_pair<std::string, NativeFn>("cos", cosNative),
-	};
-
-	return methods;
 }

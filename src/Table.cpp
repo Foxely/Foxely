@@ -106,6 +106,16 @@ void Table::AddAll(Table& from)
     }
 }
 
+void Table::Print()
+{
+    for (int i = 0; i <= m_iCapacity; i++) {
+        Entry& entry = m_vEntries[i];
+        if (entry.m_pKey != NULL) {
+            std::cout << entry.m_pKey->string << std::endl;
+        }
+    }
+}
+
 bool Table::Get(ObjectString *key, Value& value)
 {
     if (m_iCount == 0)
