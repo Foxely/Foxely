@@ -73,3 +73,13 @@ CColor :: class
     CYAN_BACKGROUND_BRIGHT: var = "\033[0;106m";  // CYAN
     WHITE_BACKGROUND_BRIGHT: var = "\033[0;107m";   // WHITE
 }
+
+Value writeNative(int argCount, Value* args)
+{
+    Fox_FixArity(argCount, 1);
+    FILE* fp = (FILE *) Fox_GetInstanceCStruct(args[-1]);
+
+    Fox_PanicIfNot(Fox_IsString(args[0]), "Expected string value in write function");
+    fputs(Fox_ValueToCString(args[0]), fp);
+    return NIL_VAL;
+}

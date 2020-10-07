@@ -45,17 +45,12 @@ Value readNative(int argCount, Value* args)
     }
     else
     {
-        if (Fox_Is(args[0], VAL_NUMBER))
-        {
-            int size = Fox_ValueToNumber(args[0]);
-            char chunk[size];
+        Fox_PanicIfNot(Fox_IsNumber(args[0]), "Invalid type, expected number type");
+        int size = Fox_ValueToNumber(args[0]);
+        char chunk[size];
 
-            if (fgets(chunk, sizeof(chunk), fp) != NULL)
-                return Fox_StringToValue(chunk);
-        }
-        else
-            Fox_RuntimeError("Invalid type, expected number type");
-        return NIL_VAL;
+        if (fgets(chunk, sizeof(chunk), fp) != NULL)
+            return Fox_StringToValue(chunk);
     }
     return NIL_VAL;
 }
@@ -77,6 +72,8 @@ Value readLineNative(int argCount, Value* args)
     }
     return NIL_VAL;
 }
+
+
 
 Value closeNative(int argCount, Value* args)
 {
@@ -113,6 +110,7 @@ NativeMethods IOPlugin::GetMethods()
 
     NativeMethods fileMethods =
 	{
+		std::make_pair<std::string, NativeFn>("write", writeNative),
 		std::make_pair<std::string, NativeFn>("read", readNative),
 		std::make_pair<std::string, NativeFn>("readline", readLineNative),
 		std::make_pair<std::string, NativeFn>("close", closeNative),
