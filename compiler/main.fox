@@ -1,11 +1,11 @@
 
-import "io";
 import "compiler/parser";
+import "io";
 
 main :: func()
 {
-/*
 	oParser: var = Parser();
+
 	// Read the file content
 	file: var = io.open("lexer_number.fox", "r");
 	content: var = file.read();
@@ -25,9 +25,9 @@ main :: func()
 
 	// Show the tokens
 	oParser.Dump();
-*/
+
 	// Free the memory of the Lexer
-	// oParser.m_oLexer.deinit();
+	oParser.m_oLexer.deinit();
 }
 
-print "nbhyv";
+main();

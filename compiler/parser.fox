@@ -1,5 +1,24 @@
+import "lexer";
 
 Parser :: class
 {
+	init()
+	{
+		this.m_oLexer = Lexer();
+	}
 
+	Define(id, string, addToList)
+	{
+		this.m_oLexer.Define(id, string, addToList);
+	}
+
+	Process(string)
+	{
+		this.m_oLexer.Process(string);
+	}
+
+	Dump()
+	{
+		this.m_oLexer.Dump();
+	}
 }

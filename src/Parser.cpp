@@ -140,8 +140,8 @@ void Parser::MarkInitialized()
 
 ObjectFunction* Compile(Parser& parser, const std::string& strText, Chunk* chunk)
 {
-    if (!parser.Init(strText))
-        return NULL;
+    parser.Init(strText);
+        // return NULL;
 
 	Compiler compiler(parser, TYPE_SCRIPT, "");
 	parser.compilingChunk = chunk;
@@ -281,10 +281,13 @@ void ParsePrecedence(Parser& parser, Precedence preced)
     }
     bool can_assign = preced <= PREC_ASSIGNMENT;
     prefix_rule(parser, can_assign);
-    while (preced <= parser.GetRule(parser.CurrentToken().m_oType.m_id)->precedence) {
+	pRule = parser.GetRule(parser.CurrentToken().m_oType.m_id);
+    while (pRule && preced <= pRule->precedence && !parser.PreviousToken().GetText().empty()) {
         parser.Advance();
         parse_fn infix_rule = parser.GetRule(parser.PreviousToken().m_oType.m_id)->infix;
-        infix_rule(parser, can_assign);
+		if (infix_rule != NULL)
+        	infix_rule(parser, can_assign);
+		pRule = parser.GetRule(parser.CurrentToken().m_oType.m_id);
     }
 
     if (can_assign && parser.Match(TOKEN_EQUAL)) {
