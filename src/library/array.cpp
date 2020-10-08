@@ -72,6 +72,16 @@ Value pushNative(int argCount, Value* args)
     return NIL_VAL;
 }
 
+Value popNative(int argCount, Value* args)
+{
+    Fox_FixArity(argCount, 0);
+    Value arrayField = Fox_GetInstanceField(args[-1], "m_oArray");
+    ObjectArray* array = Fox_ValueToArray(arrayField);
+	Value popped = array->m_vValues.back();
+    array->m_vValues.pop_back();
+    return popped;
+}
+
 Value initNative(int argCount, Value* args)
 {
     Fox_Arity(argCount, 0, 1);
@@ -169,6 +179,7 @@ ArrayPlugin::ArrayPlugin()
 	{
 		std::make_pair<std::string, NativeFn>("init", initNative),
 		std::make_pair<std::string, NativeFn>("push", pushNative),
+		std::make_pair<std::string, NativeFn>("pop", popNative),
 		std::make_pair<std::string, NativeFn>("get", getNative),
 		std::make_pair<std::string, NativeFn>("set", setNative),
 		std::make_pair<std::string, NativeFn>("size", sizeNative),

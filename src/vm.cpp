@@ -626,6 +626,9 @@ InterpretResult VM::run() {
 			{
 				if (AS_STRING(string)->string[i] != '%') {
 					printf("%c", AS_STRING(string)->string[i]);
+				} else if (AS_STRING(string)->string[i] == '%' && AS_STRING(string)->string[i] == '%') {
+					printf("%%");
+					i++;
 				} else
 					PrintValue(Peek(--tempArgCount));
 			}

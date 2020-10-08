@@ -3,40 +3,55 @@ import "compiler/token";
 import "compiler/ast";
 import "compiler/parser";
 import "io";
+import "os";
 
 main :: func()
 {
-	oParser: var = Parser();
-
 	// Read the file content
 	file: var = io.open("lexer_number.fox", "r");
 	content: var = file.read();
 	file.close();
 	
 	// Setup the Lexer
-	oParser.Define("WS", "[ \n\t\r]+", true);
-	oParser.Define(IDENTIFIER, "[a-zA-Z_]+[0-9]*", false);
-	oParser.Define(NUMBER, "[0-9]+", false);
-	oParser.Define(PLUS, "\+", false);
-	oParser.Define(MINUS, "-", false);
-	oParser.Define(STAR, "\*", false);
-	oParser.Define(SLASH, "/", false);
-	oParser.Define(LEFT_PAREN, "(", false);
-	oParser.Define(RIGHT_PAREN, ")", false);
+	parser.Define("WS", "[ \n\t\r]+", true);
+	parser.Define(IDENTIFIER, "[a-zA-Z_]+[0-9]*", false);
+	parser.Define(NUMBER, "[0-9]+", false);
+	parser.Define(PLUS, "\+", false);
+	parser.Define(MINUS, "-", false);
+	parser.Define(STAR, "\*", false);
+	parser.Define(SLASH, "/", false);
+	parser.Define(LEFT_PAREN, "(", false);
+	parser.Define(RIGHT_PAREN, ")", false);
 
 	// Process the file content
-	ast: var = oParser.GenAst(content);
+	ast: var = parser.GenAst(content);
 
-	for (i: var = 0; i < ast.size(); i = i + 1)
-	{
-		print "%\n", ast.get(i).value;
-	}
+	assembly_format: var = "    
+    .globl main
+	main:
+		movl    $3, %eax
+		ret
+	";
+
+	outFile: var = io.open("out.s", "w");
+	outFile.write(assembly_format);
+
+	// for (i: var = 0; i < ast.size(); i = i + 1)
+	// {
+	//	ast.get(i).visit();
+	// }
+	// print "\n";
+	outFile.close();
+
+	// Compile to machine code
+	os.shell("gcc out.s -o a.out");
+	os.shell("rm out.s");
 
 	// Show the tokens
-	// oParser.Dump();
+	// parser.Dump();
 
 	// Free the memory of the Lexer
-	oParser.m_oLexer.deinit();
+	parser.m_oLexer.deinit();
 }
 
 main();

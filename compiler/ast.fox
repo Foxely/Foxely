@@ -39,6 +39,12 @@ Type :: class < Node
     {
         this.value = typeValue;
     }
+
+	visit()
+    {
+		print " ";
+		print "%", this.value;
+    }
 }
 
 //
@@ -59,37 +65,56 @@ BinaryExpression :: class < Expression
         this.left = left;
         this.right = right;
     }
+
+	visit()
+    {
+		print "Binary";
+		this.left.visit();
+		this.right.visit();
+    }
 }
   
 SumExpression :: class < BinaryExpression
 {
-    init(left, right)
+	visit()
     {
-
+		print " ";
+		print "+";
+		this.left.visit();
+		this.right.visit();
     }
 }
 
 SubtractionExpression :: class < BinaryExpression
 {
-    init(left, right)
+	visit()
     {
-
+		print " ";
+		print "-";
+		this.left.visit();
+		this.right.visit();
     }
 }
 
 MultiplicationExpression :: class < BinaryExpression
 {
-    init(left, right)
+	visit()
     {
-
+		print " ";
+		print "*";
+		this.left.visit();
+		this.right.visit();
     }
 }
 
 DivisionExpression :: class < BinaryExpression
 {
-    init(left, right)
+	visit()
     {
-
+		print " ";
+		print "/";
+		this.left.visit();
+		this.right.visit();
     }
 }
 

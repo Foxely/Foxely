@@ -1,6 +1,119 @@
 import "lexer";
 import "array";
 
+ParserRule :: class
+{
+	init(prefix, infix, precedence)
+	{
+		this.prefix = prefix;
+		this.infix = infix;
+		this.precedence = precedence;
+	}
+}
+
+rules: var = Array();
+for (i: var = 0; i < MAX_TOKEN; i = i +1)
+{
+	rules.push(ParserRule(nil, nil, 0));
+}
+
+pRoot: var = Array();
+
+Unary :: func(can_assign)
+{
+	operatorType: var = parser.previousToken.getType();
+    ParsePrecedence(PREC_UNARY);
+	// if (operatorType == BANG)
+	//	pRoot.push(Type("+"));
+    // else
+	if (operatorType == MINUS)
+		pRoot.push(Type("-"));
+}
+
+Binary :: func(can_assign)
+{
+	operatorType: var = parser.previousToken.getType();
+    rule: var = GetRule(operatorType);
+    ParsePrecedence(rule.precedence + 1);
+
+    if (operatorType == PLUS)
+		pRoot.push(SumExpression(pRoot.pop(), pRoot.pop()));
+    else if (operatorType == MINUS)
+		pRoot.push(SubtractionExpression(pRoot.pop(), pRoot.pop()));
+    else if (operatorType == STAR)
+		pRoot.push(MultiplicationExpression(pRoot.pop(), pRoot.pop()));
+    else if (operatorType == SLASH)
+		pRoot.push(DivisionExpression(pRoot.pop(), pRoot.pop()));
+}
+
+Grouping :: func(can_assign)
+{
+	
+}
+
+Identifier :: func(can_assign)
+{
+	
+}
+
+Number :: func(can_assign)
+{
+	pRoot.push(Type(parser.previousToken.getText()));
+}
+
+// Binary Op
+rules.set(MINUS, ParserRule(Unary, Binary, PREC_TERM));
+rules.set(PLUS, ParserRule(nil, Binary, PREC_TERM));
+rules.set(STAR, ParserRule(nil, Binary, PREC_FACTOR));
+rules.set(SLASH, ParserRule(nil, Binary, PREC_FACTOR));
+
+// Paren
+rules.set(LEFT_PAREN, ParserRule(Grouping, nil, PREC_CALL));
+rules.set(RIGHT_PAREN, ParserRule(nil, nil, PREC_NONE));
+
+// Types
+rules.set(IDENTIFIER, ParserRule(Identifier, nil, PREC_NONE));
+rules.set(NUMBER, ParserRule(Number, nil, PREC_NONE));
+
+GetRule :: func(type)
+{
+	if (type > 0)
+    	return rules.get(type);
+	else
+		return nil;
+}
+
+ParsePrecedence :: func(precedence)
+{
+    parser.NextToken();
+    pRule: var = GetRule(parser.previousToken.getType());
+    prefix_rule: var = pRule.prefix;
+    if (prefix_rule == nil) {
+        parser.Error("Expect expression.");
+        return;
+    }
+    can_assign: var = precedence <= PREC_ASSIGNMENT;
+    prefix_rule(can_assign);
+
+	pRule = GetRule(parser.currentToken.getType());
+    while (pRule != nil && precedence <= pRule.precedence && parser.previousToken.getText() != nil) {
+        parser.NextToken();
+        infix_rule: var = GetRule(parser.previousToken.getType()).infix;
+		if (infix_rule != nil)
+        	infix_rule(can_assign);
+		pRule = GetRule(parser.currentToken.getType());
+    }
+
+    // if (can_assign && parser.Match(TOKEN_EQUAL)) {
+    //    parser.Error("Invalid assignment target.");
+    // }
+}
+
+Expression :: func()
+{
+    ParsePrecedence(PREC_ASSIGNMENT);
+}
+
 Parser :: class
 {
 	init()
@@ -114,12 +227,12 @@ Parser :: class
 
 	ErrorAtCurrent(message)
 	{
-		ErrorAt(this.currentToken, message);
+		this.ErrorAt(this.currentToken, message);
 	}
 
 	Error(message)
 	{
-		ErrorAt(this.previousToken, message);
+		this.ErrorAt(this.previousToken, message);
 	}
 
 	ErrorAt(token, message)
@@ -148,41 +261,12 @@ Parser :: class
 		{
 			newNode = Type(this.GetNext().getText());
 		}
-
 		
-		//if (IsTokenType(Identifier, false)) {
-			oName = this.GetNext();
-			// if (IsToken("::")) {
-			//	if(IsToken("func"))
-			//		newNode = ParseProcedureHeaderBody(oName);
-			//	else
-			//		newNode = ParseConstBody(oName);
-			//}
-			//else if (IsToken(":"))
-			//	newNode = ParseDeclarationBody(oName);
-			//else if (IsToken("Identifier", "as"))
-			//{
-			//	Token oClass;
-			//	Token oInherit;
-			//	if (!IsTokenThenAssign("Identifier", oClass)) {
-			//		PushError("Expected Class Type.");
-			//		return (newNode);
-			//	}
-			//	if (IsToken("inherit")) {
-			//		if (!IsTokenThenAssign("Identifier", oInherit)) {
-			//			PushError("Expected Inherit Class Name.");
-			//			return (newNode);
-			//		}
-			//	}
-			//	newNode = ParseEntityBody(oClass, oName, oInherit);
-			//}
-		//}
 		return (newNode);
 	}
 
 	GenAst(strText)
 	{
-		pRoot: var = Array();
 		parsing: var = true;
 
 		if (!this.Process(strText))
@@ -190,19 +274,10 @@ Parser :: class
 
 		this.m_oLexer.Begin();
 		this.NextToken();
-
-		while (!this.m_oLexer.IsEnd() && parsing)
-		{
-			oToken: var = this.currentToken;
-			newNode: var = nil;
-
-			newNode = this.ParseCode();
-
-			if (newNode != nil) {
-				pRoot.push(newNode);
-			} else
-				parsing = false;
-		}
-		return (pRoot);
+		Expression();
+		
+		return pRoot;
 	}
 }
+
+parser: var = Parser();
