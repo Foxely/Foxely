@@ -99,7 +99,7 @@ Parser::Parser()
     rules[TOKEN_IDENTIFIER] = { Variable, NULL, PREC_NONE };
     rules[TOKEN_STRING] = { String, NULL, PREC_NONE };
     rules[TOKEN_NUMBER] = { Number, NULL, PREC_NONE };
-    rules[TOKEN_AND] = { NULL, RuleAnd, PREC_NONE };
+    rules[TOKEN_AND] = { NULL, RuleAnd, PREC_AND };
     rules[TOKEN_CLASS] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_ELSE] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_FALSE] = { Literal, NULL, PREC_NONE };
@@ -107,7 +107,7 @@ Parser::Parser()
     rules[TOKEN_FUN] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_IF] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_NIL] = { Literal, NULL, PREC_NONE };
-    rules[TOKEN_OR] = { NULL, RuleOr, PREC_NONE };
+    rules[TOKEN_OR] = { NULL, RuleOr, PREC_OR };
     rules[TOKEN_PRINT] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_RETURN] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_SUPER] = { RuleSuper, NULL, PREC_NONE };
@@ -315,7 +315,7 @@ void Grouping(Parser& parser, bool can_assign)
 void Unary(Parser& parser, bool can_assign)
 {
     int operator_type = parser.PreviousToken().m_oType.m_id;
-    Expression(parser);
+    ParsePrecedence(parser, PREC_UNARY);
     switch (operator_type) {
         case TOKEN_BANG:
             parser.EmitByte(OP_NOT);
@@ -433,7 +433,27 @@ void RuleThis(Parser& parser, bool can_assign)
         parser.Error("Cannot use 'this' outside of a class.");
         return;
     }
-   	Variable(parser, false);
+
+   	//Variable(parser, false);
+    NamedVariable(parser, Token("this", 4), false);
+    if (parser.Match(TOKEN_DOT))
+    {
+        parser.Consume(TOKEN_IDENTIFIER, "Expect class method name.");
+        uint8_t name = parser.IdentifierConstant(parser.PreviousToken());
+
+        if (parser.Match(TOKEN_LEFT_PAREN)) {
+            uint8_t arg_count = ArgumentList(parser);
+            parser.EmitBytes(OP_INVOKE, name);
+            parser.EmitByte(arg_count);
+        } else if (parser.Match(TOKEN_EQUAL)) {
+            Expression(parser);
+            parser.EmitBytes(OP_SET_PROPERTY, name);
+        }
+        else
+        {
+            parser.EmitBytes(OP_GET_PROPERTY, name);
+        }
+    }
 }
 
 void RuleSuper(Parser& parser, bool can_assign)

@@ -1,10 +1,15 @@
 import "lexer";
+import "array";
 
 Parser :: class
 {
 	init()
 	{
 		this.m_oLexer = Lexer();
+		this.previousToken = nil;
+		this.currentToken = nil;
+		this.panicMode = false;
+		this.hadError = false;
 	}
 
 	Define(id, string, addToList)
@@ -14,11 +19,190 @@ Parser :: class
 
 	Process(string)
 	{
-		this.m_oLexer.Process(string);
+		return this.m_oLexer.Process(string);
 	}
 
 	Dump()
 	{
 		this.m_oLexer.Dump();
+	}
+
+	NextToken()
+	{
+		this.previousToken = this.currentToken;
+		parse: var = true;
+		while (parse)
+		{
+			this.currentToken = this.m_oLexer.NextToken();
+			if (this.currentToken.getType() != 84) {
+				return;
+			}
+			ErrorAtCurrent(this.currentToken.getText());
+		}
+	}
+
+	AdvanceToken(advance)
+	{
+		errorType: var = 84;
+		if (this.currentToken.getType() == errorType)
+		{
+			ErrorAtCurrent(this.currentToken.getText());
+			return;
+		}
+
+		if (advance)
+		{
+			this.NextToken();
+		}
+	}
+
+	IsTokenType(type, bAdvance)
+	{
+		if (this.currentToken.getType() == type) {
+			if (bAdvance)
+				this.NextToken();
+			return (true);
+		}
+		return (false);
+	}
+
+	GetNext()
+	{
+		this.NextToken();
+		return this.previousToken;
+	}
+
+	IsToken(iType, value, bAdvance)
+	{
+		if (this.currentToken.getType() == iType && this.m_oLexer.TokenMatch(this.currentToken, value))
+		{
+			if (bAdvance)
+				this.NextToken();
+			return true;
+		}
+		return false;
+	}
+
+	IsTokenThenAssign(iType, value, bAdvance)
+	{
+		if (this.currentToken.getType() == iType && this.m_oLexer.TokenMatch(this.currentToken, value))
+		{
+			// oToken = this.currentToken;
+			if (bAdvance)
+				this.NextToken();
+			return true;
+		}
+		return false;
+	}
+
+	PeekTokenIsType(iType)
+	{
+		return (this.currentToken.getType() == iType);
+	}
+	
+	/*
+	PeekNextTokenIsType(int iType)
+	{
+		return (this.m_oLexer.PeekNextToken().getType() == iType);
+	}
+	*/
+
+	PeekTokenIs(s)
+	{
+		return this.m_oLexer.TokenMatch(this.currentToken, s);
+	}
+
+	ErrorAtCurrent(message)
+	{
+		ErrorAt(this.currentToken, message);
+	}
+
+	Error(message)
+	{
+		ErrorAt(this.previousToken, message);
+	}
+
+	ErrorAt(token, message)
+	{
+		if (!this.panicMode)
+		{
+			this.panicMode = true;
+			print "[line %] Error", token.getLine();
+
+			errorType: var = 84;
+			if (token.getType() != errorType) {
+				print " at '%s'", token.m_strText;
+			}
+
+			print ": %\n", message;
+			this.hadError = true;
+		}
+	}
+
+	ParseCode()
+	{
+		newNode: var = nil;
+		oName: var = nil;
+
+		if (this.IsTokenType(NUMBER, false))
+		{
+			newNode = Type(this.GetNext().getText());
+		}
+
+		
+		//if (IsTokenType(Identifier, false)) {
+			oName = this.GetNext();
+			// if (IsToken("::")) {
+			//	if(IsToken("func"))
+			//		newNode = ParseProcedureHeaderBody(oName);
+			//	else
+			//		newNode = ParseConstBody(oName);
+			//}
+			//else if (IsToken(":"))
+			//	newNode = ParseDeclarationBody(oName);
+			//else if (IsToken("Identifier", "as"))
+			//{
+			//	Token oClass;
+			//	Token oInherit;
+			//	if (!IsTokenThenAssign("Identifier", oClass)) {
+			//		PushError("Expected Class Type.");
+			//		return (newNode);
+			//	}
+			//	if (IsToken("inherit")) {
+			//		if (!IsTokenThenAssign("Identifier", oInherit)) {
+			//			PushError("Expected Inherit Class Name.");
+			//			return (newNode);
+			//		}
+			//	}
+			//	newNode = ParseEntityBody(oClass, oName, oInherit);
+			//}
+		//}
+		return (newNode);
+	}
+
+	GenAst(strText)
+	{
+		pRoot: var = Array();
+		parsing: var = true;
+
+		if (!this.Process(strText))
+			return nil;
+
+		this.m_oLexer.Begin();
+		this.NextToken();
+
+		while (!this.m_oLexer.IsEnd() && parsing)
+		{
+			oToken: var = this.currentToken;
+			newNode: var = nil;
+
+			newNode = this.ParseCode();
+
+			if (newNode != nil) {
+				pRoot.push(newNode);
+			} else
+				parsing = false;
+		}
+		return (pRoot);
 	}
 }

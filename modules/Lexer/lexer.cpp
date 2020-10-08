@@ -79,6 +79,42 @@ Value DumpNative(int argCount, Value* args)
     return NIL_VAL;
 }
 
+Value TokenMatchNative(int argCount, Value* args)
+{
+	Fox_FixArity(argCount, 2);
+	Lexer* lexer = (Lexer *) Fox_GetInstanceCStruct(args[-1]);
+	Token* token = (Token *) Fox_GetInstanceCStruct(args[0]);
+	Fox_PanicIfNot(Fox_IsString(args[1]), "Expected string value");
+
+	return BOOL_VAL(lexer->TokenMatch(*token, Fox_ValueToCString(args[1])));
+}
+
+Value BeginNative(int argCount, Value* args)
+{
+	Fox_FixArity(argCount, 0);
+	Lexer* lexer = (Lexer *) Fox_GetInstanceCStruct(args[-1]);
+
+	lexer->Begin();
+	return NIL_VAL;
+}
+
+Value IsEndNative(int argCount, Value* args)
+{
+	Fox_FixArity(argCount, 0);
+	Lexer* lexer = (Lexer *) Fox_GetInstanceCStruct(args[-1]);
+
+	return BOOL_VAL(lexer->oTokenIterator == lexer->oTokenList.end());
+}
+
+Value NextTokenNative(int argCount, Value* args)
+{
+	Fox_FixArity(argCount, 0);
+	Lexer* lexer = (Lexer *) Fox_GetInstanceCStruct(args[-1]);
+	Token* t = new Token(lexer->NextToken());
+
+	return Fox_DefineInstanceOfCStruct("Token", t);
+}
+
 Value lexerInitNative(int argCount, Value* args)
 {
     Fox_FixArity(argCount, 0);
@@ -93,7 +129,8 @@ Value lexerInitNative(int argCount, Value* args)
 Value lexerDeinitNative(int argCount, Value* args)
 {
     Fox_FixArity(argCount, 0);
-	Lexer* lexer = (Lexer *) Fox_SetInstanceCStruct(args[-1], new Lexer());
+	Lexer* lexer = (Lexer *) Fox_GetInstanceCStruct(args[-1]);
+	
 	if (lexer)
 	{
 		delete lexer;
@@ -101,6 +138,51 @@ Value lexerDeinitNative(int argCount, Value* args)
     return NIL_VAL;
 }
 
+
+
+
+Value tokenInitNative(int argCount, Value* args)
+{
+    Fox_FixArity(argCount, 0);
+	Fox_SetInstanceCStruct(args[-1], nullptr);
+
+    return NIL_VAL;
+}
+
+Value tokenDeinitNative(int argCount, Value* args)
+{
+    Fox_FixArity(argCount, 0);
+	Token* token = (Token *) Fox_GetInstanceCStruct(args[-1]);
+	if (token)
+	{
+		delete token;
+	}
+    return NIL_VAL;
+}
+
+Value tokenGetTypeNative(int argCount, Value* args)
+{
+    Fox_FixArity(argCount, 0);
+	Token* token = (Token *) Fox_GetInstanceCStruct(args[-1]);
+
+    return NUMBER_VAL(token->m_oType.m_id);
+}
+
+Value tokenGetLineNative(int argCount, Value* args)
+{
+    Fox_FixArity(argCount, 0);
+	Token* token = (Token *) Fox_GetInstanceCStruct(args[-1]);
+
+    return NUMBER_VAL(token->m_iLinesTraversed);
+}
+
+Value tokenGetTextNative(int argCount, Value* args)
+{
+    Fox_FixArity(argCount, 0);
+	Token* token = (Token *) Fox_GetInstanceCStruct(args[-1]);
+
+    return Fox_StringToValue(token->GetText().c_str());
+}
 
 LexerPlugin::LexerPlugin()
 {
@@ -112,10 +194,23 @@ LexerPlugin::LexerPlugin()
         std::make_pair<std::string, NativeFn>("DefineArea", DefineAreaNative),
 		std::make_pair<std::string, NativeFn>("Process", ProcessNative),
 		std::make_pair<std::string, NativeFn>("Dump", DumpNative),
+		std::make_pair<std::string, NativeFn>("TokenMatch", TokenMatchNative),
+		std::make_pair<std::string, NativeFn>("Begin", BeginNative),
+		std::make_pair<std::string, NativeFn>("IsEnd", IsEndNative),
+		std::make_pair<std::string, NativeFn>("NextToken", NextTokenNative),
 	};
-	m_oMethods = lexerMethods;
+
+	NativeMethods tokenMethods =
+	{
+		std::make_pair<std::string, NativeFn>("init", tokenInitNative),
+		std::make_pair<std::string, NativeFn>("deinit", tokenDeinitNative),
+		std::make_pair<std::string, NativeFn>("getType", tokenGetTypeNative),
+		std::make_pair<std::string, NativeFn>("getLine", tokenGetLineNative),
+		std::make_pair<std::string, NativeFn>("getText", tokenGetTextNative),
+	};
 
 	Fox_DefineClass("Lexer", lexerMethods);
+	Fox_DefineClass("Token", tokenMethods);
 }
 
 LexerPlugin::~LexerPlugin()

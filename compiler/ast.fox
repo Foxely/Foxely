@@ -1,0 +1,162 @@
+
+
+Node :: class
+{
+    init()
+    {
+        this.value = nil;
+        this.next = nil;
+    }
+}
+
+SandyFile :: class < Node
+{
+    init(statements)
+    {
+
+    }
+}
+
+Statement :: class < Node
+{
+    init()
+    {
+
+    }
+}
+
+Expression :: class < Node
+{
+    init()
+    {
+
+    }
+}
+
+Type :: class < Node
+{
+    init(typeValue)
+    {
+        this.value = typeValue;
+    }
+}
+
+//
+// Types
+//
+  
+// object IntType : Type
+// object DecimalType : Type
+  
+//
+// Expressions
+//
+
+BinaryExpression :: class < Expression
+{
+    init(left, right)
+    {
+        this.left = left;
+        this.right = right;
+    }
+}
+  
+SumExpression :: class < BinaryExpression
+{
+    init(left, right)
+    {
+
+    }
+}
+
+SubtractionExpression :: class < BinaryExpression
+{
+    init(left, right)
+    {
+
+    }
+}
+
+MultiplicationExpression :: class < BinaryExpression
+{
+    init(left, right)
+    {
+
+    }
+}
+
+DivisionExpression :: class < BinaryExpression
+{
+    init(left, right)
+    {
+
+    }
+}
+
+UnaryMinusExpression :: class < Expression
+{
+    init(expresion)
+    {
+
+    }
+}
+
+TypeConversion :: class < Expression
+{
+    init(expresion, targetType)
+    {
+
+    }
+}
+
+VarReference :: class < Expression
+{
+    init(varName)
+    {
+
+    }
+}
+
+IntLit :: class < Expression
+{
+    init(value)
+    {
+
+    }
+}
+
+DecLit :: class < Expression
+{
+    init(value)
+    {
+
+    }
+}
+  
+//
+// Statements
+//
+  
+VarDeclaration :: class < Statement
+{
+    init(varName, expression)
+    {
+
+    }
+}
+
+Assignment :: class < Statement
+{
+    init(varName, expression)
+    {
+
+    }
+}
+
+Print :: class < Statement
+{
+    init(expression)
+    {
+
+    }
+}

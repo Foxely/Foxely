@@ -1,4 +1,6 @@
 
+import "compiler/token";
+import "compiler/ast";
 import "compiler/parser";
 import "io";
 
@@ -13,18 +15,25 @@ main :: func()
 	
 	// Setup the Lexer
 	oParser.Define("WS", "[ \n\t\r]+", true);
-	oParser.Define("Identifier", "[a-zA-Z_]+[0-9]*", false);
-	oParser.Define("Number", "[0-9]+", false);
-	oParser.Define("Plus", "\+", false);
-	oParser.Define("Minus", "-", false);
-	oParser.Define("Star", "\*", false);
-	oParser.Define("Slash", "/", false);
+	oParser.Define(IDENTIFIER, "[a-zA-Z_]+[0-9]*", false);
+	oParser.Define(NUMBER, "[0-9]+", false);
+	oParser.Define(PLUS, "\+", false);
+	oParser.Define(MINUS, "-", false);
+	oParser.Define(STAR, "\*", false);
+	oParser.Define(SLASH, "/", false);
+	oParser.Define(LEFT_PAREN, "(", false);
+	oParser.Define(RIGHT_PAREN, ")", false);
 
 	// Process the file content
-	oParser.Process(content);
+	ast: var = oParser.GenAst(content);
+
+	for (i: var = 0; i < ast.size(); i = i + 1)
+	{
+		print "%\n", ast.get(i).value;
+	}
 
 	// Show the tokens
-	oParser.Dump();
+	// oParser.Dump();
 
 	// Free the memory of the Lexer
 	oParser.m_oLexer.deinit();
