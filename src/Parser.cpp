@@ -71,7 +71,7 @@ Parser::Parser()
     oLexer.Define(TOKEN_IDENTIFIER,"[A-Za-z_]+[0-9]*");
     // oLexer.Define("Arrow","->");
     oLexer.Define(TOKEN_SINGLE_COMMENT,"//[^\n\r]*", true);
-    oLexer.Define(TOKEN_MULTI_COMMENT,"/\\*.*\\*/", true);
+    oLexer.Define(TOKEN_MULTI_COMMENT,"/\\*.+\\*/", true);
     oLexer.Define(TOKEN_EOF,"[\0]");
 
 

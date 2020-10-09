@@ -42,8 +42,9 @@ Type :: class < Node
 
 	visit()
     {
-		print " ";
-		print "%", this.value;
+		// print " ";
+        emit(1, "PUSH " + this.value);
+		// print "%", this.value;
     }
 }
 
@@ -78,10 +79,11 @@ SumExpression :: class < BinaryExpression
 {
 	visit()
     {
-		print " ";
-		print "+";
+		// print " ";
+		// print "+";
 		this.left.visit();
 		this.right.visit();
+        emit(1, "ADD $10 $20");
     }
 }
 

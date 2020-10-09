@@ -5,6 +5,107 @@ import "compiler/parser";
 import "io";
 import "os";
 
+
+
+emit :: func(depth, code)
+{
+	print "%\n", code;
+}
+
+compile_argument :: func(arg, destination)
+{
+	// If arg AST is a list, call compile_call on it
+
+
+	// Else must be a literal number, store in destination register
+	emit(1, "MOV " + destination + ", " + arg);
+}
+
+// BUILTIN_FUNCTIONS: var = { "+": "plus" };
+PARAM_REGISTERS: var = Array();
+
+PARAM_REGISTERS.push("RDI");
+PARAM_REGISTERS.push("RSI");
+PARAM_REGISTERS.push("RDX");
+
+compile_call :: func(func_name, args, destination)
+{
+	// Save param registers to the stack
+	for (i: var = 0; i < args.size(); i = i + 1)
+	{
+		emit(1, "PUSH %" + PARAM_REGISTERS.get(i));
+	}
+
+	// Compile arguments and store in param registers
+	for (i: var = 0; i < args.size(); i = i + 1)
+	{
+		compile_argument(args.get(i), PARAM_REGISTERS.get(i));
+	}
+
+	// Call function
+	emit(1, "CALL " + func_name);
+
+	// Restore param registers from the stack
+	for (i: var = 0; i < args.size(); i = i + 1)
+	{
+		emit(1, "POP %" + PARAM_REGISTERS.get(args.size() - i - 1));
+	}
+
+	// Move result into destination if provided
+	if (destination) {
+		emit(1, "MOV " + destination + ", %RAX");
+	}
+
+	emit(0, ""); // For nice formatting
+}
+
+emit_prefix :: func()
+{
+  	// Assembly prefix
+	emit(1, ".global main\n");
+
+	emit(1, ".text\n");
+
+	emit(0, "plus:");
+	emit(1, "ADD %RDI, %RSI");
+	emit(1, "MOV %RAX, %RDI");
+	emit(1, "ret\n");
+
+	emit(0, "main:");
+}
+
+exit: var = 0;
+if (os.which() == "darwin")
+{
+	exit = "0x2000001";
+}
+else
+{
+    exit = "60";
+}
+
+emit_postfix :: func()
+{
+	// Assembly postfix
+	emit(1, "MOV %RDI, %RAX"); // Set exit arg
+	emit(1, "MOV %RAX, $" + exit); // Set syscall number
+	emit(1, "SYSCALL");
+}
+
+compile :: func(ast)
+{
+	emit_prefix();
+	astslice: var = Array();
+	for (i: var = 1; i < ast.size(); i = i + 1)
+	{
+		astslice.push(ast.get(i));
+	}
+	compile_call(ast.get(0), astslice, false);
+	emit_postfix();
+}
+
+
+
 main :: func()
 {
 	// Read the file content
@@ -27,29 +128,29 @@ main :: func()
 	ast: var = parser.GenAst(content);
 
 	assembly_format: var = "    
-    .globl main
+    	.globl main
 	main:
 		movl    $3, %eax
 		ret
 	";
 
-	outFile: var = io.open("out.s", "w");
-	outFile.write(assembly_format);
+	// outFile: var = io.open("out.s", "w");
+	// outFile.write(assembly_format);
+	// ast.get(0).visit();
+	// outFile.close();
 
-	// for (i: var = 0; i < ast.size(); i = i + 1)
-	// {
-	//	ast.get(i).visit();
-	// }
-	// print "\n";
-	outFile.close();
+	emit_prefix();
+	ast.get(0).visit();
+	emit_postfix();
+
+	// compile(ast);
 
 	// Compile to machine code
-	os.shell("gcc out.s -o a.out");
-	os.shell("rm out.s");
+	// os.shell("gcc out.s -o a.out");
+	// os.shell("rm out.s");
 
 	// Show the tokens
 	// parser.Dump();
-
 	// Free the memory of the Lexer
 	parser.m_oLexer.deinit();
 }
