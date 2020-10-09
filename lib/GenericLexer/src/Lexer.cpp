@@ -65,6 +65,7 @@ bool Lexer::Process(const std::string& strText)
     std::vector<StringID>::iterator itTrash;
     int maxLen = 0;
     std::pair<StringID, std::string> defineTarget;
+	// helper::replaceAll(m_strText, "\\\"", "\"", m_strText.size());
 
     while (!m_strText.empty())
     {
@@ -77,9 +78,35 @@ bool Lexer::Process(const std::string& strText)
 			if (define.second.m_cStart == m_strText[0])
 			{
 				m_strText.erase(0, 1);
-                size_t index = m_strText.find_first_of('"', 0);
-				oTokenList.emplace_back(define.first, m_strText, index, m_iLines);
-				m_strText.erase(0, index + 1);
+				std::string newStr = "";
+				int i = 0;
+				for(i = 0; m_strText[i] != '"'; i++)
+				{
+					if (m_strText[i] == '\\')
+					{
+						switch(m_strText[++i])
+						{
+							case '\\':
+								newStr += '\\';
+								break;
+							case 'n':
+								newStr += '\n';
+								break;
+							case 't':
+								newStr += '\t';
+								break;
+							case 'r':
+								newStr += '\r';
+								break;
+							case '"':
+								newStr += '"';
+								break;
+						}
+					} else
+						newStr += m_strText[i];
+				}
+				oTokenList.emplace_back(define.first, newStr, newStr.size(), m_iLines);
+				m_strText.erase(0, i + 1);
 				break;
 			}
 		}
@@ -102,8 +129,37 @@ bool Lexer::Process(const std::string& strText)
         if (maxLen > 0)
         {
             itTrash = std::find(m_oTrashDefines.begin(), m_oTrashDefines.end(), defineTarget.first);
+			std::string newStr = "";
+			int i = 0;
             if (itTrash == m_oTrashDefines.end())
-                oTokenList.emplace_back(defineTarget.first, pText, maxLen, m_iLines);
+			{
+				for(i = 0; i < maxLen; i++)
+				{
+					if (m_strText[i] == '\\')
+					{
+						switch(m_strText[++i])
+						{
+							case '\\':
+								newStr += '\\';
+								break;
+							case 'n':
+								newStr += '\n';
+								break;
+							case 't':
+								newStr += '\t';
+								break;
+							case 'r':
+								newStr += '\r';
+								break;
+							case '"':
+								newStr += '"';
+								break;
+						}
+					} else
+						newStr += m_strText[i];
+				}
+                oTokenList.emplace_back(defineTarget.first, newStr, i, m_iLines);
+			}
             m_strText.erase(0, maxLen);
             bFound = true;
 
