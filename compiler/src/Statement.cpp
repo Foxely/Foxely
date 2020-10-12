@@ -1,7 +1,5 @@
 
 #include "Parser.h"
-#include "object.hpp"
-#include "gc.hpp"
 #include "statement.hpp"
 #include "ast.hpp"
 #include "LinearAllocator.h"
@@ -129,39 +127,15 @@ void ExpressionStatement(AstNode*& out, Parser& parser)
 
 void WhileStatement(AstNode*& out, Parser& parser)
 {
-    int loop_start = parser.GetCurrentChunk()->m_iCount;
+    AstWhile* astWhile = New<AstWhile>(*parser.allocator);
+    out = astWhile;
+
     parser.Consume(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
-    Expression(out, parser);
+    Expression(astWhile->condition, parser);
     parser.Consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
 
-    int exit_jump = parser.EmitJump(OP_JUMP_IF_FALSE);
-    // parser.EmitByte(OP_POP);
-    Statement(out, parser);
-    parser.EmitLoop(loop_start);
-    parser.PatchJump(exit_jump);
-    // parser.EmitByte(OP_POP);
-}
-
-void for_loop(AstNode*& out, Parser& parser, int *exit_jump)
-{
-    Expression(out, parser);
-    parser.Consume(TOKEN_SEMICOLON, "Expect ';' after loop condition.");
-
-    *exit_jump = parser.EmitJump(OP_JUMP_IF_FALSE);
-    // parser.EmitByte(OP_POP);
-}
-
-void for_increment(AstNode*& out, Parser& parser, int *loop_start)
-{
-    int body_jump = parser.EmitJump(OP_JUMP);
-    int increment_start = parser.GetCurrentChunk()->m_vCode.size();
-
-    Expression(out, parser);
-    // parser.EmitByte(OP_POP);
-    parser.Consume(TOKEN_RIGHT_PAREN, "Expect ')' after for clauses.");
-    parser.EmitLoop(*loop_start);
-    *loop_start = increment_start;
-    parser.PatchJump(body_jump);
+    astWhile->body = ParseFunctionBody(parser);
+    // Statement(astWhile->body, parser);
 }
 
 void ForStatement(AstNode*& out, Parser& parser)
@@ -184,5 +158,9 @@ void ForStatement(AstNode*& out, Parser& parser)
         Expression(forStatement->increment, parser);
         parser.Consume(TOKEN_RIGHT_PAREN, "Expect ')' after for clauses.");
     }
-    Statement(forStatement->body, parser);
+	parser.Consume(TOKEN_LEFT_BRACE, "Expect '{' before for body.");
+
+    forStatement->body = ParseFunctionBody(parser);
+
+	parser.Consume(TOKEN_RIGHT_BRACE, "Expect '}' after for body.");
 }

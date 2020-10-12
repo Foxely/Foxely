@@ -1,0 +1,189 @@
+
+
+Node :: class
+{
+    init()
+    {
+        this.value = nil;
+        this.next = nil;
+    }
+}
+
+SandyFile :: class < Node
+{
+    init(statements)
+    {
+
+    }
+}
+
+Statement :: class < Node
+{
+    init()
+    {
+
+    }
+}
+
+Expression :: class < Node
+{
+    init()
+    {
+
+    }
+}
+
+Type :: class < Node
+{
+    init(typeValue)
+    {
+        this.value = typeValue;
+    }
+
+	visit()
+    {
+		// print " ";
+        emit(1, "PUSH " + this.value);
+		// print "%", this.value;
+    }
+}
+
+//
+// Types
+//
+  
+// object IntType : Type
+// object DecimalType : Type
+  
+//
+// Expressions
+//
+
+BinaryExpression :: class < Expression
+{
+    init(left, right)
+    {
+        this.left = left;
+        this.right = right;
+    }
+
+	visit()
+    {
+		print "Binary";
+		this.left.visit();
+		this.right.visit();
+    }
+}
+  
+SumExpression :: class < BinaryExpression
+{
+	visit()
+    {
+		// print " ";
+		// print "+";
+		this.left.visit();
+		this.right.visit();
+        emit(1, "ADD $10 $20");
+    }
+}
+
+SubtractionExpression :: class < BinaryExpression
+{
+	visit()
+    {
+		print " ";
+		print "-";
+		this.left.visit();
+		this.right.visit();
+    }
+}
+
+MultiplicationExpression :: class < BinaryExpression
+{
+	visit()
+    {
+		print " ";
+		print "*";
+		this.left.visit();
+		this.right.visit();
+    }
+}
+
+DivisionExpression :: class < BinaryExpression
+{
+	visit()
+    {
+		print " ";
+		print "/";
+		this.left.visit();
+		this.right.visit();
+    }
+}
+
+UnaryMinusExpression :: class < Expression
+{
+    init(expresion)
+    {
+
+    }
+}
+
+TypeConversion :: class < Expression
+{
+    init(expresion, targetType)
+    {
+
+    }
+}
+
+VarReference :: class < Expression
+{
+    init(varName)
+    {
+
+    }
+}
+
+IntLit :: class < Expression
+{
+    init(value)
+    {
+
+    }
+}
+
+DecLit :: class < Expression
+{
+    init(value)
+    {
+
+    }
+}
+  
+//
+// Statements
+//
+  
+VarDeclaration :: class < Statement
+{
+    init(varName, expression)
+    {
+
+    }
+}
+
+Assignment :: class < Statement
+{
+    init(varName, expression)
+    {
+
+    }
+}
+
+Print :: class < Statement
+{
+    init(expression)
+    {
+
+    }
+}

@@ -1,0 +1,30 @@
+import "garbage.h";
+import "stdio.h";
+import "stdbool.h";
+
+test :: class
+{
+    a: int;
+}
+
+function :: func (argc: *char) : void
+{
+    print "argc + %s\\n", argc;
+}
+
+main :: func (argc: int, argv: **char) : int
+{
+    test1: *test = new test{};
+    a: int = 1;
+    b: int = 2;
+
+    print "%d\\n", a + b;
+    print "%d\\n", test1.a;
+
+    for (i: int = 0; i < 10; i = i + 1)
+    {
+        print "Salut!\\n";
+    }
+    
+    return 0;
+}

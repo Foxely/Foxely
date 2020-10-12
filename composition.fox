@@ -1,0 +1,39 @@
+
+
+import "garbage.h";
+import "stdio.h";
+import "stdbool.h";
+
+Base :: class
+{
+    a: int;
+}
+
+child1 :: class
+{
+    base: *Base;
+}
+
+child2 :: class
+{
+    base: *Base;
+}
+
+print_base :: func(base: *Base) : void
+{
+    print "%d\\n", base.a;
+}
+
+set_base :: func(base: *Base, aa: int) : void
+{
+    base.a = aa;
+}
+
+main :: func() : int
+{
+    child: *child1 = new child1{};
+    child.base = new Base{};
+    set_base(child.base, 15);
+    print_base(child.base);
+    return 0;
+}

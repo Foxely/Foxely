@@ -3,22 +3,8 @@
 #include "Lexer.h"
 #include "Token.h"
 #include "Parser.h"
-#include "object.hpp"
-#include "gc.hpp"
 #include "statement.hpp"
 #include "LinearAllocator.h"
-
-AstNode* nullNode = NULL;
-
-Chunk* Parser::GetCurrentChunk()
-{
-	return &currentCompiler->function->chunk;
-}
-
-void Parser::SetCurrentChunk(Chunk& chunk)
-{
-  	compilingChunk = &chunk;
-}
 
 Parser::Parser()
 {
@@ -66,6 +52,7 @@ Parser::Parser()
     oLexer.Define(TOKEN_BANG_EQUAL, "!=");
     oLexer.Define(TOKEN_CLASS, "class");
     oLexer.Define(TOKEN_ELSE, "else");
+    oLexer.Define(TOKEN_NEW, "new");
     oLexer.Define(TOKEN_EQUAL, "=");
     oLexer.Define(TOKEN_EQUAL_EQUAL, "==");
     oLexer.Define(TOKEN_SHEBANG,"#[^\n\r]*", true);
@@ -78,6 +65,7 @@ Parser::Parser()
     oLexer.Define(TOKEN_EOF,"[\0]");
 
 
+    rules[TOKEN_NEW] = { NewRule, NULL, PREC_NONE };
     rules[TOKEN_REF] = { RefVariable, NULL, PREC_NONE };
     rules[TOKEN_RIGHT_BRACKET] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_LEFT_BRACKET] = { NULL, NULL, PREC_NONE };
@@ -135,24 +123,22 @@ void Parser::Advance()
     NextToken();
 }
 
-void Parser::MarkInitialized()
-{
-    if (currentCompiler->scopeDepth == 0)
-        return;
-    currentCompiler->locals[currentCompiler->localCount - 1].depth = currentCompiler->scopeDepth;
-}
-
-bool Compile(Parser& parser, const std::string& strText, Chunk* chunk)
+bool CreateAst(Parser& parser, const std::string& strText)
 {
     if (!parser.Init(strText))
+    {
+        std::cout << "Empty file\n";
         return false;
+    }
 
-	parser.compilingChunk = chunk;
+    if (VERBOSE_TOKEN) {
+        std::cout << "======= Tokens =========\n";
+        helper::Dump(parser.GetLexer());
+        std::cout << "========================\n";
+    }
+
     parser.hadError = false;
     parser.panicMode = false;
-#if DEBUG_TOKEN
-	helper::Dump(parser.GetLexer());
- #endif
 
 	while (!parser.IsEnd()) {
         AstNode* node = nullptr;
@@ -174,93 +160,6 @@ void Parser::Consume(int oType, const char* message)
 		ErrorAtCurrent(message);
 	}
 }
-
-void Parser::EmitByte(uint8_t byte)
-{
-    GetCurrentChunk()->WriteChunk(byte, PreviousToken().m_iLinesTraversed);
-}
-
-void Parser::EmitBytes(uint8_t byte1, uint8_t byte2)
-{
-	EmitByte(byte1);
-	EmitByte(byte2);
-}
-
-void Parser::EmitConstant(Value value)
-{
-  	EmitBytes(OP_CONST, MakeConstant(value));
-}
-
-void Parser::EmitReturn()
-{
-    if (currentCompiler->type == TYPE_INITIALIZER)
-        EmitBytes(OP_GET_LOCAL, 0);
-    else
-        EmitByte(OP_NIL);
-    EmitByte(OP_RETURN);
-}
-
-int Parser::EmitJump(uint8_t instruction)
-{
-	EmitByte(instruction);
-	EmitByte(0xff);
-	EmitByte(0xff);
-	return GetCurrentChunk()->m_vCode.size() - 2;
-}
-
-void Parser::PatchJump(int offset)
-{
-	// -2 to adjust for the bytecode for the jump offset itself.
-	// int jump = compilingChunk->m_iCount - offset - 2;
-	int jump = GetCurrentChunk()->m_vCode.size() - offset - 2;
-
-	if (jump > UINT16_MAX) {
-		Error("Too much code to jump over.");
-	}
-
-	GetCurrentChunk()->m_vCode[offset] = (jump >> 8) & 0xff;
-	GetCurrentChunk()->m_vCode[offset + 1] = jump & 0xff;
-}
-
-void Parser::EmitLoop(int loopStart)
-{
-	EmitByte(OP_LOOP);
-
-	int offset = GetCurrentChunk()->m_vCode.size() - loopStart + 2;
-
-	if (offset > UINT16_MAX)
-		Error("Loop body too large.");
-
-	EmitByte((offset >> 8) & 0xff);
-	EmitByte(offset & 0xff);
-}
-
-uint8_t Parser::MakeConstant(Value value)
-{
-	// m_pVm->Push(value);
-	int constant = GetCurrentChunk()->AddConstant(value);
-	// m_pVm->Pop();
-
-	if (constant > UINT8_MAX) {
-		Error("Too many constants in one chunk.");
-		return 0;
-	}
-  	return (uint8_t) constant;
-}
-
-ObjectFunction* Parser::EndCompiler()
-{
-	EmitReturn();
-    ObjectFunction* func = currentCompiler->function;
-    #ifdef DEBUG_PRINT_CODE
-    if (!hadError) {
-        disassemble_chunk(GetCurrentChunk(), func->name != NULL ? func->name->string : "<script>");
-    }
-    #endif
-    currentCompiler = currentCompiler->enclosing;
-    return (func);
-}
-
 
 bool Parser::Match(int type)
 {
@@ -325,10 +224,10 @@ void Unary(AstNode*& out, Parser& parser, bool can_assign)
     ParsePrecedence(out, parser, PREC_UNARY);
     switch (operator_type) {
         case TOKEN_BANG:
-            parser.EmitByte(OP_NOT);
+            // parser.EmitByte(OP_NOT);
             break;
         case TOKEN_MINUS:
-            parser.EmitByte(OP_NEGATE);
+            // parser.EmitByte(OP_NEGATE);
             break;
         default:
         return;
@@ -422,23 +321,12 @@ void Literal(AstNode*& out, Parser& parser, bool can_assign)
 
 void RuleAnd(AstNode*& out, Parser& parser, bool can_assign)
 {
-    int end_jump = parser.EmitJump(OP_JUMP_IF_FALSE);
-
-    parser.EmitByte(OP_POP);
     ParsePrecedence(out, parser, PREC_AND);
-    parser.PatchJump(end_jump);
 }
 
 void RuleOr(AstNode*& out, Parser& parser, bool can_assign)
 {
-    int else_jump = parser.EmitJump(OP_JUMP_IF_FALSE);
-    int end_jump = parser.EmitJump(OP_JUMP);
-
-    parser.PatchJump(else_jump);
-    parser.EmitByte(OP_POP);
-
     ParsePrecedence(out, parser, PREC_OR);
-    parser.PatchJump(end_jump);
 }
 
 void Dot(AstNode*& out, Parser& parser, bool can_assign)
@@ -532,6 +420,17 @@ std::list<AstNode*> ArgumentsList(Parser& parser)
 	}
 	parser.Consume(TOKEN_RIGHT_PAREN, "Expect ')' after arguments.");
 	return pRoot;
+}
+
+void NewRule(AstNode*& out, Parser& parser, bool can_assign)
+{
+    AstNew* astNew = New<AstNew>(*parser.allocator);
+    out = astNew;
+
+    parser.Consume(TOKEN_IDENTIFIER, "Expect identifier after 'new'.");
+    astNew->objectName = parser.PreviousToken().GetText();
+	parser.Consume(TOKEN_LEFT_BRACE, "Expect '{' class name.");
+	parser.Consume(TOKEN_RIGHT_BRACE, "Expect '}' after arguments.");
 }
 
 void RefVariable(AstNode*& out, Parser& parser, bool can_assign)
@@ -798,7 +697,6 @@ std::list<AstNode*> ParseDeclarationList(Parser& parser)
 std::list<AstNode*> ParseFunctionBody(Parser& parser)
 {
     std::list<AstNode*> pRoot;
-    Token name;
 
     for (Token curr = parser.CurrentToken(); ; curr = parser.CurrentToken())
     {

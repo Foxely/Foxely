@@ -4,11 +4,11 @@
 #include <stdint.h>
 #include <list>
 #include <memory>
+
 #include "Lexer.h"
 #include "ParserHelper.h"
-#include "chunk.hpp"
-#include "object.hpp"
 #include "ast.hpp"
+#include "common.h"
 
 class LinearAllocator;
 
@@ -42,6 +42,7 @@ typedef enum {
     TOKEN_FOR, TOKEN_FUN, TOKEN_IF, TOKEN_NIL, TOKEN_OR,
     TOKEN_PRINT, TOKEN_RETURN, TOKEN_SUPER, TOKEN_THIS,
     TOKEN_TRUE, TOKEN_VAR, TOKEN_WHILE, TOKEN_IMPORT,
+    TOKEN_NEW,
 
     TOKEN_SINGLE_COMMENT,
     TOKEN_MULTI_COMMENT,
@@ -113,7 +114,6 @@ struct ClassCompiler
 class Parser : public ParserHelper
 {
 public:
-	Chunk* compilingChunk;
     ParseRule rules[TOKEN_MAX];
 	VM* m_pVm;
     Compiler *currentCompiler;
@@ -126,72 +126,15 @@ public:
     void Advance();
     void MarkInitialized();
     void Consume(int oType, const char* message);
-	Chunk* GetCurrentChunk();
-	void SetCurrentChunk(Chunk& chunk);
-
-	ObjectString* CopyString(const std::string& value);
-	ObjectString* TakeString(const std::string& value);
-	ObjectString* AllocateString(const std::string& str, uint32_t hash);
-	uint32_t hashString(const std::string& str);
-
-
-	void EmitByte(uint8_t byte);
-	void EmitBytes(uint8_t byte1, uint8_t byte2);
-	void EmitConstant(Value value);
-	void EmitReturn();
-	int EmitJump(uint8_t instruction);
-	void PatchJump(int offset);
-	void EmitLoop(int loopStart);
-	uint8_t MakeConstant(Value value);
-
-	ObjectFunction* EndCompiler();
-
 
     bool Match(int type);
     ParseRule *GetRule(int type);
-
-	uint8_t IdentifierConstant(const Token& name);
 
 	void BeginScope();
 	void EndScope();
 };
 
-struct Compiler
-{
-	explicit Compiler (Parser& parser, FunctionType eType, const std::string& name)
-	{
-		enclosing = parser.currentCompiler;
-		localCount = 0;
-		scopeDepth = 0;
-		type = eType;
-		function = new ObjectFunction();
-		parser.currentCompiler = this;
-
-		if (eType != TYPE_SCRIPT) {
-			parser.currentCompiler->function->name = parser.CopyString(name);
-		}
-
-		Local* local = &locals[localCount++];
-		local->depth = 0;
-        local->isCaptured = false;
-
-		if (type != TYPE_FUNCTION) {
-			local->name = Token("this", (std::size_t) 4);
-		} else {
-			local->name = Token("", (std::size_t) 0);
-		}
-	}
-
-    Compiler *enclosing;
-    ObjectFunction *function;
-    FunctionType type;
-    Local locals[UINT8_COUNT];
-    int localCount;
-    Upvalue upvalues[UINT8_COUNT];
-    int scopeDepth;
-};
-
-bool Compile(Parser& parser, const std::string &strText, Chunk* chunk);
+bool CreateAst(Parser& parser, const std::string &strText);
 void Expression(AstNode*& out, Parser& parser);
 void ParsePrecedence(AstNode*& out, Parser& parser, Precedence preced);
 void Number(AstNode*& out, Parser& parser, bool can_assign = false);
@@ -207,6 +150,9 @@ void RuleSuper(AstNode*& out, Parser& parser, bool can_assign = false);
 void Variable(AstNode*& out, Parser& parser, bool can_assign = false);
 void String(AstNode*& out, Parser& parser, bool can_assign = false);
 void CallCompiler(AstNode*& out, Parser& parser, bool can_assign = false);
+void NewRule(AstNode*& out, Parser& parser, bool can_assign);
+void RefVariable(AstNode*& out, Parser& parser, bool can_assign);
+
 
 void Block(AstNode*& out, Parser& parser);
 void Declaration(AstNode*& out, Parser& parser);
@@ -215,10 +161,9 @@ void VarDeclaration(AstNode*& out, Parser& parser, Token name);
 void FuncDeclaration(AstNode*& out, Parser& parser, Token name);
 void ClassDeclaration(AstNode*& out, Parser& parser, Token& name);
 uint8_t ArgumentList(AstNode*& out, Parser& parser);
-
+std::list<AstNode*> ParseFunctionBody(Parser& parser);
 
 AstFuncDeclaration* ParseFunction(Parser& parser, const Token& name);
 AstDeclaration* ParseDeclarationBody(Parser& parser, const Token& oName);
 AstVarDeclaration* ParseVarDeclarationBody(Parser& parser, const Token& oName);
-void RefVariable(AstNode*& out, Parser& parser, bool can_assign);
 std::list<AstNode*> ArgumentsList(Parser& parser);

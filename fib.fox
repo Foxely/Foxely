@@ -12,3 +12,6 @@ for (i: var = 0; i < 20; i = i + 1)
 }
 
 print "Time: %\n", clock() - start;
+
+
+// ./bin/foxely ../print.fox > print.c && gcc print.c && rm print.c

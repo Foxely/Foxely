@@ -1,9 +1,0 @@
-import "sfml";
-
-window: var = Window("Test Window", 1280, 720);
-
-while (window.isOpen())
-{
-    window.clear();
-    window.display();
-}
