@@ -1,0 +1,45 @@
+#!/usr/bin/env foxely
+
+import "os";
+import "array";
+
+compiler :: func()
+{
+    return "g++";
+}
+
+arguments :: func()
+{
+    return " -Wall -Wno-write-strings -g -fPIC -shared";
+}
+
+include :: func()
+{
+    return " -I./ -I../../include -I../../lib/GenericLexer/include";
+}
+
+Make :: func(SRC)
+{
+    return compiler() + arguments() + include() + SRC;
+}
+
+// Declare a native Lib
+declareNative :: func(name, sources)
+{
+    SRC: var = "";
+    for (i: var = 0; i < sources.size(); i = i + 1)
+    {
+        SRC = SRC + " " + "ProjectTest/" + sources.get(i);
+    }
+
+    os.shell(compiler() + arguments() + include() + SRC + " -o " + "ProjectTest/" + name + ".so");
+}
+
+args: var = os.args();
+index: var = 0;
+
+if (args.contain("-l"))
+{
+    index = args.find("-l");
+    module.load(args.get(index + 1) + "/project.fox");
+}
