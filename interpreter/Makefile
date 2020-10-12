@@ -14,6 +14,7 @@ SRC_DIR = src
 MAIN_SRC = main.cpp
 MAIN_OBJ = $(MAIN_SRC:%.cpp=%.o)
 SRC = $(shell find $(SRC_DIR) -name '*.cpp')
+SRC += $(SRC_DIR)/linenoise.c
 OBJ = $(SRC:%.cpp=%.o)
 
 # CFLAGS += -std=c++17 -W -Wall -Wextra $(if $(DEBUG),-g3) $(if $(DEBUG),-DDEBUG -DDEBUG_TRACE_EXECUTION)

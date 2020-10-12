@@ -12,6 +12,7 @@
 #include "debug.h"
 #include "Parser.h"
 #include "vm.hpp"
+#include "linenoise.h"
 
 
 char* RED = "\u001b[31m";
@@ -52,12 +53,11 @@ void repl()
 
     std::string input;
     std::string line;
+    std::cout << RESET;
     while(true)
     {
         input.clear();
         std::cout << "> ";
-        std::cout << Left;
-        std::cout << RESET;
         std::getline(std::cin, input);
 
         if (input[input.size() - 1] == '{') {
@@ -103,7 +103,7 @@ void replv2()
 {
     GC::Gc.pVm = VM::GetInstance();
     char line[1024] = "";
-    std::string input;
+    std::string input = "";
     std::string word;
     bool loop = true;
     int index = 0;
@@ -118,44 +118,41 @@ void replv2()
         {
             c = getch();
 
-            // if (c == 65)
-            // {
-            //     printf("\u001b[1D");
-            // }
-            // printf("%d", c);
-
-            // if ((int)c == 13) {
-            //     std::cout << "\b\b\n";
-            //     break;
-            // }
-
             if (c == 3) // CTRL-C
-                return;
-            else if (32 <= c <= 126)
+                break;
+            else if (c == 27)
             {
-                // input = input.substr(0, index) + (char)c + input.substr(index, 1);
-                input += c;
-                index += 1;
-
+                char next1 = getch();
+                char next2 = getch();
+                if (next1 == 91) {
+                    if (next2 == 68) // Left
+                        index = std::max(0, index - 1);
+                    else if (next2 == 67) // Right
+                    {
+                        index = std::min((int)input.size(), index + 1);
+                    }
+                }
             }
-            else if (10 < c > 13)
+            else if ((int)c == 13)
             {
                 printf("\u001b[1000D");
-                printf("\nechoing... %s", input);
+                printf("%s\n", input.c_str());
                 input = "";
                 index = 0;
             }
-
-            else if (c == 65)
+            else if (c == 127)
             {
-                index = std::max(0, index - 1);
+                input = input.substr(0, index - 1) + input.substr(index);
+                index -= 1;
             }
-            else if (c == 67)
+            else if (32 <= c <= 126)
             {
-                index = std::min((int)input.length(), index + 1);
+                input = input.substr(0, index) + (char)c + input.substr(index);
+                index += 1;
             }
 
             printf("\u001b[1000D");
+            printf("\u001b[0K");
             printf("%s", input.c_str());
             printf("\u001b[1000D");
             if (index > 0)
@@ -168,75 +165,94 @@ void replv2()
     // }
 }
 
-// void replv2()
-// {
-//     int ch;
-//     std::string word;
-//     std::string line;
-//     int startPos = 0;
+void completion(const char *buf, linenoiseCompletions *lc)
+{
+    if (buf[0] == 'f')
+    {
+        linenoiseAddCompletion(lc, "for");
+    }
+    else if (buf[0] == 'w')
+    {
+        linenoiseAddCompletion(lc, "while");
+    }
+    else if (buf[0] == 'i')
+    {
+        linenoiseAddCompletion(lc, "if");
+    }
+}
 
-//     bool loop = true;
-//     while (loop) {
-//         std::cout << "> ";
-//         line.clear();
-//         word.clear();
-//         while (true)
-//         {
-//             ch = getch();
-//             startPos = line.size();
-//             std::stringstream new_buffer;
-//             std::streambuf* old_buffer = std::cout.rdbuf(new_buffer.rdbuf());
+char *hints(const char *buf, int *color, int *bold)
+{
+    if (!strcasecmp(buf, "hello"))
+    {
+        *color = 35;
+        *bold = 0;
+        return " World";
+    }
+    return NULL;
+}
 
-//             if (word == "for") {
-//                 word = "\033[0;32m" + word + "\033[0m";
-//                 // line.erase(startPos, word.size());
-//             }
+void replv3(int ac, char** av)
+{
+    char *line;
 
-//             if (word == "while") {
-//                 word = "\033[0;32m" + word + "\033[0m";
-//                 // line.erase(startPos, word.size());
-//             }
+    while(ac > 1) {
+        ac--;
+        av++;
+        if (!strcmp(*av,"--multiline")) {
+            linenoiseSetMultiLine(1);
+            printf("Multi-line mode enabled.\n");
+        } else if (!strcmp(*av,"--keycodes")) {
+            linenoisePrintKeyCodes();
+            exit(0);
+        } else {
+            fprintf(stderr, "Usage: foxely [--multiline] [--keycodes]\n");
+            exit(1);
+        }
+    }
 
-//             if (word == "var") {
-//                 word = "\033[0;33m" + word + "\033[0m";
-//                 // line.erase(startPos, word.size());
-//             }
+    /* Set the completion callback. This will be called every time the
+     * user uses the <tab> key. */
+    linenoiseSetCompletionCallback(completion);
+    linenoiseSetHintsCallback(hints);
 
-//             if (ch == 127)
-//             {
-//                 if (word.size() > 0)
-//                     word.erase(word.size() - 1, 1);
-//                 else if (line.size() > 0)
-//                     line.erase(line.size() - 1, 1);
-//             } else
-//                 word += ch;
+    /* Load history from file. The history file is just a plain text file
+     * where entries are separated by newlines. */
+    linenoiseHistoryLoad("history.txt"); /* Load the history at startup */
 
-//             if (ch == ' ')
-//             {
-//                 line += word;
-//                 word.clear();
-//             }
-
-//             if (ch == '\n')
-//                 line += word;
-
-//             std::cout << "> ";
-//             std::cout << line;
-//             std::cout << word;
-//             system("clear");
-
-//             // Restore original buffer:
-//             std::cout.rdbuf(old_buffer);
-//             std::cout << new_buffer.str();
-
-//             if(ch == '\n')
-//                 break;
-//         }
-//         if (word == "exit\n")
-//             break;
-//         VM::GetInstance()->interpret(line.c_str());
-//     }
-// }
+    /* Now this is the main loop of the typical linenoise-based application.
+     * The call to linenoise() will block as long as the user types something
+     * and presses enter.
+     *
+     * The typed string is returned as a malloc() allocated string by
+     * linenoise, so the user needs to free() it. */
+    
+    while((line = linenoise("> ")) != NULL) {
+        /* Do something with the string. */
+        if (line[0] != '\0' && line[0] != '/')
+        {
+            printf("echo: '%s'\n", line);
+            linenoiseHistoryAdd(line); /* Add to the history. */
+            linenoiseHistorySave("history.txt"); /* Save the history on disk. */
+        }
+        else if (!strncmp(line, "#ShowToken", 10))
+        {
+            /* */
+            std::cout << "Show tokens activated...\n";
+            // int len = atoi(line + 11);
+            // linenoiseHistorySetMaxLen(len);
+        }
+        else if (line[0] == '}')
+        {
+            printf("Unreconized command: %s\n", line);
+        }
+        else if (line[0] == '#')
+        {
+            printf("Unreconized command: %s\n", line);
+        }
+        free(line);
+    }
+}
 
 void runFile(const char* path)
 {
@@ -256,7 +272,7 @@ int main(int ac, char** av)
     VM::GetInstance()->argc = ac;
     VM::GetInstance()->argv = av;
     if (ac == 1) {
-        repl();
+        replv2();
     } else if (ac >= 2) {
         runFile(av[1]);
     } else {
