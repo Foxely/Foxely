@@ -167,6 +167,7 @@ void replv2()
 
 void completion(const char *buf, linenoiseCompletions *lc)
 {
+        std::cout << lc->len;
     if (buf[0] == 'f')
     {
         linenoiseAddCompletion(lc, "for");
@@ -183,11 +184,25 @@ void completion(const char *buf, linenoiseCompletions *lc)
 
 char *hints(const char *buf, int *color, int *bold)
 {
-    if (!strcasecmp(buf, "hello"))
+    if (!strcasecmp(buf, "f"))
     {
         *color = 35;
         *bold = 0;
-        return " World";
+        return "or";
+    }
+
+    if (!strcasecmp(buf, "w"))
+    {
+        *color = 35;
+        *bold = 0;
+        return "hile";
+    }
+
+    if (!strcasecmp(buf, "i"))
+    {
+        *color = 35;
+        *bold = 0;
+        return "f";
     }
     return NULL;
 }
@@ -201,7 +216,6 @@ void replv3(int ac, char** av)
         av++;
         if (!strcmp(*av,"--multiline")) {
             linenoiseSetMultiLine(1);
-            printf("Multi-line mode enabled.\n");
         } else if (!strcmp(*av,"--keycodes")) {
             linenoisePrintKeyCodes();
             exit(0);
@@ -229,7 +243,7 @@ void replv3(int ac, char** av)
     
     while((line = linenoise("> ")) != NULL) {
         /* Do something with the string. */
-        if (line[0] != '\0' && line[0] != '/')
+        if (line[0] != '\0' && line[0] != '#')
         {
             printf("echo: '%s'\n", line);
             linenoiseHistoryAdd(line); /* Add to the history. */
@@ -271,13 +285,13 @@ int main(int ac, char** av)
 {
     VM::GetInstance()->argc = ac;
     VM::GetInstance()->argv = av;
-    if (ac == 1) {
-        replv2();
-    } else if (ac >= 2) {
-        runFile(av[1]);
-    } else {
-        fprintf(stderr, "Usage: foxely [path]\n");
-        exit(64);
-    }
+    // if (ac == 1) {
+        replv3(ac, av);
+    // } else if (ac >= 2) {
+    //     runFile(av[1]);
+    // } else {
+    //     fprintf(stderr, "Usage: foxely [path]\n");
+    //     exit(64);
+    // }
     return 0;
 }
