@@ -383,12 +383,12 @@ bool VM::Invoke(ObjectString *name, int argCount)
 
 InterpretResult VM::interpret(const char *source)
 {
+    ResetStack();
 	if (!isInit)
 	{
 		m_oParser.m_pVm = this;
 		openUpvalues = NULL;
 		stack[0] = Value();
-		ResetStack();
 		DefineNative("clock", clockNative);
 		initString = NULL;
 		initString = m_oParser.CopyString("init");
@@ -397,6 +397,8 @@ InterpretResult VM::interpret(const char *source)
 		manager.GetAllLibrary();
 		isInit = true;
 	}
+
+    result = INTERPRET_OK;
 
 	Chunk oChunk;
 	ObjectFunction *function = Compile(m_oParser, source, &oChunk);
@@ -414,7 +416,8 @@ InterpretResult VM::interpret(const char *source)
 	return result;
 }
 
-InterpretResult VM::run() {
+InterpretResult VM::run()
+{
 	CallFrame *frame = &frames[frameCount - 1];
 
 #define READ_BYTE() (*frame->ip++)
@@ -450,8 +453,8 @@ InterpretResult VM::run() {
 			frame->closure->function->chunk,
 			(int)(frame->ip - frame->closure->function->chunk.m_vCode.begin()));
 #endif
-		uint8_t instruction;
-		switch (instruction = READ_BYTE())
+		uint8_t instruction = READ_BYTE();
+		switch (instruction)
 		{
 		case OP_NIL:
 			Push(NIL_VAL);
@@ -635,6 +638,12 @@ InterpretResult VM::run() {
 					PrintValue(Peek(--tempArgCount));
 			}
 			stackTop -= argCount;
+			break;
+		}
+
+        case OP_PRINT_REPL:
+		{
+			PrintValue(Pop());
 			break;
 		}
 

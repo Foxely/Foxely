@@ -1,25 +1,100 @@
-while
+fsf
+sfsf;
+dfdf,
+sfs,
+dffd;
+zdd
+dzdz
+scc
+sdsd
+sfsf
+sdsd
+dss
+sfs
 scsc
-scscsc
+sdsd
+dsd
+dd
+ssds
+sd
+dsd;
+;
+sd;
+dsdsd;
+sfs
+sf;
+;
+sfsfsfsfsf;
+sfsf;
+eezgzeg;
+sdsd
+sd;
+sdsdsfsf;
+sf;
+sf,
 scsc
+
+sdsd;
+
+sfsf;
+sdsd
+sdsds
+dsdsd
+vsvc
+sd;
+sds,
+sds;
+fsfs;
+jhqugbqufvgqusfyq;
+scsc
+scs
+scsc
+scs
+scsccs5C5C5C5C5C
+scsc
+ccc
+scsc
+scs
+c
+cs;
 csc
-while 
-"
-{
-"
+scs;
+dsd
+cscs
+scsc;
+d
+sdsd
+cscs
+sc
 scsc
-#ShowToken 
-#ShowToken\n
-#ShowToken
-for for
-for
-for for
-for
-dv
-&&é"''(ù
-for 
-sscs
+sds
+sd
+scs
 scsc
-scscsc scscs scs
-[31mfor[0m[1000D
-dfdf
+scsc;
+scs;
+ssc
+csc;
+scsc;
+cscsc;
+print "njn";
+print "nn";
+ 
+add::func(a,b){return a+b;}
+add(1,2);
+add::func(a,b){return a+b;}
+add(1,2);
+add::func(a,b){return a+b;}
+add(1,2);
+add::func(a,b){return a+b;}
+add(1,2);
+add::func(a,b){return a+b;}
+add(1,2);
+add::func(a,b){return a+b;}
+add(1,2);
+add::func(a,b){return a+b;}
+add(1,2);
+add::func(a,b){return a+b;}
+add(1,2);
+add::func(a,b){return a+b;}
+add(1,2);

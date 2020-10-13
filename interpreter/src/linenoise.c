@@ -440,15 +440,14 @@ void linenoiseSetFreeHintsCallback(linenoiseFreeHintsCallback *fn) {
  * in order to add completion options given the input string when the
  * user typed <tab>. See the example.c source code for a very easy to
  * understand example. */
-void linenoiseAddCompletion(linenoiseCompletions *lc, const char *str)
-{
+void linenoiseAddCompletion(linenoiseCompletions *lc, const char *str) {
     size_t len = strlen(str);
     char *copy, **cvec;
 
-    copy = (char *) malloc(len + 1);
+    copy = (char *) malloc(len+1);
     if (copy == NULL) return;
     memcpy(copy,str,len+1);
-    cvec = (char **)realloc(lc->cvec, sizeof(char *) * (lc->len + 1));
+    cvec = (char **) realloc(lc->cvec,sizeof(char*)*(lc->len+1));
     if (cvec == NULL) {
         free(copy);
         return;
@@ -473,9 +472,8 @@ static void abInit(struct abuf *ab) {
     ab->len = 0;
 }
 
-static void abAppend(struct abuf *ab, const char *s, int len)
-{
-    char *newAppend = (char *) realloc(ab->b, ab->len + len);
+static void abAppend(struct abuf *ab, const char *s, int len) {
+    char *newAppend = (char *) realloc(ab->b,ab->len+len);
 
     if (newAppend == NULL) return;
     memcpy(newAppend + ab->len, s, len);
@@ -1036,7 +1034,7 @@ static char *linenoiseNoTTY(void) {
             if (maxlen == 0) maxlen = 16;
             maxlen *= 2;
             char *oldval = line;
-            line = (char *) realloc(line, maxlen);
+            line = (char *) realloc(line,maxlen);
             if (line == NULL) {
                 if (oldval) free(oldval);
                 return NULL;
@@ -1132,9 +1130,9 @@ int linenoiseHistoryAdd(const char *line) {
 
     /* Initialization on first call. */
     if (history == NULL) {
-        history = (char **) malloc(sizeof(char *) * history_max_len);
+        history = (char **) malloc(sizeof(char*)*history_max_len);
         if (history == NULL) return 0;
-        memset(history, 0, (sizeof(char *) * history_max_len));
+        memset(history,0,(sizeof(char*)*history_max_len));
     }
 
     /* Don't add duplicated lines. */
@@ -1165,7 +1163,7 @@ int linenoiseHistorySetMaxLen(int len) {
     if (history) {
         int tocopy = history_len;
 
-        newHistory = (char **) malloc(sizeof(char *) * len);
+        newHistory = (char **) malloc(sizeof(char*)*len);
         if (newHistory == NULL) return 0;
 
         /* If we can't copy everything, free the elements we'll not use. */
@@ -1175,8 +1173,8 @@ int linenoiseHistorySetMaxLen(int len) {
             for (j = 0; j < tocopy-len; j++) free(history[j]);
             tocopy = len;
         }
-        memset(newHistory, 0, sizeof(char*)*len);
-        memcpy(newHistory, history+(history_len-tocopy), sizeof(char*)*tocopy);
+        memset(newHistory,0,sizeof(char*)*len);
+        memcpy(newHistory,history+(history_len-tocopy), sizeof(char*)*tocopy);
         free(history);
         history = newHistory;
     }

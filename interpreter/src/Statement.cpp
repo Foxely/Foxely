@@ -112,9 +112,12 @@ void ExpressionStatement(Parser& parser)
     }
     else
     {
-	    Expression(parser);
+        Expression(parser);
 	    parser.Consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
-        parser.EmitByte(OP_POP);
+        if (IsRepl) {
+            parser.EmitByte(OP_PRINT_REPL);
+        } else
+            parser.EmitByte(OP_POP);
     }
 }
 

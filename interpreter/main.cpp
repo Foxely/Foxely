@@ -245,7 +245,7 @@ void replv3(int ac, char** av)
         /* Do something with the string. */
         if (line[0] != '\0' && line[0] != '#')
         {
-            printf("echo: '%s'\n", line);
+            VM::GetInstance()->interpret(line);
             linenoiseHistoryAdd(line); /* Add to the history. */
             linenoiseHistorySave("history.txt"); /* Save the history on disk. */
         }
@@ -253,12 +253,6 @@ void replv3(int ac, char** av)
         {
             /* */
             std::cout << "Show tokens activated...\n";
-            // int len = atoi(line + 11);
-            // linenoiseHistorySetMaxLen(len);
-        }
-        else if (line[0] == '}')
-        {
-            printf("Unreconized command: %s\n", line);
         }
         else if (line[0] == '#')
         {
@@ -286,6 +280,7 @@ int main(int ac, char** av)
     VM::GetInstance()->argc = ac;
     VM::GetInstance()->argv = av;
     // if (ac == 1) {
+        IsRepl = true;
         replv3(ac, av);
     // } else if (ac >= 2) {
     //     runFile(av[1]);

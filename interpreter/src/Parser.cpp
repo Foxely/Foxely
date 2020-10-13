@@ -519,6 +519,8 @@ void CallCompiler(Parser& parser, bool can_assign)
 {
     uint8_t arg_count = ArgumentList(parser);
     parser.EmitBytes(OP_CALL, arg_count);
+    // if (IsRepl)
+    //     parser.EmitByte(OP_PRINT);
 }
 
 void Declaration(Parser& parser)

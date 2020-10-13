@@ -45,6 +45,9 @@ typedef enum {
     OP_CLASS,
     OP_INHERIT,
     OP_METHOD,
+
+    // CODES for Repl Mode
+    OP_PRINT_REPL,
 } OpCode;
 
 class Chunk
