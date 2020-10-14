@@ -397,7 +397,7 @@ InterpretResult VM::interpret(const char *source)
 		manager.GetAllLibrary();
 		isInit = true;
 	}
-
+	
     result = INTERPRET_OK;
 
 	Chunk oChunk;

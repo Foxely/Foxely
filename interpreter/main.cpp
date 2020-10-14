@@ -12,7 +12,7 @@
 #include "debug.h"
 #include "Parser.h"
 #include "vm.hpp"
-#include "linenoise.h"
+#include "linenoise.hpp"
 
 
 char* RED = "\u001b[31m";
@@ -241,7 +241,8 @@ void replv3(int ac, char** av)
      * The typed string is returned as a malloc() allocated string by
      * linenoise, so the user needs to free() it. */
     
-    while((line = linenoise("> ")) != NULL) {
+    while((line = linenoise("> ")) != NULL)
+    {
         /* Do something with the string. */
         if (line[0] != '\0' && line[0] != '#')
         {
@@ -251,7 +252,6 @@ void replv3(int ac, char** av)
         }
         else if (!strncmp(line, "#ShowToken", 10))
         {
-            /* */
             std::cout << "Show tokens activated...\n";
         }
         else if (line[0] == '#')
@@ -282,6 +282,7 @@ int main(int ac, char** av)
     // if (ac == 1) {
         IsRepl = true;
         replv3(ac, av);
+        // repl();
     // } else if (ac >= 2) {
     //     runFile(av[1]);
     // } else {

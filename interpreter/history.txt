@@ -1,33 +1,3 @@
-fsf
-sfsf;
-dfdf,
-sfs,
-dffd;
-zdd
-dzdz
-scc
-sdsd
-sfsf
-sdsd
-dss
-sfs
-scsc
-sdsd
-dsd
-dd
-ssds
-sd
-dsd;
-;
-sd;
-dsdsd;
-sfs
-sf;
-;
-sfsfsfsfsf;
-sfsf;
-eezgzeg;
-sdsd
 sd;
 sdsdsfsf;
 sf;
@@ -98,3 +68,33 @@ add::func(a,b){return a+b;}
 add(1,2);
 add::func(a,b){return a+b;}
 add(1,2);
+sfsf
+print"njn";
+print "njn";
+sdsd
+fsfs;
+sdsd
+sds
+scsc
+sc
+scsc
+scs
+scsc
+scs
+scsc
+sc
+sc;
+sc
+add::func(a,b){return a+b;}
+add(1,2);
+scsc
+scs
+add::func(a,b){return a+b;}
+add(1,2);
+scsc
+print "jnj";
+scsc
+dddddd
+print "jnjn";
+dddddd
+print "jnjn";
