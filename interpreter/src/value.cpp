@@ -115,6 +115,11 @@ std::string ObjectToString(Value value)
             string += AS_CLASS(value)->name->string;
             string += ">";
 			break;
+        case OBJ_INTERFACE:
+			string += "<interface ";
+            string += AS_INTERFACE(value)->name->string;
+            string += ">";
+			break;
 		case OBJ_INSTANCE:
 			string += AS_INSTANCE(value)->klass->name->string;
             string += " instance";

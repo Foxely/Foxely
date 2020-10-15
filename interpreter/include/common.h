@@ -6,6 +6,6 @@
 #include <stdint.h>
 
 inline bool IsRepl;
-inline bool DEBUG_TRACE_EXECUTION;
+// inline bool DEBUG_TRACE_EXECUTION;
 
 #endif

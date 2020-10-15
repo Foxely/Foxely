@@ -279,15 +279,15 @@ int main(int ac, char** av)
 {
     VM::GetInstance()->argc = ac;
     VM::GetInstance()->argv = av;
-    // if (ac == 1) {
+    if (ac == 1) {
         IsRepl = true;
         replv3(ac, av);
         // repl();
-    // } else if (ac >= 2) {
-    //     runFile(av[1]);
-    // } else {
-    //     fprintf(stderr, "Usage: foxely [path]\n");
-    //     exit(64);
-    // }
+    } else if (ac >= 2) {
+        runFile(av[1]);
+    } else {
+        fprintf(stderr, "Usage: foxely [path]\n");
+        exit(64);
+    }
     return 0;
 }

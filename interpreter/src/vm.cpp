@@ -323,6 +323,12 @@ bool VM::InvokeFromClass(ObjectClass *klass, ObjectString *name, int argCount)
 		return false;
 	}
 
+    if (method == NIL_VAL)
+    {
+        RuntimeError("The class '%s' doesn't implement interface members '%s'.", klass->name->string.c_str(), name->string.c_str());
+		return false;
+    }
+
 	return Call(AS_CLOSURE(method), argCount);
 }
 
@@ -677,18 +683,31 @@ InterpretResult VM::run()
 		case OP_CLASS:
 			Push(OBJ_VAL(new ObjectClass(READ_STRING())));
 			break;
+        
+        case OP_INTERFACE:
+			Push(OBJ_VAL(new ObjectInterface(READ_STRING())));
+			break;
 
 		case OP_INHERIT: {
 			Value superclass = Peek(1);
 
-			if (!IS_CLASS(superclass)) {
-				RuntimeError("Superclass must be a class.");
+			if (!IS_CLASS(superclass) && !IS_INTERFACE(superclass)) {
+				RuntimeError("Superclass must be a class or an interface");
 				return INTERPRET_RUNTIME_ERROR;
 			}
-			ObjectClass *subclass = AS_CLASS(Peek(0));
-			subclass->methods.AddAll(AS_CLASS(superclass)->methods);
-			subclass->superClass = AS_CLASS(superclass);
-			subclass->derivedCount = AS_CLASS(superclass)->derivedCount + 1;
+
+            ObjectClass *subclass = AS_CLASS(Peek(0));
+
+            if (IS_CLASS(superclass))
+            {
+                subclass->methods.AddAll(AS_CLASS(superclass)->methods);
+                subclass->superClass = AS_CLASS(superclass);
+                subclass->derivedCount = AS_CLASS(superclass)->derivedCount + 1;
+            }
+            else
+            {
+                subclass->methods.AddAll(AS_INTERFACE(superclass)->methods);
+            }
 			Pop(); // Subclass.
 			break;
 		}
@@ -696,6 +715,14 @@ InterpretResult VM::run()
 		case OP_METHOD:
 			DefineMethod(READ_STRING());
 			break;
+        
+        case OP_INTERFACE_PROCEDURE:
+        {
+            ObjectInterface *interface = AS_INTERFACE(Peek(0));
+            interface->methods.Set(READ_STRING(), NIL_VAL);
+            // Pop();
+            break;
+        }
 
 		case OP_INVOKE: {
 			ObjectString *method = READ_STRING();
