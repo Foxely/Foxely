@@ -35,6 +35,8 @@ Parser::Parser()
     oLexer.Define(TOKEN_RIGHT_PAREN,"\\)");
     oLexer.Define(TOKEN_LEFT_BRACE,"\\{");
     oLexer.Define(TOKEN_RIGHT_BRACE,"\\}");
+    oLexer.Define(TOKEN_LEFT_BRACKET,"\\[");
+    oLexer.Define(TOKEN_RIGHT_BRACKET,"\\]");
 	oLexer.Define(TOKEN_DOT, "\\.");
     oLexer.Define(TOKEN_SEMICOLON,";");
     oLexer.Define(TOKEN_SLASH,"/");
@@ -67,8 +69,6 @@ Parser::Parser()
     oLexer.Define(TOKEN_EQUAL, "=");
     oLexer.Define(TOKEN_EQUAL_EQUAL, "==");
     oLexer.Define(TOKEN_SHEBANG,"#[^\n\r]*", true);
-    oLexer.Define(TOKEN_RIGHT_BRACKET,"\\[");
-    oLexer.Define(TOKEN_LEFT_BRACKET,"\\]");
     oLexer.Define(TOKEN_IDENTIFIER,"[A-Za-z_]+[0-9]*");
     // oLexer.Define("Arrow","->");
     oLexer.Define(TOKEN_SINGLE_COMMENT,"//[^\n\r]*", true);
@@ -77,7 +77,7 @@ Parser::Parser()
 
 
     rules[TOKEN_RIGHT_BRACKET] = { NULL, NULL, PREC_NONE };
-    rules[TOKEN_LEFT_BRACKET] = { NULL, NULL, PREC_NONE };
+    rules[TOKEN_LEFT_BRACKET] = { NULL, Subscript, PREC_CALL };
     rules[TOKEN_LEFT_PAREN] = { Grouping, CallCompiler, PREC_CALL };
     rules[TOKEN_RIGHT_PAREN] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_LEFT_BRACE] = { NULL, NULL, PREC_NONE };
@@ -524,6 +524,43 @@ void CallCompiler(Parser& parser, bool can_assign)
     parser.EmitBytes(OP_CALL, arg_count);
     // if (IsRepl)
     //     parser.EmitByte(OP_PRINT);
+}
+
+void Subscript(Parser& parser, bool canAssign)
+{
+    // slice with no initial index [1, 2, 3][:100]
+    // if (parser.Match(TOKEN_COLON))
+    // {
+    //     // parser.EmitByte(OP_EMPTY);
+    //     // Expression(parser);
+    //     // parser.EmitByte(OP_SLICE);
+    //     // parser.Consume(TOKEN_RIGHT_BRACKET, "Expected closing ']'");
+    //     // return;
+    // }
+
+    Expression(parser);
+
+    // if (parser.Match(TOKEN_COLON)) {
+    //     // If we slice with no "ending" push EMPTY so we know
+    //     // To go to the end of the iterable
+    //     // i.e [1, 2, 3][1:]
+    //     if (check(compiler, TOKEN_RIGHT_BRACKET)) {
+    //         emitByte(compiler, OP_EMPTY);
+    //     } else {
+    //         expression(compiler);
+    //     }
+    //     emitByte(compiler, OP_SLICE);
+    //     consume(compiler, TOKEN_RIGHT_BRACKET, "Expected closing ']'");
+    //     return;
+    // }
+
+    parser.Consume(TOKEN_RIGHT_BRACKET, "Expected closing ']'");
+
+    if (canAssign && parser.Match(TOKEN_EQUAL)) {
+        Expression(parser);
+        //parser.EmitByte(OP_SUBSCRIPT_ASSIGN);
+    } else
+        parser.EmitByte(OP_SUBSCRIPT);
 }
 
 void Declaration(Parser& parser)

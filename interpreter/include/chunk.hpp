@@ -48,6 +48,8 @@ typedef enum {
     OP_INTERFACE,
     OP_INTERFACE_PROCEDURE,
 
+    OP_SUBSCRIPT,
+
     // CODES for Repl Mode
     OP_PRINT_REPL,
 } OpCode;

@@ -828,11 +828,135 @@ InterpretResult VM::run()
 			break;
 		}
 
-		case OP_CONST: {
+		case OP_CONST:
+		{
 			Value constant = READ_CONSTANT();
 			Push(constant);
 			break;
 		}
+
+		case OP_SUBSCRIPT:
+		{
+            Value indexValue = Peek(0);
+            Value subscriptValue = Peek(1);
+
+            if (!IS_OBJ(subscriptValue))
+			{
+                frame->ip = ip;
+                RuntimeError("Can only subscript on lists, strings or dictionaries.");
+                return INTERPRET_RUNTIME_ERROR;
+            }
+
+            switch (AS_OBJ(subscriptValue)->type)
+			{
+                case OBJ_ARRAY:
+				{
+                    if (!IS_NUMBER(indexValue))
+					{
+                        frame->ip = ip;
+                        RuntimeError("List index must be a number.");
+                        return INTERPRET_RUNTIME_ERROR;
+                    }
+
+                    ObjectArray *list = AS_ARRAY(subscriptValue);
+                    int index = AS_NUMBER(indexValue);
+
+                    // Allow negative indexes
+                    if (index < 0)
+                        index = list->m_vValues.size() + index;
+
+                    if (index >= 0 && index < list->m_vValues.size())
+					{
+                        Pop();
+                        Pop();
+                        Push(list->m_vValues[index]);
+                        break;
+                    }
+
+                    frame->ip = ip;
+                    RuntimeError("List index out of bounds.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+
+				case OBJ_NATIVE_INSTANCE:
+				{
+                    if (!IS_NUMBER(indexValue))
+					{
+                        frame->ip = ip;
+                        RuntimeError("List index must be a number.");
+                        return INTERPRET_RUNTIME_ERROR;
+                    }
+
+					Value arrayField = Fox_GetInstanceField(subscriptValue, "m_oArray");
+        			ObjectArray* list = Fox_ValueToArray(arrayField);
+                    int index = AS_NUMBER(indexValue);
+
+                    // Allow negative indexes
+                    if (index < 0)
+                        index = list->m_vValues.size() + index;
+
+                    if (index >= 0 && index < list->m_vValues.size())
+					{
+                        Pop();
+                        Pop();
+                        Push(list->m_vValues[index]);
+                        break;
+                    }
+
+                    RuntimeError("Array index out of bounds.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+
+                case OBJ_STRING:
+				{
+                    ObjectString *string = AS_STRING(subscriptValue);
+                    int index = AS_NUMBER(indexValue);
+
+                    // Allow negative indexes
+                    if (index < 0)
+                        index = string->string.size() + index;
+
+                    if (index >= 0 && index < string->string.size()) {
+                        Pop();
+                        Pop();
+                        Push(OBJ_VAL(m_oParser.CopyString(std::string(1, string->string[index]))));
+                        break;
+                    }
+
+                    frame->ip = ip;
+                    RuntimeError("String index out of bounds.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+
+                // case OBJ_DICT: {
+                //     ObjDict *dict = AS_DICT(subscriptValue);
+                //     if (!isValidKey(indexValue)) {
+                //         frame->ip = ip;
+                //         runtimeError(vm, "Dictionary key must be an immutable type.");
+                //         return INTERPRET_RUNTIME_ERROR;
+                //     }
+
+                //     Value v;
+                //     pop(vm);
+                //     pop(vm);
+                //     if (dictGet(dict, indexValue, &v)) {
+                //         push(vm, v);
+                //     } else {
+                //         push(vm, NIL_VAL);
+                //     }
+
+                //     DISPATCH();
+                // }
+
+                default:
+				{
+                    frame->ip = ip;
+                    RuntimeError("Can only subscript on lists, strings or dictionaries.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+            }
+			break;
+        }
 		}
 		// auto endExec = std::chrono::steady_clock::now();
 		// disassembleInstruction(frame->function->chunk, (int)(frame->ip -

@@ -1,0 +1,10 @@
+
+import "array";
+
+list: var = Array();
+string: var = "salut";
+
+list.push("nbhbh");
+
+print "%\n", list[0];
+print "%\n", string[1];

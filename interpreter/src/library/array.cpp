@@ -41,8 +41,11 @@ Value getNative(int argCount, Value* args)
         ObjectArray* array = Fox_ValueToArray(arrayField);
         if (array->m_vValues.empty()) {
             Fox_RuntimeError("Cannot access at index %d because the array is empty", index);
-        } else
+        } else if (index >= 0 && index < array->m_vValues.size())
             return array->m_vValues[index];
+        else
+            Fox_RuntimeError("Array index out of bounds.");
+        
     }
     return NIL_VAL;
 }
