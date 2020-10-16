@@ -77,7 +77,7 @@ Parser::Parser()
 
 
     rules[TOKEN_RIGHT_BRACKET] = { NULL, NULL, PREC_NONE };
-    rules[TOKEN_LEFT_BRACKET] = { NULL, Subscript, PREC_CALL };
+    rules[TOKEN_LEFT_BRACKET] = { List, Subscript, PREC_CALL };
     rules[TOKEN_LEFT_PAREN] = { Grouping, CallCompiler, PREC_CALL };
     rules[TOKEN_RIGHT_PAREN] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_LEFT_BRACE] = { NULL, NULL, PREC_NONE };
@@ -524,6 +524,25 @@ void CallCompiler(Parser& parser, bool can_assign)
     parser.EmitBytes(OP_CALL, arg_count);
     // if (IsRepl)
     //     parser.EmitByte(OP_PRINT);
+}
+
+void List(Parser& parser, bool canAssign)
+{
+
+    parser.EmitByte(OP_ARRAY);
+    int args = 0;
+
+    do
+    {
+        if (parser.IsToken(TOKEN_RIGHT_BRACKET, false))
+            break;
+        args++;
+
+        Expression(parser);
+    } while (parser.Match(TOKEN_COMMA));
+
+    parser.Consume(TOKEN_RIGHT_BRACKET, "Expected closing ']'");
+    parser.EmitBytes(OP_ADD_LIST, args);
 }
 
 void Subscript(Parser& parser, bool canAssign)

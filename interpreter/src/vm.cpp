@@ -945,7 +945,7 @@ InterpretResult VM::run()
                 //         push(vm, NIL_VAL);
                 //     }
 
-                //     DISPATCH();
+                //     break;
                 // }
 
                 default:
@@ -956,6 +956,32 @@ InterpretResult VM::run()
                 }
             }
 			break;
+        }
+
+		case OP_ARRAY:
+		{
+            ObjectArray *array = new ObjectArray();
+            Push(OBJ_VAL(array));
+            break;
+        }
+
+        case OP_ADD_LIST:
+		{
+            int argCount = READ_BYTE();
+            Value addValue = Peek(0);
+            Value listValue = Peek(1);
+
+            ObjectArray *array = AS_ARRAY(listValue);
+
+			for (int i = 0; i < argCount; i++)
+			{
+            	array->m_vValues.push_back(Pop());
+			}
+
+            Pop();
+
+            Push(OBJ_VAL(array));
+            break;
         }
 		}
 		// auto endExec = std::chrono::steady_clock::now();

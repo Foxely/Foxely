@@ -201,6 +201,7 @@ void Variable(Parser& parser, bool can_assign = false);
 void String(Parser& parser, bool can_assign = false);
 void CallCompiler(Parser& parser, bool can_assign = false);
 void Subscript(Parser& parser, bool canAssign);
+void List(Parser& parser, bool canAssign);
 
 void Block(Parser& parser);
 void Declaration(Parser& parser);
