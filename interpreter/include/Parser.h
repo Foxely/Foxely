@@ -30,6 +30,7 @@ typedef enum {
 
     // Literals.
     TOKEN_IDENTIFIER, TOKEN_STRING, TOKEN_NUMBER,
+    TOKEN_INT,
 
     // Keywords.
     TOKEN_AND, TOKEN_CLASS, TOKEN_ELSE, TOKEN_FALSE,
@@ -188,6 +189,7 @@ ObjectFunction* Compile(Parser& parser, const std::string &strText, Chunk* chunk
 void Expression(Parser& parser);
 void ParsePrecedence(Parser& parser, Precedence preced);
 void Number(Parser& parser, bool can_assign = false);
+void IntNumber(Parser& parser, bool can_assign = false);
 void Grouping(Parser& parser, bool can_assign = false);
 void Unary(Parser& parser, bool can_assign = false);
 void Binary(Parser& parser, bool can_assign = false);

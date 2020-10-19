@@ -15,6 +15,7 @@ enum ValueType {
     VAL_BOOL,
     VAL_NIL,
     VAL_NUMBER,
+    VAL_INT,
     VAL_OBJ
 };
 
@@ -25,6 +26,7 @@ public:
     union {
         bool boolean;
         double number;
+        int integer;
         Object* obj;
     } as;
 
@@ -55,15 +57,18 @@ public:
 #define IS_BOOL(val)    ((val).type == VAL_BOOL)
 #define IS_NIL(val)     ((val).type == VAL_NIL)
 #define IS_NUMBER(val)  ((val).type == VAL_NUMBER)
+#define IS_INT(val)     ((val).type == VAL_INT)
 #define IS_OBJ(val)     ((val).type == VAL_OBJ)
 
 #define AS_OBJ(val)     ((val).as.obj)
 #define AS_BOOL(val)    ((val).as.boolean)
 #define AS_NUMBER(val)  ((val).as.number)
+#define AS_INT(val)  ((val).as.integer)
 
 #define BOOL_VAL(val)   ((Value){ VAL_BOOL, { .boolean = val } })
 #define NIL_VAL           ((Value){ VAL_NIL, { .number = 0 } })
 #define NUMBER_VAL(val) ((Value){ VAL_NUMBER, { .number = val } })
+#define INT_VAL(val) ((Value){ VAL_INT, { .integer = val } })
 #define OBJ_VAL(object)   ((Value){ VAL_OBJ, { .obj = (Object *)object } })
 
 #endif

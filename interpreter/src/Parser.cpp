@@ -25,7 +25,8 @@ Parser::Parser()
 
     oLexer.Define(TOKEN_NEW_LINE,"\n", true);
     oLexer.Define(TOKEN_WS,"[ \t\r\b]+", true);
-    oLexer.Define(TOKEN_NUMBER,"[0-9]+");
+    oLexer.Define(TOKEN_NUMBER,"[0-9]+.[0-9]+[f]");
+    oLexer.Define(TOKEN_INT,"[0-9]+");
     oLexer.DefineArea(TOKEN_STRING,'"', '"');
 	oLexer.Define(TOKEN_PLUS, "\\+");
 	oLexer.Define(TOKEN_MINUS, "-");
@@ -100,6 +101,7 @@ Parser::Parser()
     rules[TOKEN_IDENTIFIER] = { Variable, NULL, PREC_NONE };
     rules[TOKEN_STRING] = { String, NULL, PREC_NONE };
     rules[TOKEN_NUMBER] = { Number, NULL, PREC_NONE };
+    rules[TOKEN_INT] = { IntNumber, NULL, PREC_NONE };
     rules[TOKEN_AND] = { NULL, RuleAnd, PREC_AND };
     rules[TOKEN_CLASS] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_ELSE] = { NULL, NULL, PREC_NONE };
@@ -305,6 +307,12 @@ void Number(Parser& parser, bool can_assign)
 {
 	double value = strtod(parser.PreviousToken().GetText().c_str(), NULL);
 	parser.EmitConstant(NUMBER_VAL(value));
+}
+
+void IntNumber(Parser& parser, bool can_assign)
+{
+	double value = strtod(parser.PreviousToken().GetText().c_str(), NULL);
+	parser.EmitConstant(INT_VAL(value));
 }
 
 void Grouping(Parser& parser, bool can_assign)
@@ -532,16 +540,17 @@ void List(Parser& parser, bool canAssign)
     parser.EmitByte(OP_ARRAY);
     int args = 0;
 
-    do
+    if (!parser.IsToken(TOKEN_RIGHT_BRACKET, false))
     {
-        if (parser.IsToken(TOKEN_RIGHT_BRACKET, false))
-            break;
-        args++;
+        do
+        {
+            args++;
+            Expression(parser);
 
-        Expression(parser);
-    } while (parser.Match(TOKEN_COMMA));
-
+        } while (parser.Match(TOKEN_COMMA));
+    }
     parser.Consume(TOKEN_RIGHT_BRACKET, "Expected closing ']'");
+
     parser.EmitBytes(OP_ADD_LIST, args);
 }
 

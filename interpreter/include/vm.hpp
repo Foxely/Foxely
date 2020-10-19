@@ -60,6 +60,8 @@ public:
 	ObjectString* initString;
 	PluginManager manager;
 
+    Table arrayMethods;
+
 	int argc;
 	char** argv;
 
@@ -87,6 +89,8 @@ public:
 	void DefineNative(const std::string& name, NativeFn function);
 	void DefineNativeClass(const std::string& name, NativeMethods& functions);
 	void DefineLib(const std::string &name, NativeMethods &functions);
+	void DefineBuiltIn(Table& methods, NativeMethods &functions);
+
 	ObjectUpvalue* CaptureUpvalue(Value* local);
 	void CloseUpvalues(Value* last);
 

@@ -3,7 +3,6 @@
 #include <stdexcept>
 #include <string.h>
 #include <algorithm>
-#include "foxely.h"
 #include "value.hpp"
 
 // SCY_PLUGIN(ArrayPlugin, "IO Module", "0.1.0")
@@ -21,7 +20,7 @@ bool ValidArgs(int argCount, Value* args)
         return false;
     }
 
-    int index = AS_NUMBER(args[0]);
+    int index = AS_INT(args[0]);
     if (index < 0)
     {
         Fox_RuntimeError("Expected positive index");
@@ -34,19 +33,17 @@ bool ValidArgs(int argCount, Value* args)
 Value getNative(int argCount, Value* args)
 {
     Fox_FixArity(argCount, 1);
-    if (ValidArgs(argCount, args))
-    {
-        int index = AS_NUMBER(args[0]);
-        Value arrayField = Fox_GetInstanceField(args[-1], "m_oArray");
-        ObjectArray* array = Fox_ValueToArray(arrayField);
-        if (array->m_vValues.empty()) {
-            Fox_RuntimeError("Cannot access at index %d because the array is empty", index);
-        } else if (index >= 0 && index < array->m_vValues.size())
-            return array->m_vValues[index];
-        else
-            Fox_RuntimeError("Array index out of bounds.");
-        
-    }
+    Fox_PanicIfNot(!(Fox_Is(args[0], VAL_NUMBER) && Fox_Is(args[0], VAL_INT)), "Expected index number");
+
+    int index = AS_INT(args[0]);
+    Fox_PanicIfNot(index > 0, "Expected positive index");
+    ObjectArray* array = Fox_ValueToArray(args[-1]);
+    if (array->m_vValues.empty()) {
+        Fox_RuntimeError("Cannot access at index %d because the array is empty", index);
+    } else if (index >= 0 && index < array->m_vValues.size()) {
+        return array->m_vValues[index];
+    } else
+        Fox_RuntimeError("Array index out of bounds.");
     return NIL_VAL;
 }
 
@@ -56,8 +53,7 @@ Value setNative(int argCount, Value* args)
     if (Fox_Is(args[0], VAL_NUMBER))
     {
         int index = AS_NUMBER(args[0]);
-        Value arrayField = Fox_GetInstanceField(args[-1], "m_oArray");
-        ObjectArray* array = Fox_ValueToArray(arrayField);
+        ObjectArray* array = Fox_ValueToArray(args[-1]);
         array->m_vValues[index] = args[1];
     }
     else
@@ -69,8 +65,7 @@ Value setNative(int argCount, Value* args)
 Value pushNative(int argCount, Value* args)
 {
     Fox_FixArity(argCount, 1);
-    Value arrayField = Fox_GetInstanceField(args[-1], "m_oArray");
-    ObjectArray* array = Fox_ValueToArray(arrayField);
+    ObjectArray* array = Fox_ValueToArray(args[-1]);
     array->m_vValues.push_back(args[0]);
     return NIL_VAL;
 }
@@ -78,8 +73,7 @@ Value pushNative(int argCount, Value* args)
 Value popNative(int argCount, Value* args)
 {
     Fox_FixArity(argCount, 0);
-    Value arrayField = Fox_GetInstanceField(args[-1], "m_oArray");
-    ObjectArray* array = Fox_ValueToArray(arrayField);
+    ObjectArray* array = Fox_ValueToArray(args[-1]);
 	Value popped = array->m_vValues.back();
     array->m_vValues.pop_back();
     return popped;
@@ -95,8 +89,7 @@ Value initNative(int argCount, Value* args)
         if (Fox_Is(args[0], VAL_NUMBER))
         {
             int size = AS_NUMBER(args[0]);
-            Value arrayField = Fox_GetInstanceField(args[-1], "m_oArray");
-            ObjectArray* array = Fox_ValueToArray(arrayField);
+            ObjectArray* array = Fox_ValueToArray(args[-1]);
             array->m_vValues.reserve(size);
         }
         else
@@ -108,16 +101,14 @@ Value initNative(int argCount, Value* args)
 Value sizeNative(int argCount, Value* args)
 {
     Fox_FixArity(argCount, 0);
-    Value arrayField = Fox_GetInstanceField(args[-1], "m_oArray");
-    ObjectArray* array = Fox_ValueToArray(arrayField);
+    ObjectArray* array = Fox_ValueToArray(args[-1]);
     return NUMBER_VAL(array->m_vValues.size());
 }
 
 Value containNative(int argCount, Value* args)
 {
     Fox_FixArity(argCount, 1);
-    Value arrayField = Fox_GetInstanceField(args[-1], "m_oArray");
-    ObjectArray* array = Fox_ValueToArray(arrayField);
+    ObjectArray* array = Fox_ValueToArray(args[-1]);
     Value search = args[0];
     std::vector<Value>::iterator it = std::find(array->m_vValues.begin(), array->m_vValues.end(), search);
 
@@ -127,8 +118,7 @@ Value containNative(int argCount, Value* args)
 Value findNative(int argCount, Value* args)
 {
     Fox_FixArity(argCount, 1);
-    Value arrayField = Fox_GetInstanceField(args[-1], "m_oArray");
-    ObjectArray* array = Fox_ValueToArray(arrayField);
+    ObjectArray* array = Fox_ValueToArray(args[-1]);
     Value search = args[0];
     std::vector<Value>::iterator it = std::find(array->m_vValues.begin(), array->m_vValues.end(), search);
     int index = distance(array->m_vValues.begin(), it);
@@ -139,8 +129,7 @@ Value findNative(int argCount, Value* args)
 Value toStringNative(int argCount, Value* args)
 {
     Fox_FixArity(argCount, 0);
-    Value arrayField = Fox_GetInstanceField(args[-1], "m_oArray");
-    ObjectArray* array = Fox_ValueToArray(arrayField);
+    ObjectArray* array = Fox_ValueToArray(args[-1]);
 
     std::string string;
 
@@ -180,7 +169,6 @@ ArrayPlugin::ArrayPlugin()
 
 	NativeMethods methods =
 	{
-		std::make_pair<std::string, NativeFn>("init", initNative),
 		std::make_pair<std::string, NativeFn>("push", pushNative),
 		std::make_pair<std::string, NativeFn>("pop", popNative),
 		std::make_pair<std::string, NativeFn>("get", getNative),
@@ -191,7 +179,7 @@ ArrayPlugin::ArrayPlugin()
 		std::make_pair<std::string, NativeFn>("toString", toStringNative),
 	};
 
-	VM::GetInstance()->DefineNativeClass("Array", methods);
+	VM::GetInstance()->DefineBuiltIn(VM::GetInstance()->arrayMethods, methods);
 	m_oMethods = methods;
 }
 
@@ -209,7 +197,6 @@ FOX_MODULE(array)
 {
 	NativeMethods methods =
 	{
-		std::make_pair<std::string, NativeFn>("init", initNative),
 		std::make_pair<std::string, NativeFn>("push", pushNative),
 		std::make_pair<std::string, NativeFn>("get", getNative),
 		std::make_pair<std::string, NativeFn>("set", setNative),
@@ -218,6 +205,5 @@ FOX_MODULE(array)
 		std::make_pair<std::string, NativeFn>("find", findNative),
 		std::make_pair<std::string, NativeFn>("toString", toStringNative),
 	};
-
-	VM::GetInstance()->DefineNativeClass("Array", methods);
+	VM::GetInstance()->DefineBuiltIn(VM::GetInstance()->arrayMethods, methods);
 }

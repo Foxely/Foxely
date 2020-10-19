@@ -43,7 +43,7 @@ void VM::LoadStandard(const std::string& name)
 
 	OSPlugin os;
 	IOPlugin io;
-	ArrayPlugin array;
+	// ArrayPlugin array;
 	// SFMLPlugin sfml;
 
 	if (name == "os")
@@ -56,7 +56,7 @@ void VM::LoadStandard(const std::string& name)
 	}
 	else if (name == "array")
 	{
-		DefineNativeClass(array.GetClassName(), array.m_oMethods);
+		// DefineNativeClass(array.GetClassName(), array.m_oMethods);
 	}
 	else if (name == "sfml")
 	{
@@ -314,6 +314,22 @@ void VM::DefineNativeClass(const std::string &name, NativeMethods &functions)
 	Pop();
 }
 
+void VM::DefineBuiltIn(Table& methods, NativeMethods &functions)
+{
+	for (auto &it : functions)
+	{
+		NativeFn func = it.second;
+
+		Push(OBJ_VAL(m_oParser.CopyString(it.first)));
+		Push(OBJ_VAL(new ObjectNative(func)));
+
+		methods.Set(AS_STRING(PeekStart(0)), PeekStart(1));
+
+		Pop();
+		Pop();
+	}
+}
+
 bool VM::InvokeFromClass(ObjectClass *klass, ObjectString *name, int argCount)
 {
 	Value method;
@@ -346,44 +362,56 @@ bool VM::InvokeFromNativeClass(ObjectNativeClass *klass, ObjectString *name, int
 bool VM::Invoke(ObjectString *name, int argCount)
 {
 	Value receiver = Peek(argCount);
-
-	if (!IS_INSTANCE(receiver) && !IS_NATIVE_INSTANCE(receiver) && !IS_LIB(receiver))
-	{
-		RuntimeError("Only instances && module have methods.");
-		return false;
-	}
-
 	Value value;
-	if (IS_INSTANCE(receiver)) {
-		ObjectInstance *instance = AS_INSTANCE(receiver);
 
-		if (instance->fields.Get(name, value)) {
-			stackTop[-argCount - 1] = value;
-			return CallValue(value, argCount);
-		}
-
-		return InvokeFromClass(instance->klass, name, argCount);
-	}
-	else if (IS_NATIVE_INSTANCE(receiver))
+	switch (AS_OBJ(receiver)->type)
 	{
-		ObjectNativeInstance *instance = AS_NATIVE_INSTANCE(receiver);
-
-		if (instance->fields.Get(name, value))
+		case OBJ_INSTANCE:
 		{
-			stackTop[-argCount - 1] = value;
-			return CallValue(value, argCount);
+			ObjectInstance *instance = AS_INSTANCE(receiver);
+			if (instance->fields.Get(name, value)) {
+				stackTop[-argCount - 1] = value;
+				return CallValue(value, argCount);
+			}
+			return InvokeFromClass(instance->klass, name, argCount);
 		}
-		return InvokeFromNativeClass(instance->klass, name, argCount);
-	}
-	else if (IS_LIB(receiver))
-	{
-		ObjectLib *instance = AS_LIB(receiver);
-		Value method;
-		if (!instance->methods.Get(name, method)) {
-			RuntimeError("Undefined property '%s'.", name->string.c_str());
+
+		case OBJ_NATIVE_INSTANCE:
+		{
+			ObjectNativeInstance *instance = AS_NATIVE_INSTANCE(receiver);
+			if (instance->fields.Get(name, value))
+			{
+				stackTop[-argCount - 1] = value;
+				return CallValue(value, argCount);
+			}
+			return InvokeFromNativeClass(instance->klass, name, argCount);
+		}
+
+		case OBJ_LIB:
+		{
+			ObjectLib *instance = AS_LIB(receiver);
+			Value method;
+			if (!instance->methods.Get(name, method))
+			{
+				RuntimeError("Undefined property '%s'.", name->string.c_str());
+				return false;
+			}
+			return CallValue(method, argCount);
+		}
+
+		case OBJ_ARRAY:
+		{
+			Value method;
+			if (!arrayMethods.Get(name, method))
+			{
+				RuntimeError("Undefined methods '%s'.", name->string.c_str());
+				return false;
+			}
+			return CallValue(method, argCount);
+		}
+		default:
+			RuntimeError("Only instances && module have methods.");
 			return false;
-		}
-		return CallValue(method, argCount);
 	}
 }
 
@@ -401,6 +429,7 @@ InterpretResult VM::interpret(const char *source)
 		ModulePlugin module;
 		DefineLib(module.GetClassName(), module.m_oMethods);
 		manager.GetAllLibrary();
+		array_entry();
 		isInit = true;
 	}
 	
@@ -587,6 +616,10 @@ InterpretResult VM::run()
 				double b = AS_NUMBER(Pop());
 				double a = AS_NUMBER(Pop());
 				Push(NUMBER_VAL(a + b));
+			} else if (IS_INT(Peek(0)) && IS_INT(Peek(1))) {
+				int b = AS_INT(Pop());
+				int a = AS_INT(Pop());
+				Push(INT_VAL(a + b));
 			} else {
 				RuntimeError("Operands must be two numbers or two strings.");
 				return INTERPRET_RUNTIME_ERROR;
@@ -851,9 +884,8 @@ InterpretResult VM::run()
 			{
                 case OBJ_ARRAY:
 				{
-                    if (!IS_NUMBER(indexValue))
+                    if (!IS_NUMBER(indexValue) && !IS_INT(indexValue))
 					{
-                        frame->ip = ip;
                         RuntimeError("List index must be a number.");
                         return INTERPRET_RUNTIME_ERROR;
                     }
@@ -873,14 +905,13 @@ InterpretResult VM::run()
                         break;
                     }
 
-                    frame->ip = ip;
                     RuntimeError("List index out of bounds.");
                     return INTERPRET_RUNTIME_ERROR;
                 }
 
 				case OBJ_NATIVE_INSTANCE:
 				{
-                    if (!IS_NUMBER(indexValue))
+                    if (!IS_NUMBER(indexValue) && !IS_INT(indexValue))
 					{
                         frame->ip = ip;
                         RuntimeError("List index must be a number.");
@@ -910,7 +941,7 @@ InterpretResult VM::run()
                 case OBJ_STRING:
 				{
                     ObjectString *string = AS_STRING(subscriptValue);
-                    int index = AS_NUMBER(indexValue);
+                    int index = AS_INT(indexValue);
 
                     // Allow negative indexes
                     if (index < 0)
@@ -923,7 +954,6 @@ InterpretResult VM::run()
                         break;
                     }
 
-                    frame->ip = ip;
                     RuntimeError("String index out of bounds.");
                     return INTERPRET_RUNTIME_ERROR;
                 }
@@ -968,15 +998,16 @@ InterpretResult VM::run()
         case OP_ADD_LIST:
 		{
             int argCount = READ_BYTE();
-            Value addValue = Peek(0);
-            Value listValue = Peek(1);
+            Value listValue = Peek(argCount);
 
             ObjectArray *array = AS_ARRAY(listValue);
 
-			for (int i = 0; i < argCount; i++)
+			for (int i = argCount - 1; i >= 0; i--)
 			{
-            	array->m_vValues.push_back(Pop());
+            	array->m_vValues.push_back(Peek(i));
 			}
+
+			stackTop -= argCount;
 
             Pop();
 

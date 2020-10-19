@@ -351,6 +351,7 @@ class ObjectArray : public Object
 {
 public:
     std::vector<Value> m_vValues;
+    Table methods;
 
     explicit ObjectArray()
 	{

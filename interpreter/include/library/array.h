@@ -3,6 +3,7 @@
 
 
 #include "scy/pluga/plugin_api.h"
+#include "foxely.h"
 
 /// Test plugin implementation
 class ArrayPlugin : public fox::pluga::IModule
@@ -15,5 +16,6 @@ public:
 
 };
 
+FOX_MODULE(array);
 
 #endif
