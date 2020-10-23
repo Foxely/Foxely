@@ -36,7 +36,7 @@ Value getNative(int argCount, Value* args)
     Fox_PanicIfNot(!(Fox_Is(args[0], VAL_NUMBER) && Fox_Is(args[0], VAL_INT)), "Expected index number");
 
     int index = AS_INT(args[0]);
-    Fox_PanicIfNot(index > 0, "Expected positive index");
+    Fox_PanicIfNot(index >= 0, "Expected positive index");
     ObjectArray* array = Fox_ValueToArray(args[-1]);
     if (array->m_vValues.empty()) {
         Fox_RuntimeError("Cannot access at index %d because the array is empty", index);
