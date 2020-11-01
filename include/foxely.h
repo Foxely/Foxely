@@ -1,10 +1,13 @@
 #pragma once
 
 // #define FOXELY_API __attribute__((visibility ("default")))
-#include "Parser.h"
-#include "vm.hpp"
-#include "object.hpp"
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "linenoise.hpp"
+#include "Parser.h"
+#include "object.hpp"
+#include "vm.hpp"
 
 extern "C"
 {
@@ -45,9 +48,9 @@ extern "C"
 	}
 
 
-    static inline Value Fox_Abstract(void* data, ObjectAbstractType* type)
+    static inline Value Fox_Abstract(VM* oVM, void* data, ObjectAbstractType* type)
 	{
-		return OBJ_VAL(new ObjectAbstract(data, type));
+		return OBJ_VAL(oVM->gc.New<ObjectAbstract>(data, type));
 	}
 
     static inline Value Fox_AbstractToValue(ObjectAbstract* abstract)
@@ -73,7 +76,7 @@ extern "C"
         if (!oVM->globals.Get(AS_STRING(name), klass))
             return NIL_VAL;
 
-		return OBJ_VAL(new ObjectNativeInstance(AS_NATIVE_CLASS(klass)));
+		return OBJ_VAL(oVM->gc.New<ObjectNativeInstance>(AS_NATIVE_CLASS(klass)));
 	}
 
 	static inline Value Fox_DefineInstanceOfCStruct(VM* oVM, const char* klassName, void* cStruct)
@@ -83,7 +86,7 @@ extern "C"
         if (!oVM->globals.Get(AS_STRING(name), klass))
             return NIL_VAL;
 
-		return OBJ_VAL(new ObjectNativeInstance(AS_NATIVE_CLASS(klass), cStruct));
+		return OBJ_VAL(oVM->gc.New<ObjectNativeInstance>(AS_NATIVE_CLASS(klass), cStruct));
 	}
 
     static inline void Fox_CallMethod(VM* oVM, Value instance, const char* methodName, int argCount, Value* params)
@@ -168,8 +171,8 @@ extern "C"
         return IS_BOOL(value);
 	}
 
-    static inline Value Fox_Array()
+    static inline Value Fox_Array(VM* oVM)
 	{
-		return OBJ_VAL(new ObjectArray());
+		return OBJ_VAL(oVM->gc.New<ObjectArray>());
 	}
 }

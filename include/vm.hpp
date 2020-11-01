@@ -1,14 +1,17 @@
 #ifndef fox_vm_h
 #define fox_vm_h
 
+#pragma once
+
 #include <vector>
 #include <string>
 #include <time.h>
 #include <utility>
 #include "chunk.hpp"
 #include "value.hpp"
-#include "object.hpp"
 #include "Table.hpp"
+#include "object.hpp"
+#include "gc.hpp"
 
 class Parser;
 
@@ -47,6 +50,7 @@ public:
 	Table imports;
 	ObjectUpvalue* openUpvalues;
 	ObjectString* initString;
+	GC gc;
 
     Table arrayMethods;
 
@@ -107,7 +111,5 @@ static Value clockNative(VM* oVM, int argCount, Value* args)
 {
 	return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
 }
-
-// VM *GetInstance();
 
 #endif

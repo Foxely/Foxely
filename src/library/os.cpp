@@ -54,7 +54,7 @@ Value argsNative(VM* oVM, int argCount, Value* args)
 {
     Fox_FixArity(oVM, argCount, 0);
     Value instance = Fox_DefineInstanceOf(oVM, "Array");
-    Fox_SetInstanceField(oVM, instance, "m_oArray", Fox_Array());
+    Fox_SetInstanceField(oVM, instance, "m_oArray", Fox_Array(oVM));
     if (!Fox_Is(instance, VAL_NIL))
     {
         Value arrayField = Fox_GetInstanceField(oVM, instance, "m_oArray");

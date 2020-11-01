@@ -5,12 +5,13 @@
 #include "Lexer.h"
 #include "ParserHelper.h"
 #include "chunk.hpp"
-#include "object.hpp"
 
 #define UINT8_COUNT (UINT8_MAX + 1)
 
 // class ObjectFunction;
 class VM;
+class ObjectString;
+class ObjectFunction;
 
 typedef enum {
     // Single-character tokens.
@@ -152,32 +153,11 @@ public:
 
 struct Compiler
 {
-	explicit Compiler (Parser& parser, FunctionType eType, const std::string& name)
-	{
-		enclosing = parser.currentCompiler;
-		localCount = 0;
-		scopeDepth = 0;
-		type = eType;
-		function = new ObjectFunction();
-		parser.currentCompiler = this;
+public:
+	Compiler (Parser& parser, FunctionType eType, const std::string& name);
 
-		if (eType != TYPE_SCRIPT) {
-			parser.currentCompiler->function->name = parser.CopyString(name);
-		}
-
-		Local* local = &locals[localCount++];
-		local->depth = 0;
-        local->isCaptured = false;
-
-		if (type != TYPE_FUNCTION) {
-			local->name = Token("this", (std::size_t) 4);
-		} else {
-			local->name = Token("", (std::size_t) 0);
-		}
-	}
-
-    Compiler *enclosing;
-    ObjectFunction *function;
+    Compiler* enclosing;
+    ObjectFunction* function;
     FunctionType type;
     Local locals[UINT8_COUNT];
     int localCount;

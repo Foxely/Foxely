@@ -2,28 +2,13 @@
 #include <memory>
 #include <algorithm>
 #include <setjmp.h>
-
 #include "Parser.h"
-#include "gc.hpp"
 #include "vm.hpp"
-
-GC GC::Gc;
+#include "gc.hpp"
 
 Traceable::Traceable()
 {
 	mMarked = false;
-	GC::Gc.AddObject(this);
-
-	GC::Gc.bytesAllocated += sizeof(this);
-
-	if (GC::Gc.bytesAllocated > GC::Gc.nextGC)
-    {
-        // VM::vm.AddToRoots();
-		// if (GC::Gc.pVm)
-		GC::Gc.ClearRoots();
-		GC::Gc.pVm->AddToRoots();
-    	GC::Gc.Collect();
-    }
 }
 
 Traceable::~Traceable() { }

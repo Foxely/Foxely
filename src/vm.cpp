@@ -66,6 +66,7 @@ void VM::LoadStandard(const std::string& name)
 
 VM::VM()
 {
+	gc.pVm = this;
 	// m_oParser.m_pVm = this;
 	// openUpvalues = NULL;
 	// stack[0] = Value();
@@ -190,7 +191,7 @@ bool VM::CallValue(Value callee, int argCount)
 		case OBJ_CLASS:
 		{
 			ObjectClass *klass = AS_CLASS(callee);
-			stackTop[-argCount - 1] = OBJ_VAL(new ObjectInstance(klass));
+			stackTop[-argCount - 1] = OBJ_VAL(gc.New<ObjectInstance>(klass));
 			Value initializer;
 			if (klass->methods.Get(initString, initializer))
 				return Call(AS_CLOSURE(initializer), argCount);
@@ -205,7 +206,7 @@ bool VM::CallValue(Value callee, int argCount)
 		case OBJ_NATIVE_CLASS:
 		{
 			ObjectNativeClass *klass = AS_NATIVE_CLASS(callee);
-			stackTop[-argCount - 1] = OBJ_VAL(new ObjectNativeInstance(klass));
+			stackTop[-argCount - 1] = OBJ_VAL(gc.New<ObjectNativeInstance>(klass));
 			
 			Value initializer;
 
@@ -243,7 +244,7 @@ ObjectUpvalue *VM::CaptureUpvalue(Value *local)
 
 	if (upvalue != NULL && upvalue->location == local)
 		return upvalue;
-	ObjectUpvalue *createdUpvalue = new ObjectUpvalue(local);
+	ObjectUpvalue *createdUpvalue = gc.New<ObjectUpvalue>(local);
 	if (prevUpvalue == NULL) {
 		openUpvalues = createdUpvalue;
 	} else {
@@ -265,7 +266,7 @@ void VM::CloseUpvalues(Value *last)
 void VM::DefineNative(const std::string &name, NativeFn function)
 {
 	Push(OBJ_VAL(m_oParser.CopyString(name)));
-	Push(OBJ_VAL(new ObjectNative(function)));
+	Push(OBJ_VAL(gc.New<ObjectNative>(function)));
 	globals.Set(AS_STRING(PeekStart(0)), PeekStart(1));
 	Pop();
 	Pop();
@@ -274,7 +275,7 @@ void VM::DefineNative(const std::string &name, NativeFn function)
 void VM::DefineLib(const std::string &name, NativeMethods &functions)
 {
 	Push(OBJ_VAL(m_oParser.CopyString(name)));
-	Push(OBJ_VAL(new ObjectLib(AS_STRING(PeekStart(0)))));
+	Push(OBJ_VAL(gc.New<ObjectLib>(AS_STRING(PeekStart(0)))));
 	globals.Set(AS_STRING(PeekStart(0)), PeekStart(1));
 	ObjectLib *klass = AS_LIB(Pop());
 	Pop();
@@ -282,7 +283,7 @@ void VM::DefineLib(const std::string &name, NativeMethods &functions)
 	for (auto &it : functions)
 	{
 		Push(OBJ_VAL(m_oParser.CopyString(it.first)));
-		Push(OBJ_VAL(new ObjectNative(it.second)));
+		Push(OBJ_VAL(gc.New<ObjectNative>(it.second)));
 
 		klass->methods.Set(AS_STRING(PeekStart(1)), PeekStart(2));
 
@@ -295,7 +296,7 @@ void VM::DefineLib(const std::string &name, NativeMethods &functions)
 void VM::DefineNativeClass(const std::string &name, NativeMethods &functions)
 {
 	Push(OBJ_VAL(m_oParser.CopyString(name)));
-	Push(OBJ_VAL(new ObjectNativeClass(AS_STRING(PeekStart(0)))));
+	Push(OBJ_VAL(gc.New<ObjectNativeClass>(AS_STRING(PeekStart(0)))));
 	globals.Set(AS_STRING(PeekStart(0)), PeekStart(1));
 	ObjectNativeClass *klass = AS_NATIVE_CLASS(Pop());
 	Pop();
@@ -304,7 +305,7 @@ void VM::DefineNativeClass(const std::string &name, NativeMethods &functions)
 		NativeFn func = it.second;
 
 		Push(OBJ_VAL(m_oParser.CopyString(it.first)));
-		Push(OBJ_VAL(new ObjectNative(func)));
+		Push(OBJ_VAL(gc.New<ObjectNative>(func)));
 
 		klass->methods.Set(AS_STRING(PeekStart(1)), PeekStart(2));
 
@@ -321,7 +322,7 @@ void VM::DefineBuiltIn(Table& methods, NativeMethods &functions)
 		NativeFn func = it.second;
 
 		Push(OBJ_VAL(m_oParser.CopyString(it.first)));
-		Push(OBJ_VAL(new ObjectNative(func)));
+		Push(OBJ_VAL(gc.New<ObjectNative>(func)));
 
 		methods.Set(AS_STRING(PeekStart(0)), PeekStart(1));
 
@@ -441,7 +442,7 @@ InterpretResult VM::interpret(const char *source)
 		return (INTERPRET_COMPILE_ERROR);
 
 	Push(OBJ_VAL(function));
-	ObjectClosure *closure = new ObjectClosure(function);
+	ObjectClosure *closure = gc.New<ObjectClosure>(this, function);
 	Pop();
 	Push(OBJ_VAL(closure));
 	CallValue(OBJ_VAL(closure), 0);
@@ -713,11 +714,11 @@ InterpretResult VM::run()
 		}
 
 		case OP_CLASS:
-			Push(OBJ_VAL(new ObjectClass(READ_STRING())));
+			Push(OBJ_VAL(gc.New<ObjectClass>(READ_STRING())));
 			break;
         
         case OP_INTERFACE:
-			Push(OBJ_VAL(new ObjectInterface(READ_STRING())));
+			Push(OBJ_VAL(gc.New<ObjectInterface>(READ_STRING())));
 			break;
 
 		case OP_INHERIT: {
@@ -779,7 +780,7 @@ InterpretResult VM::run()
 
 		case OP_CLOSURE: {
 			ObjectFunction *function = AS_FUNCTION(READ_CONSTANT());
-			ObjectClosure *closure = new ObjectClosure(function);
+			ObjectClosure *closure = gc.New<ObjectClosure>(this, function);
 			Push(OBJ_VAL(closure));
 
 			for (int i = 0; i < closure->upvalueCount; i++) {
@@ -837,7 +838,7 @@ InterpretResult VM::run()
 				return INTERPRET_RUNTIME_ERROR;
 			}
 			Push(OBJ_VAL(function));
-			ObjectClosure *closure = new ObjectClosure(function);
+			ObjectClosure *closure = gc.New<ObjectClosure>(this, function);
 			Pop();
 			Call(closure, 0);
 			frame = &frames[frameCount - 1];
@@ -960,7 +961,7 @@ InterpretResult VM::run()
 
 		case OP_ARRAY:
 		{
-            ObjectArray *array = new ObjectArray();
+            ObjectArray *array = gc.New<ObjectArray>();
             Push(OBJ_VAL(array));
             break;
         }
@@ -1050,7 +1051,7 @@ void VM::AddObjectToRoot(Object *object) {
 	PrintValue(OBJ_VAL(object));
 	printf("\n");
 #endif
-	GC::Gc.AddRoot(object);
+	gc.AddRoot(object);
 
 	BlackenObject(object);
 	strings.RemoveWhite();
@@ -1132,7 +1133,7 @@ bool VM::BindMethod(ObjectClass *klass, ObjectString *name) {
 		return false;
 	}
 
-	ObjectBoundMethod *bound = new ObjectBoundMethod(Peek(0), AS_CLOSURE(method));
+	ObjectBoundMethod *bound = gc.New<ObjectBoundMethod>(Peek(0), AS_CLOSURE(method));
 	Pop();
 	Push(OBJ_VAL(bound));
 	return true;

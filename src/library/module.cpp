@@ -1,10 +1,11 @@
-#include "library/module.h"
 #include <iostream>
 #include <stdexcept>
 #include <string.h>
 #include <fstream>
 #include <streambuf>
+
 #include "foxely.h"
+#include "library/module.h"
 
 Value importNative(VM* oVM, int argCount, Value* args)
 {
@@ -20,7 +21,7 @@ Value importNative(VM* oVM, int argCount, Value* args)
     if (function == NULL)
         return NIL_VAL;
     oVM->Push(OBJ_VAL(function));
-    ObjectClosure *closure = new ObjectClosure(function);
+    ObjectClosure *closure = oVM->gc.New<ObjectClosure>(oVM, function);
     oVM->Pop();
     oVM->Call(closure, 0);
     CallFrame *frame = &oVM->frames[oVM->frameCount - 1];

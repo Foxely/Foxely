@@ -46,7 +46,6 @@ char* RESET = "\u001b[0m";
 void repl()
 {
     VM oVM;
-    GC::Gc.pVm = &oVM;
 
     std::string input;
     std::string line;
@@ -99,7 +98,6 @@ int getch() {
 void replv2()
 {
     VM oVM;
-    GC::Gc.pVm = &oVM;
 
     char line[1024] = "";
     std::string input = "";
@@ -213,7 +211,6 @@ void replv3(int ac, char** av)
     VM oVM;
     oVM.argc = ac;
     oVM.argv = av;
-    GC::Gc.pVm = &oVM;
 
     while(ac > 1) {
         ac--;
@@ -271,7 +268,6 @@ void runFile(int ac, char** av, const char* path)
     VM oVM;
     oVM.argc = ac;
     oVM.argv = av;
-    GC::Gc.pVm = &oVM;
 	std::ifstream t(path);
 	std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
     t.close();

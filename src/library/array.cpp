@@ -82,7 +82,7 @@ Value popNative(VM* oVM, int argCount, Value* args)
 Value initNative(VM* oVM, int argCount, Value* args)
 {
     Fox_Arity(oVM, argCount, 0, 1);
-    Fox_SetInstanceField(oVM, args[-1], "m_oArray", Fox_Array());
+    Fox_SetInstanceField(oVM, args[-1], "m_oArray", Fox_Array(oVM));
 
     if (argCount == 1)
     {
