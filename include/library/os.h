@@ -8,7 +8,7 @@
 class OSPlugin : public fox::pluga::IModule
 {
 public:
-    OSPlugin();
+    OSPlugin(VM* oVM);
     virtual ~OSPlugin();
 
     virtual const char* GetClassName() const;

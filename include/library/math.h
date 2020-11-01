@@ -8,7 +8,7 @@
 class MathPlugin : public fox::pluga::IModule
 {
 public:
-    MathPlugin();
+    MathPlugin(VM* oVM);
     virtual ~MathPlugin();
 
     virtual const char* GetClassName() const;

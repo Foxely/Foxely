@@ -4,9 +4,10 @@
 #include "Token.h"
 #include "Parser.h"
 #include "object.hpp"
-#include "gc.hpp"
 #include "vm.hpp"
+#include "gc.hpp"
 #include "statement.hpp"
+#include "object.hpp"
 
 Chunk* Parser::GetCurrentChunk()
 {
@@ -16,6 +17,30 @@ Chunk* Parser::GetCurrentChunk()
 void Parser::SetCurrentChunk(Chunk& chunk)
 {
   	compilingChunk = &chunk;
+}
+
+Compiler::Compiler (Parser& parser, FunctionType eType, const std::string& name)
+{
+    enclosing = parser.currentCompiler;
+    localCount = 0;
+    scopeDepth = 0;
+    type = eType;
+    function = parser.m_pVm->gc.New<ObjectFunction>();
+    parser.currentCompiler = this;
+
+    if (eType != TYPE_SCRIPT) {
+        parser.currentCompiler->function->name = parser.CopyString(name);
+    }
+
+    Local* local = &locals[localCount++];
+    local->depth = 0;
+    local->isCaptured = false;
+
+    if (type != TYPE_FUNCTION) {
+        local->name = Token("this", (std::size_t) 4);
+    } else {
+        local->name = Token("", (std::size_t) 0);
+    }
 }
 
 Parser::Parser()
@@ -1036,7 +1061,7 @@ uint32_t Parser::hashString(const std::string& str)
 */
 ObjectString* Parser::AllocateString(const std::string& str, uint32_t hash)
 {
-	ObjectString* string = new ObjectString(str);
+	ObjectString* string = m_pVm->gc.New<ObjectString>(str);
 	string->type = OBJ_STRING;
 	string->hash = hash;
 

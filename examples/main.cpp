@@ -45,7 +45,7 @@ char* RESET = "\u001b[0m";
 
 void repl()
 {
-    GC::Gc.pVm = VM::GetInstance();
+    VM oVM;
 
     std::string input;
     std::string line;
@@ -74,7 +74,7 @@ void repl()
             break;
 
         if (input[0] != '\n' && input[0] != '\0')
-            VM::GetInstance()->interpret(input.c_str());
+            oVM.interpret(input.c_str());
         else {
             std::cout << std::endl;
             break;
@@ -97,7 +97,8 @@ int getch() {
 
 void replv2()
 {
-    GC::Gc.pVm = VM::GetInstance();
+    VM oVM;
+
     char line[1024] = "";
     std::string input = "";
     std::string word;
@@ -207,6 +208,10 @@ void replv3(int ac, char** av)
 {
     char *line;
 
+    VM oVM;
+    oVM.argc = ac;
+    oVM.argv = av;
+
     while(ac > 1) {
         ac--;
         av++;
@@ -242,7 +247,7 @@ void replv3(int ac, char** av)
         /* Do something with the string. */
         if (line[0] != '\0' && line[0] != '#')
         {
-            VM::GetInstance()->interpret(line);
+            oVM.interpret(line);
             linenoiseHistoryAdd(line); /* Add to the history. */
             linenoiseHistorySave("history.txt"); /* Save the history on disk. */
         }
@@ -258,14 +263,16 @@ void replv3(int ac, char** av)
     }
 }
 
-void runFile(const char* path)
+void runFile(int ac, char** av, const char* path)
 {
-    GC::Gc.pVm = VM::GetInstance();
+    VM oVM;
+    oVM.argc = ac;
+    oVM.argv = av;
 	std::ifstream t(path);
 	std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
     t.close();
 
-    InterpretResult result = VM::GetInstance()->interpret(str.c_str());
+    InterpretResult result = oVM.interpret(str.c_str());
 
     if (result == INTERPRET_COMPILE_ERROR) exit(65);
     if (result == INTERPRET_RUNTIME_ERROR) exit(70);
@@ -273,14 +280,12 @@ void runFile(const char* path)
 
 int main(int ac, char** av)
 {
-    VM::GetInstance()->argc = ac;
-    VM::GetInstance()->argv = av;
     if (ac == 1) {
         IsRepl = true;
         replv3(ac, av);
         // repl();
     } else if (ac >= 2) {
-        runFile(av[1]);
+        runFile(ac, av, av[1]);
     } else {
         fprintf(stderr, "Usage: foxely [path]\n");
         exit(64);

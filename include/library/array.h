@@ -9,13 +9,13 @@
 class ArrayPlugin : public fox::pluga::IModule
 {
 public:
-    ArrayPlugin();
+    ArrayPlugin(VM* oVM);
     virtual ~ArrayPlugin();
 
     virtual const char* GetClassName() const;
 
 };
 
-FOX_MODULE(array);
+// FOX_MODULE(array);
 
 #endif

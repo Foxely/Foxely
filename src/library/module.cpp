@@ -1,35 +1,36 @@
-#include "library/module.h"
 #include <iostream>
 #include <stdexcept>
 #include <string.h>
 #include <fstream>
 #include <streambuf>
-#include "foxely.h"
 
-Value importNative(int argCount, Value* args)
+#include "foxely.h"
+#include "library/module.h"
+
+Value importNative(VM* oVM, int argCount, Value* args)
 {
-    Fox_FixArity(argCount, 1);
-    if (!VM::GetInstance()->imports.Set(AS_STRING(args[0]), NIL_VAL))
+    Fox_FixArity(oVM, argCount, 1);
+    if (!oVM->imports.Set(AS_STRING(args[0]), NIL_VAL))
         return NIL_VAL;
     std::ifstream t(Fox_ValueToCString(args[0]));
 	std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
     t.close();
 
     Chunk oChunk;
-	ObjectFunction *function = Compile(VM::GetInstance()->m_oParser, str.c_str(), &oChunk);
+	ObjectFunction *function = Compile(oVM->m_oParser, str.c_str(), &oChunk);
     if (function == NULL)
         return NIL_VAL;
-    VM::GetInstance()->Push(OBJ_VAL(function));
-    ObjectClosure *closure = new ObjectClosure(function);
-    VM::GetInstance()->Pop();
-    VM::GetInstance()->Call(closure, 0);
-    CallFrame *frame = &VM::GetInstance()->frames[VM::GetInstance()->frameCount - 1];
-    frame = &VM::GetInstance()->frames[VM::GetInstance()->frameCount - 1];
+    oVM->Push(OBJ_VAL(function));
+    ObjectClosure *closure = oVM->gc.New<ObjectClosure>(oVM, function);
+    oVM->Pop();
+    oVM->Call(closure, 0);
+    CallFrame *frame = &oVM->frames[oVM->frameCount - 1];
+    frame = &oVM->frames[oVM->frameCount - 1];
     return NIL_VAL;
 }
 
 
-ModulePlugin::ModulePlugin()
+ModulePlugin::ModulePlugin(VM* oVM) : fox::pluga::IModule(oVM)
 {
     // std::cout << "ModulePlugin: Create" << std::endl;
 

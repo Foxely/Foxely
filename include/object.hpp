@@ -18,6 +18,8 @@
 #include "gc.hpp"
 #include "Table.hpp"
 
+class VM;
+
 #define OBJ_TYPE(val)         (AS_OBJ(val)->type)
 
 
@@ -124,7 +126,7 @@ public:
     }
 };
 
-typedef Value (*NativeFn)(int arg_count, Value *args);
+typedef Value (*NativeFn)(VM* oVM, int arg_count, Value *args);
 
 class ObjectNative : public Object
 {
@@ -209,16 +211,7 @@ public:
     ObjectUpvalue **upValues;
     int upvalueCount;
 
-    explicit ObjectClosure(ObjectFunction *func)
-    {
-        type = OBJ_CLOSURE;
-        function = func;
-        upvalueCount = func->upValueCount;
-        upValues = new ObjectUpvalue*[func->upValueCount];
-        for (int i = 0; i < func->upValueCount; i++) {
-            upValues[i] = NULL;
-        }
-    }
+    ObjectClosure(VM* oVM, ObjectFunction *func);
 };
 
 class ObjectClass : public Object

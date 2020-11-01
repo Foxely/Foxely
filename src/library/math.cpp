@@ -5,9 +5,9 @@
 #include "math.h"
 #include "foxely.h"
 
-Value sinNative(int argCount, Value* args)
+Value sinNative(VM* oVM, int argCount, Value* args)
 {
-    Fox_FixArity(argCount, 1);
+    Fox_FixArity(oVM, argCount, 1);
     double value = 0;
     if (Fox_Is(args[0], VAL_NUMBER))
     {
@@ -16,9 +16,9 @@ Value sinNative(int argCount, Value* args)
     return (NUMBER_VAL(value));
 }
 
-Value cosNative(int argCount, Value* args)
+Value cosNative(VM* oVM, int argCount, Value* args)
 {
-    Fox_FixArity(argCount, 1);
+    Fox_FixArity(oVM, argCount, 1);
     double value = 0;
     if (Fox_Is(args[0], VAL_NUMBER))
     {
@@ -29,7 +29,7 @@ Value cosNative(int argCount, Value* args)
 
 
 
-MathPlugin::MathPlugin()
+MathPlugin::MathPlugin(VM* oVM) : fox::pluga::IModule(oVM)
 {
     // std::cout << "MathPlugin: Create" << std::endl;
 
