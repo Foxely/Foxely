@@ -1,9 +1,0 @@
-
-import "array";
-
-list: var = [];
-string: var = "salut";
-
-
-print "%\n", list[0];
-print "%\n", string[1];

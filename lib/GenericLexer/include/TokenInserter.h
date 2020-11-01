@@ -17,11 +17,9 @@ public:
 
     virtual int Insert(const Token&, Token& );
     virtual int Insert(const Token&, const Token&, Token&);
-    virtual inline int Insert(const Token&, const Token&, const Token&, Token&);
-    virtual inline int Insert(const Token&, const Token&, const Token&, const
-    Token&, Token&);
-    virtual inline int Insert(const Token&, const Token&, const Token&, const
-    Token&, const Token&, Token&);
+    virtual int Insert(const Token&, const Token&, const Token&, Token&);
+    virtual int Insert(const Token&, const Token&, const Token&, const Token&, Token&);
+    virtual int Insert(const Token&, const Token&, const Token&, const Token&, const Token&, Token&);
 
 private:
 

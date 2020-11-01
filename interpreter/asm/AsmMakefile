@@ -1,1 +1,0 @@
-gcc return_2.s -o cpuid; ./cpuid; echo $?

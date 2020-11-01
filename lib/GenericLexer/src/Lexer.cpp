@@ -56,7 +56,6 @@ bool Lexer::Process(const std::string& strText)
     if (strText.empty())
         return false;
 
-    bool bError = false;
     m_iLines = 1;
 
     int iLen = 0;

@@ -118,7 +118,7 @@ public:
 
 namespace helper
 {
-    inline void replaceAll(std::string& source, const std::string& from, const std::string& to, int maxLength = 0)
+    inline void replaceAll(std::string& source, const std::string& from, const std::string& to)
     {
         std::string newString;
         newString.reserve(source.length());  // avoids a few memory allocations
