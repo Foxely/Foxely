@@ -11,7 +11,7 @@
 
 class Value;
 
-typedef Value (*NativeFn)(int arg_count, Value *args);
+typedef Value (*NativeFn)(VM* oVM, int arg_count, Value *args);
 
 namespace fox {
     namespace pluga {
@@ -27,8 +27,9 @@ namespace fox {
         {
         public:
     		NativeMethods m_oMethods;
+            VM* oVM;
 
-            IModule() {};
+            IModule(VM* oVM) {};
             virtual ~IModule() {};
 
             virtual const char* GetClassName() const { return NULL; };

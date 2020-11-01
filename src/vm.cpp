@@ -41,8 +41,8 @@ void VM::LoadStandard(const std::string& name)
 {
 	NativeMethods methods;
 
-	OSPlugin os;
-	IOPlugin io;
+	OSPlugin os(this);
+	IOPlugin io(this);
 	// ArrayPlugin array;
 	// SFMLPlugin sfml;
 
@@ -81,10 +81,10 @@ VM::~VM()
 	initString = NULL;
 }
 
-VM *VM::GetInstance()
-{
-	return &m_oInstance;
-}
+// VM *VM::GetInstance()
+// {
+// 	return &m_oInstance;
+// }
 
 void VM::ResetStack() {
 	stackTop = stack;
@@ -174,7 +174,7 @@ bool VM::CallValue(Value callee, int argCount)
 		case OBJ_NATIVE:
 		{
 			NativeFn native = AS_NATIVE(callee);
-			Value result = native(argCount, stackTop - argCount);
+			Value result = native(this, argCount, stackTop - argCount);
 			stackTop -= argCount + 1;
 			Push(result);
 			return true;
@@ -212,7 +212,7 @@ bool VM::CallValue(Value callee, int argCount)
 			if (klass->methods.Get(initString, initializer))
 			{
 				NativeFn native = AS_NATIVE(initializer);
-				native(argCount, stackTop - argCount);
+				native(this, argCount, stackTop - argCount);
 				stackTop -= argCount;
 			}
 			return true;
@@ -426,9 +426,9 @@ InterpretResult VM::interpret(const char *source)
 		DefineNative("clock", clockNative);
 		initString = NULL;
 		initString = m_oParser.CopyString("init");
-		ModulePlugin module;
+		ModulePlugin module(this);
 		DefineLib(module.GetClassName(), module.m_oMethods);
-		array_entry();
+		ArrayPlugin array(this);
 		isInit = true;
 	}
 	

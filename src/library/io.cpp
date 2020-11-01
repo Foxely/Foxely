@@ -10,25 +10,25 @@ ObjectAbstractType foxely_file_type =
     "core/file"
 };
 
-Value openNative(int argCount, Value* args)
+Value openNative(VM* oVM, int argCount, Value* args)
 {
-    Fox_FixArity(argCount, 2);
-	Fox_PanicIfNot(Fox_IsString(args[0]), "Expected string value");
-	Fox_PanicIfNot(Fox_IsString(args[1]), "Expected string value");
+    Fox_FixArity(oVM, argCount, 2);
+	Fox_PanicIfNot(oVM, Fox_IsString(args[0]), "Expected string value");
+	Fox_PanicIfNot(oVM, Fox_IsString(args[1]), "Expected string value");
 	
     FILE* fp = fopen(Fox_ValueToCString(args[0]), Fox_ValueToCString(args[1]));
     if (fp)
     {
-        Value instance = Fox_DefineInstanceOfCStruct("File", fp);
+        Value instance = Fox_DefineInstanceOfCStruct(oVM, "File", fp);
         return instance;
     }
-	Fox_RuntimeError("'%s' doesn't exist.", Fox_ValueToCString(args[0]));
+	Fox_RuntimeError(oVM, "'%s' doesn't exist.", Fox_ValueToCString(args[0]));
     return NIL_VAL;
 }
 
-Value readNative(int argCount, Value* args)
+Value readNative(VM* oVM, int argCount, Value* args)
 {
-    Fox_Arity(argCount, 0, 1);
+    Fox_Arity(oVM, argCount, 0, 1);
     FILE* fp = (FILE *) Fox_GetInstanceCStruct(args[-1]);
 
     if (argCount == 0)
@@ -47,23 +47,23 @@ Value readNative(int argCount, Value* args)
 
         fcontent[len] = 0;
 
-        return Fox_StringToValue(fcontent);
+        return Fox_StringToValue(oVM, fcontent);
     }
     else
     {
-        Fox_PanicIfNot(Fox_IsNumber(args[0]), "Invalid type, expected number type");
+        Fox_PanicIfNot(oVM, Fox_IsNumber(args[0]), "Invalid type, expected number type");
         int size = Fox_ValueToNumber(args[0]);
         char chunk[size];
 
         if (fgets(chunk, sizeof(chunk), fp) != NULL)
-            return Fox_StringToValue(chunk);
+            return Fox_StringToValue(oVM, chunk);
     }
     return NIL_VAL;
 }
 
-Value readLineNative(int argCount, Value* args)
+Value readLineNative(VM* oVM, int argCount, Value* args)
 {
-    Fox_FixArity(argCount, 0);
+    Fox_FixArity(oVM, argCount, 0);
     FILE* fp = (FILE *) Fox_GetInstanceCStruct(args[-1]);
     size_t len = 0;
     char* line = NULL;
@@ -71,7 +71,7 @@ Value readLineNative(int argCount, Value* args)
     
     read = getline(&line, &len, fp);
     if (read != -1) {
-        Value lineValue = Fox_StringToValue(line);
+        Value lineValue = Fox_StringToValue(oVM, line);
         if (line)
             free(line);
         return lineValue;
@@ -79,19 +79,19 @@ Value readLineNative(int argCount, Value* args)
     return NIL_VAL;
 }
 
-Value writeNative(int argCount, Value* args)
+Value writeNative(VM* oVM, int argCount, Value* args)
 {
-    Fox_FixArity(argCount, 1);
+    Fox_FixArity(oVM, argCount, 1);
     FILE* fp = (FILE *) Fox_GetInstanceCStruct(args[-1]);
 
-    Fox_PanicIfNot(Fox_IsString(args[0]), "Expected string value in write function");
+    Fox_PanicIfNot(oVM, Fox_IsString(args[0]), "Expected string value in write function");
     fputs(Fox_ValueToCString(args[0]), fp);
     return NIL_VAL;
 }
 
-Value closeNative(int argCount, Value* args)
+Value closeNative(VM* oVM, int argCount, Value* args)
 {
-    Fox_FixArity(argCount, 0);
+    Fox_FixArity(oVM, argCount, 0);
     FILE* fp = (FILE *) Fox_GetInstanceCStruct(args[-1]);
 	if (fp)
         fclose(fp);
@@ -100,7 +100,7 @@ Value closeNative(int argCount, Value* args)
 
 
 
-IOPlugin::IOPlugin()
+IOPlugin::IOPlugin(VM* oVM) : fox::pluga::IModule(oVM)
 {
     // std::cout << "IOPlugin: Create" << std::endl;
 
@@ -117,7 +117,7 @@ IOPlugin::IOPlugin()
 		std::make_pair<std::string, NativeFn>("close", closeNative),
 	};
 
-    Fox_DefineClass("File", fileMethods);
+    Fox_DefineClass(oVM, "File", fileMethods);
 
 	m_oMethods = methods;
 }

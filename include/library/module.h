@@ -8,7 +8,7 @@
 class ModulePlugin : public fox::pluga::IModule
 {
 public:
-    ModulePlugin();
+    ModulePlugin(VM* oVM);
     virtual ~ModulePlugin();
 
     virtual const char* GetClassName() const;

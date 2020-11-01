@@ -124,7 +124,7 @@ public:
     }
 };
 
-typedef Value (*NativeFn)(int arg_count, Value *args);
+typedef Value (*NativeFn)(VM* oVM, int arg_count, Value *args);
 
 class ObjectNative : public Object
 {

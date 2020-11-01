@@ -5,76 +5,76 @@
 #include "foxely.h"
 
 
-Value whichNative(int argCount, Value* args)
+Value whichNative(VM* oVM, int argCount, Value* args)
 {
-    Fox_FixArity(argCount, 0);
+    Fox_FixArity(oVM, argCount, 0);
     #ifdef _WIN32
-        return Fox_StringToValue("windows");
+        return Fox_StringToValue(oVM, "windows");
     #elif __linux__
-        return Fox_StringToValue("linux");
+        return Fox_StringToValue(oVM, "linux");
     #elif __APPLE__
         #include "TargetConditionals.h"
         #if TARGET_OS_MAC
-            return Fox_StringToValue("macOS");
+            return Fox_StringToValue(oVM, "macOS");
         #endif
     #endif
-    return Fox_StringToValue("Unknown OS");
+    return Fox_StringToValue(oVM, "Unknown OS");
 }
 
-Value shellNative(int argCount, Value* args)
+Value shellNative(VM* oVM, int argCount, Value* args)
 {
-    Fox_FixArity(argCount, 1);
+    Fox_FixArity(oVM, argCount, 1);
     if (argCount == 1)
         system(Fox_ValueToCString(args[0]));
     return NIL_VAL;
 }
 
-Value getEnvNative(int argCount, Value* args)
+Value getEnvNative(VM* oVM, int argCount, Value* args)
 {
-    Fox_FixArity(argCount, 1);
-    return Fox_StringToValue(getenv(Fox_ValueToCString(args[0])));
+    Fox_FixArity(oVM, argCount, 1);
+    return Fox_StringToValue(oVM, getenv(Fox_ValueToCString(args[0])));
 }
 
-Value exitNative(int argCount, Value* args)
+Value exitNative(VM* oVM, int argCount, Value* args)
 {
-    Fox_Arity(argCount, 0, 1);
+    Fox_Arity(oVM, argCount, 0, 1);
     if (argCount == 1)
     {
         if (Fox_Is(args[0], VAL_NUMBER))
             exit(Fox_ValueToNumber(args[0]));
         else
-            Fox_RuntimeError("Expected number");
+            Fox_RuntimeError(oVM, "Expected number");
     }
     else
         exit(0);
     return NIL_VAL;
 }
 
-Value argsNative(int argCount, Value* args)
+Value argsNative(VM* oVM, int argCount, Value* args)
 {
-    Fox_FixArity(argCount, 0);
-    Value instance = Fox_DefineInstanceOf("Array");
-    Fox_SetInstanceField(instance, "m_oArray", Fox_Array());
+    Fox_FixArity(oVM, argCount, 0);
+    Value instance = Fox_DefineInstanceOf(oVM, "Array");
+    Fox_SetInstanceField(oVM, instance, "m_oArray", Fox_Array());
     if (!Fox_Is(instance, VAL_NIL))
     {
-        Value arrayField = Fox_GetInstanceField(instance, "m_oArray");
+        Value arrayField = Fox_GetInstanceField(oVM, instance, "m_oArray");
         ObjectArray* array = Fox_ValueToArray(arrayField);
         std::vector<Value> values;
 
-        for (int i = 1; i < VM::GetInstance()->argc; i++) {
-            values.push_back(Fox_StringToValue(VM::GetInstance()->argv[i]));
+        for (int i = 1; i < oVM->argc; i++) {
+            values.push_back(Fox_StringToValue(oVM, oVM->argv[i]));
         }
 
         array->m_vValues = values;
     }
     else
-        Fox_RuntimeError("Array Library was not imported.");
+        Fox_RuntimeError(oVM, "Array Library was not imported.");
     return instance;
 }
 
 
 
-OSPlugin::OSPlugin()
+OSPlugin::OSPlugin(VM* oVM) : fox::pluga::IModule(oVM)
 {
     // std::cout << "OSPlugin: Create" << std::endl;
 

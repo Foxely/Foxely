@@ -11,12 +11,12 @@ extern "C"
 #define FOX_MODULE(name) void name##_entry()
 #define FOX_MODULE_CALL(name) name##_entry()
 
-#define Fox_RuntimeError(msg, ...) VM::GetInstance()->RuntimeError(msg, ##__VA_ARGS__)
-#define Fox_PanicIfNot(cond, msg, ...) if (!(cond)) { Fox_RuntimeError(msg, ##__VA_ARGS__); return NIL_VAL; }
+#define Fox_RuntimeError(oVM, msg, ...) oVM->RuntimeError(msg, ##__VA_ARGS__)
+#define Fox_PanicIfNot(oVM, cond, msg, ...) if (!(cond)) { Fox_RuntimeError(oVM, msg, ##__VA_ARGS__); return NIL_VAL; }
 
-	static inline Value Fox_StringToValue(const char* str)
+	static inline Value Fox_StringToValue(VM* oVM, const char* str)
 	{
-		return OBJ_VAL(VM::GetInstance()->m_oParser.TakeString(str));
+		return OBJ_VAL(oVM->m_oParser.TakeString(str));
 	}
 
     static const char* Fox_ValueToCString(Value val)
@@ -60,54 +60,54 @@ extern "C"
 		return abstract->data;
 	}
 
-    static inline Value Fox_DefineClass(const char* klassName, NativeMethods methods)
+    static inline Value Fox_DefineClass(VM* oVM, const char* klassName, NativeMethods methods)
 	{
-        VM::GetInstance()->DefineNativeClass(klassName, methods);
+        oVM->DefineNativeClass(klassName, methods);
         return NIL_VAL;
 	}
 
-    static inline Value Fox_DefineInstanceOf(const char* klassName)
+    static inline Value Fox_DefineInstanceOf(VM* oVM, const char* klassName)
 	{
         Value klass;
-        Value name = Fox_StringToValue(klassName);
-        if (!VM::GetInstance()->globals.Get(AS_STRING(name), klass))
+        Value name = Fox_StringToValue(oVM, klassName);
+        if (!oVM->globals.Get(AS_STRING(name), klass))
             return NIL_VAL;
 
 		return OBJ_VAL(new ObjectNativeInstance(AS_NATIVE_CLASS(klass)));
 	}
 
-	static inline Value Fox_DefineInstanceOfCStruct(const char* klassName, void* cStruct)
+	static inline Value Fox_DefineInstanceOfCStruct(VM* oVM, const char* klassName, void* cStruct)
 	{
         Value klass;
-        Value name = Fox_StringToValue(klassName);
-        if (!VM::GetInstance()->globals.Get(AS_STRING(name), klass))
+        Value name = Fox_StringToValue(oVM, klassName);
+        if (!oVM->globals.Get(AS_STRING(name), klass))
             return NIL_VAL;
 
 		return OBJ_VAL(new ObjectNativeInstance(AS_NATIVE_CLASS(klass), cStruct));
 	}
 
-    static inline void Fox_CallMethod(Value instance, const char* methodName, int argCount, Value* params)
+    static inline void Fox_CallMethod(VM* oVM, Value instance, const char* methodName, int argCount, Value* params)
 	{
         Value method;
-        Value methodNameValue = Fox_StringToValue(methodName);
+        Value methodNameValue = Fox_StringToValue(oVM, methodName);
         if (AS_NATIVE_INSTANCE(instance)->klass->methods.Get(AS_STRING(methodNameValue), method))
         {
-            AS_NATIVE(method)(argCount, params);
+            AS_NATIVE(method)(oVM, argCount, params);
         }
 	}
 
-    static inline Value Fox_SetInstanceField(Value instance, const char* fieldName, Value value)
+    static inline Value Fox_SetInstanceField(VM* oVM, Value instance, const char* fieldName, Value value)
 	{
-        Value name = Fox_StringToValue(fieldName);
+        Value name = Fox_StringToValue(oVM, fieldName);
         AS_NATIVE_INSTANCE(instance)->fields.Set(AS_STRING(name), value);
 
 		return NIL_VAL;
 	}
 
-    static inline Value Fox_GetInstanceField(Value instance, const char* fieldName)
+    static inline Value Fox_GetInstanceField(VM* oVM, Value instance, const char* fieldName)
 	{
         Value value;
-        Value name = Fox_StringToValue(fieldName);
+        Value name = Fox_StringToValue(oVM, fieldName);
         if (!AS_NATIVE_INSTANCE(instance)->fields.Get(AS_STRING(name), value))
         {
             return NIL_VAL;
@@ -126,16 +126,16 @@ extern "C"
         return AS_NATIVE_INSTANCE(instance)->cStruct;
 	}
 
-    static inline void Fox_Arity(int argCount, int min, int max)
+    static inline void Fox_Arity(VM* oVM, int argCount, int min, int max)
 	{
         if (argCount < min && argCount > max)
-            Fox_RuntimeError("Expected [%d-%d] arguments but got %d.", min, max, argCount);
+            Fox_RuntimeError(oVM, "Expected [%d-%d] arguments but got %d.", min, max, argCount);
 	}
 
-    static inline void Fox_FixArity(int argCount, int min)
+    static inline void Fox_FixArity(VM* oVM, int argCount, int min)
 	{
         if (argCount != min)
-            Fox_RuntimeError("Expected %d arguments but got %d.", min, argCount);
+            Fox_RuntimeError(oVM, "Expected %d arguments but got %d.", min, argCount);
 	}
 
     static inline bool Fox_Is(Value value, ValueType type)
