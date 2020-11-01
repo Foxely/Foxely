@@ -9,17 +9,6 @@
 #include "value.hpp"
 #include "object.hpp"
 #include "Table.hpp"
-#include "plugin_manager.h"
-
-namespace fox
-{
-   class SharedLibrary;
-
-	namespace pluga
-	{
-		class IPlugin;
-	}
-}
 
 class Parser;
 
@@ -58,7 +47,8 @@ public:
 	Table imports;
 	ObjectUpvalue* openUpvalues;
 	ObjectString* initString;
-	PluginManager manager;
+
+    Table arrayMethods;
 
 	int argc;
 	char** argv;
@@ -87,6 +77,8 @@ public:
 	void DefineNative(const std::string& name, NativeFn function);
 	void DefineNativeClass(const std::string& name, NativeMethods& functions);
 	void DefineLib(const std::string &name, NativeMethods &functions);
+	void DefineBuiltIn(Table& methods, NativeMethods &functions);
+
 	ObjectUpvalue* CaptureUpvalue(Value* local);
 	void CloseUpvalues(Value* last);
 

@@ -3,6 +3,7 @@
 
 
 #include "scy/pluga/plugin_api.h"
+#include "foxely.h"
 
 /// Test plugin implementation
 class ArrayPlugin : public fox::pluga::IModule
@@ -12,14 +13,9 @@ public:
     virtual ~ArrayPlugin();
 
     virtual const char* GetClassName() const;
-    virtual NativeMethods GetMethods();
 
-protected:
-
-    std::string _error;
-    std::string _value;
-    NativeMethods m_oMethods;
 };
 
+FOX_MODULE(array);
 
 #endif

@@ -30,12 +30,14 @@ typedef enum {
 
     // Literals.
     TOKEN_IDENTIFIER, TOKEN_STRING, TOKEN_NUMBER,
+    TOKEN_INT,
 
     // Keywords.
     TOKEN_AND, TOKEN_CLASS, TOKEN_ELSE, TOKEN_FALSE,
     TOKEN_FOR, TOKEN_FUN, TOKEN_IF, TOKEN_NIL, TOKEN_OR,
     TOKEN_PRINT, TOKEN_RETURN, TOKEN_SUPER, TOKEN_THIS,
     TOKEN_TRUE, TOKEN_VAR, TOKEN_WHILE, TOKEN_IMPORT,
+    TOKEN_INTERFACE, TOKEN_FOREIGN,
 
     TOKEN_SINGLE_COMMENT,
     TOKEN_MULTI_COMMENT,
@@ -187,6 +189,7 @@ ObjectFunction* Compile(Parser& parser, const std::string &strText, Chunk* chunk
 void Expression(Parser& parser);
 void ParsePrecedence(Parser& parser, Precedence preced);
 void Number(Parser& parser, bool can_assign = false);
+void IntNumber(Parser& parser, bool can_assign = false);
 void Grouping(Parser& parser, bool can_assign = false);
 void Unary(Parser& parser, bool can_assign = false);
 void Binary(Parser& parser, bool can_assign = false);
@@ -199,6 +202,8 @@ void RuleSuper(Parser& parser, bool can_assign = false);
 void Variable(Parser& parser, bool can_assign = false);
 void String(Parser& parser, bool can_assign = false);
 void CallCompiler(Parser& parser, bool can_assign = false);
+void Subscript(Parser& parser, bool canAssign = false);
+void List(Parser& parser, bool canAssign = false);
 
 void Block(Parser& parser);
 void Declaration(Parser& parser);
@@ -209,8 +214,13 @@ void NamedVariable(Parser& parser, Token name, bool can_assign);
 void AddLocal(Parser& parser, Token name);
 bool IdentifiersEqual(Token& a, Token& b);
 int ResolveLocal(Parser& parser, Compiler *comp, Token& name);
+
 void Function(Parser& parser, FunctionType type, const Token& name);
 void FuncDeclaration(Parser& parser, Token name);
+
+void InterfaceDeclaration(Parser& parser, Token name);
+void Interface(Parser& parser, FunctionType type, const Token& name);
+
 int ResolveUpvalue(Parser& parser, Compiler *comp, Token& name);
 void ClassDeclaration(Parser& parser, Token& name);
 uint8_t ArgumentList(Parser& parser);

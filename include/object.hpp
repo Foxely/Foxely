@@ -31,6 +31,7 @@
 #define IS_CLOSURE(val)       is_obj_type(val, OBJ_CLOSURE)
 #define IS_INSTANCE(val)      is_obj_type(val, OBJ_INSTANCE)
 #define IS_NATIVE_INSTANCE(val)      is_obj_type(val, OBJ_NATIVE_INSTANCE)
+#define IS_INTERFACE(val)      is_obj_type(val, OBJ_INTERFACE)
 #define IS_FUNCTION(val)      is_obj_type(val, OBJ_FUNCTION)
 #define IS_NATIVE(val)        is_obj_type(val, OBJ_NATIVE)
 #define IS_STRING(val)        is_obj_type(val, OBJ_STRING)
@@ -47,6 +48,7 @@
 #define AS_INSTANCE(val)        ((ObjectInstance *)AS_OBJ(val))
 #define AS_NATIVE_INSTANCE(val) ((ObjectNativeInstance *)AS_OBJ(val))
 #define AS_NATIVE(val)        	(((ObjectNative *)AS_OBJ(val))->function)
+#define AS_INTERFACE(val)       ((ObjectInterface *)AS_OBJ(val))
 #define AS_STRING(val)        	((ObjectString *)AS_OBJ(val))
 #define AS_CSTRING(val)       	(((ObjectString *)AS_OBJ(val))->string.c_str())
 
@@ -64,6 +66,7 @@ typedef enum {
     OBJ_LIB,
     OBJ_STRING,
     OBJ_UPVALUE,
+    OBJ_INTERFACE,
 } ObjType;
 
 
@@ -175,12 +178,22 @@ class ObjectNativeInstance : public Object
 public:
     ObjectNativeClass *klass;
     Table fields;
+	void* cStruct;
 
 	explicit ObjectNativeInstance(ObjectNativeClass *k)
 	{
 		type = OBJ_NATIVE_INSTANCE;
 		klass = k;
 		fields = Table();
+		cStruct = NULL;
+	}
+
+	explicit ObjectNativeInstance(ObjectNativeClass *k, void* c)
+	{
+		type = OBJ_NATIVE_INSTANCE;
+		klass = k;
+		fields = Table();
+		cStruct = c;
 	}
 
     bool operator==(const ObjectNativeInstance& other) const
@@ -260,6 +273,34 @@ public:
     }
 };
 
+class ObjectInterface : public Object
+{
+public:
+    ObjectString *name;
+    Table methods;
+
+	explicit ObjectInterface(ObjectString* n)
+	{
+		type = OBJ_INTERFACE;
+		name = n;
+		methods = Table();
+	}
+
+    // bool operator==(const ObjectClass& other) const
+    // {
+    //     ObjectClass* cl = (ObjectClass*) this;
+    //     ObjectClass* end = (ObjectClass*) &other;
+    //     if (derivedCount < other.derivedCount)
+    //     {
+    //         cl = (ObjectClass*) &other;
+    //         end = (ObjectClass*) this;
+    //     }
+    //     while (cl && !(cl == end))
+    //         cl = cl->superClass;
+        
+    //     return cl != NULL;
+    // }
+};
 
 class ObjectBoundMethod : public Object
 {
@@ -310,6 +351,7 @@ class ObjectArray : public Object
 {
 public:
     std::vector<Value> m_vValues;
+    Table methods;
 
     explicit ObjectArray()
 	{

@@ -48,27 +48,6 @@ bool Lexer::TokenMatch(Token oToken, const std::string& strString)
     return (oToken.GetText() == strString);
 }
 
-int Lexer::SkipComment(bool long_comment)
-{
-    int line = 0;
-    m_strCurrent += 2;
-    if (long_comment) {
-        while (*m_strCurrent != '*' && *(m_strCurrent + 1) != '/' && *m_strCurrent) {
-            if (*m_strCurrent == '\n' || *m_strCurrent == '\0')
-                ++line;
-            m_strCurrent++;
-        }
-        m_strCurrent++;
-    } else {
-        while (*m_strCurrent != '\n' && *m_strCurrent) {
-            m_strCurrent++;
-        }
-        ++line;
-    }
-
-    return (line);
-}
-
 bool Lexer::Process(const std::string& strText)
 {
     m_strText    = strText;
@@ -77,7 +56,6 @@ bool Lexer::Process(const std::string& strText)
     if (strText.empty())
         return false;
 
-    bool bError = false;
     m_iLines = 1;
 
     int iLen = 0;
@@ -86,6 +64,7 @@ bool Lexer::Process(const std::string& strText)
     std::vector<StringID>::iterator itTrash;
     int maxLen = 0;
     std::pair<StringID, std::string> defineTarget;
+	// helper::replaceAll(m_strText, "\\\"", "\"", m_strText.size());
 
     while (!m_strText.empty())
     {
@@ -97,27 +76,43 @@ bool Lexer::Process(const std::string& strText)
 		{
 			if (define.second.m_cStart == m_strText[0])
 			{
-				char* current = (char *) m_strText.c_str();
-				const char* start = current;
-				const char* startContent = ++current;
-				while(current && *current != define.second.m_cEnd)
-					current++;
-				oTokenList.emplace_back(define.first, startContent, current, m_iLines);
-				if (*current == define.second.m_cEnd)
-					current++;
-				m_strText.erase(0, std::distance((char*)start, current));
+				m_strText.erase(0, 1);
+				std::string newStr = "";
+				int i = 0;
+				for(i = 0; m_strText[i] != '"'; i++)
+				{
+					if (m_strText[i] == '\\')
+					{
+						switch(m_strText[++i])
+						{
+							case '\\':
+								newStr += '\\';
+								break;
+							case 'n':
+								newStr += '\n';
+								break;
+							case 't':
+								newStr += '\t';
+								break;
+							case 'r':
+								newStr += '\r';
+								break;
+							case '"':
+								newStr += '"';
+								break;
+						}
+					} else
+						newStr += m_strText[i];
+				}
+				oTokenList.emplace_back(define.first, newStr, newStr.size(), m_iLines);
+				m_strText.erase(0, i + 1);
 				break;
 			}
 		}
 
         for (auto& define : m_oAllDefines)
         {
-            // const char* pStart = nullptr;
-            // re.Compile(define.second.c_str());
-            // re_compile(define.second.c_str());
             int index = re_match(define.second.c_str(), m_strText.c_str(), &iLen);
-            // pStart = re.Search(m_strText.c_str(), &iLen);
-            // std::cout << define.second.c_str() << std::endl;
 
             if (index == 0)
             {
@@ -127,15 +122,43 @@ bool Lexer::Process(const std::string& strText)
                     maxLen = iLen;
                     pText = m_strText.substr(index, maxLen);
                 }
-                // std::cout << define.first << " - " << m_iLines << std::endl;
             }
         }
 
         if (maxLen > 0)
         {
             itTrash = std::find(m_oTrashDefines.begin(), m_oTrashDefines.end(), defineTarget.first);
+			std::string newStr = "";
+			int i = 0;
             if (itTrash == m_oTrashDefines.end())
-                oTokenList.emplace_back(defineTarget.first, pText, maxLen, m_iLines);
+			{
+				for(i = 0; i < maxLen; i++)
+				{
+					if (m_strText[i] == '\\')
+					{
+						switch(m_strText[++i])
+						{
+							case '\\':
+								newStr += '\\';
+								break;
+							case 'n':
+								newStr += '\n';
+								break;
+							case 't':
+								newStr += '\t';
+								break;
+							case 'r':
+								newStr += '\r';
+								break;
+							case '"':
+								newStr += '"';
+								break;
+						}
+					} else
+						newStr += m_strText[i];
+				}
+                oTokenList.emplace_back(defineTarget.first, newStr, i, m_iLines);
+			}
             m_strText.erase(0, maxLen);
             bFound = true;
 
@@ -205,11 +228,6 @@ void Lexer::Clear()
 bool Lexer::Finished() const
 {
     return (oTokenList.end() == oTokenIterator);
-}
-
-void Lexer::AddArea(std::pair<char, char> cRange)
-{
-    // m_oAreas.emplace_back(cRange);
 }
 
 // enum class Format {

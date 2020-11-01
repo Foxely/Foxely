@@ -17,6 +17,7 @@
 #include "library/array.h"
 #include "library/module.h"
 #include "library/sfml.h"
+#include "foxely.h"
 
 
 VM VM::m_oInstance = VM();
@@ -32,35 +33,34 @@ std::vector<std::string> standardLib =
 	"sfml",
 };
 
+#define TRACE2(arg1) char arg1; \
+                            FOX_MODULE_CALL(arg1);
+#define TRACE(arg1,...)  TRACE2(arg1)
+
 void VM::LoadStandard(const std::string& name)
 {
 	NativeMethods methods;
 
 	OSPlugin os;
 	IOPlugin io;
-	ArrayPlugin array;
-	SFMLPlugin sfml;
+	// ArrayPlugin array;
+	// SFMLPlugin sfml;
 
 	if (name == "os")
 	{
-		methods = os.GetMethods();
-		DefineLib(os.GetClassName(), methods);
+		DefineLib(os.GetClassName(), os.m_oMethods);
 	}
 	else if (name == "io")
 	{
-		methods = io.GetMethods();
-		DefineLib(io.GetClassName(), methods);
+		DefineLib(io.GetClassName(), io.m_oMethods);
 	}
 	else if (name == "array")
 	{
-		methods = array.GetMethods();
-		DefineNativeClass(array.GetClassName(), methods);
+		// DefineNativeClass(array.GetClassName(), array.m_oMethods);
 	}
 	else if (name == "sfml")
 	{
-		std::cout << "nbhbg";
-		methods = sfml.GetMethods();
-		DefineNativeClass(sfml.GetClassName(), methods);
+		// DefineNativeClass(sfml.GetClassName(), sfml.m_oMethods);
 	}
 }
 
@@ -314,6 +314,22 @@ void VM::DefineNativeClass(const std::string &name, NativeMethods &functions)
 	Pop();
 }
 
+void VM::DefineBuiltIn(Table& methods, NativeMethods &functions)
+{
+	for (auto &it : functions)
+	{
+		NativeFn func = it.second;
+
+		Push(OBJ_VAL(m_oParser.CopyString(it.first)));
+		Push(OBJ_VAL(new ObjectNative(func)));
+
+		methods.Set(AS_STRING(PeekStart(0)), PeekStart(1));
+
+		Pop();
+		Pop();
+	}
+}
+
 bool VM::InvokeFromClass(ObjectClass *klass, ObjectString *name, int argCount)
 {
 	Value method;
@@ -322,6 +338,12 @@ bool VM::InvokeFromClass(ObjectClass *klass, ObjectString *name, int argCount)
 		RuntimeError("Undefined property '%s'.", name->string.c_str());
 		return false;
 	}
+
+    if (method == NIL_VAL)
+    {
+        RuntimeError("The class '%s' doesn't implement interface members '%s'.", klass->name->string.c_str(), name->string.c_str());
+		return false;
+    }
 
 	return Call(AS_CLOSURE(method), argCount);
 }
@@ -340,64 +362,77 @@ bool VM::InvokeFromNativeClass(ObjectNativeClass *klass, ObjectString *name, int
 bool VM::Invoke(ObjectString *name, int argCount)
 {
 	Value receiver = Peek(argCount);
-
-	if (!IS_INSTANCE(receiver) && !IS_NATIVE_INSTANCE(receiver) && !IS_LIB(receiver))
-	{
-		RuntimeError("Only instances && module have methods.");
-		return false;
-	}
-
 	Value value;
-	if (IS_INSTANCE(receiver)) {
-		ObjectInstance *instance = AS_INSTANCE(receiver);
 
-		if (instance->fields.Get(name, value)) {
-			stackTop[-argCount - 1] = value;
-			return CallValue(value, argCount);
-		}
-
-		return InvokeFromClass(instance->klass, name, argCount);
-	}
-	else if (IS_NATIVE_INSTANCE(receiver))
+	switch (AS_OBJ(receiver)->type)
 	{
-		ObjectNativeInstance *instance = AS_NATIVE_INSTANCE(receiver);
-
-		if (instance->fields.Get(name, value))
+		case OBJ_INSTANCE:
 		{
-			stackTop[-argCount - 1] = value;
-			return CallValue(value, argCount);
+			ObjectInstance *instance = AS_INSTANCE(receiver);
+			if (instance->fields.Get(name, value)) {
+				stackTop[-argCount - 1] = value;
+				return CallValue(value, argCount);
+			}
+			return InvokeFromClass(instance->klass, name, argCount);
 		}
-		return InvokeFromNativeClass(instance->klass, name, argCount);
-	}
-	else if (IS_LIB(receiver))
-	{
-		ObjectLib *instance = AS_LIB(receiver);
-		Value method;
-		if (!instance->methods.Get(name, method)) {
-			RuntimeError("Undefined property '%s'.", name->string.c_str());
+
+		case OBJ_NATIVE_INSTANCE:
+		{
+			ObjectNativeInstance *instance = AS_NATIVE_INSTANCE(receiver);
+			if (instance->fields.Get(name, value))
+			{
+				stackTop[-argCount - 1] = value;
+				return CallValue(value, argCount);
+			}
+			return InvokeFromNativeClass(instance->klass, name, argCount);
+		}
+
+		case OBJ_LIB:
+		{
+			ObjectLib *instance = AS_LIB(receiver);
+			Value method;
+			if (!instance->methods.Get(name, method))
+			{
+				RuntimeError("Undefined property '%s'.", name->string.c_str());
+				return false;
+			}
+			return CallValue(method, argCount);
+		}
+
+		case OBJ_ARRAY:
+		{
+			Value method;
+			if (!arrayMethods.Get(name, method))
+			{
+				RuntimeError("Undefined methods '%s'.", name->string.c_str());
+				return false;
+			}
+			return CallValue(method, argCount);
+		}
+		default:
+			RuntimeError("Only instances && module have methods.");
 			return false;
-		}
-		return CallValue(method, argCount);
 	}
 }
 
 InterpretResult VM::interpret(const char *source)
 {
+    ResetStack();
 	if (!isInit)
 	{
 		m_oParser.m_pVm = this;
 		openUpvalues = NULL;
 		stack[0] = Value();
-		ResetStack();
 		DefineNative("clock", clockNative);
 		initString = NULL;
 		initString = m_oParser.CopyString("init");
 		ModulePlugin module;
-		NativeMethods methods = module.GetMethods();
-		DefineLib(module.GetClassName(), methods);
-		manager.GetAllLibrary();
+		DefineLib(module.GetClassName(), module.m_oMethods);
+		array_entry();
 		isInit = true;
 	}
+	
+    result = INTERPRET_OK;
 
 	Chunk oChunk;
 	ObjectFunction *function = Compile(m_oParser, source, &oChunk);
@@ -415,7 +450,8 @@ InterpretResult VM::interpret(const char *source)
 	return result;
 }
 
-InterpretResult VM::run() {
+InterpretResult VM::run()
+{
 	CallFrame *frame = &frames[frameCount - 1];
 
 #define READ_BYTE() (*frame->ip++)
@@ -451,8 +487,8 @@ InterpretResult VM::run() {
 			frame->closure->function->chunk,
 			(int)(frame->ip - frame->closure->function->chunk.m_vCode.begin()));
 #endif
-		uint8_t instruction;
-		switch (instruction = READ_BYTE())
+		uint8_t instruction = READ_BYTE();
+		switch (instruction)
 		{
 		case OP_NIL:
 			Push(NIL_VAL);
@@ -579,6 +615,10 @@ InterpretResult VM::run() {
 				double b = AS_NUMBER(Pop());
 				double a = AS_NUMBER(Pop());
 				Push(NUMBER_VAL(a + b));
+			} else if (IS_INT(Peek(0)) && IS_INT(Peek(1))) {
+				int b = AS_INT(Pop());
+				int a = AS_INT(Pop());
+				Push(INT_VAL(a + b));
 			} else {
 				RuntimeError("Operands must be two numbers or two strings.");
 				return INTERPRET_RUNTIME_ERROR;
@@ -606,9 +646,42 @@ InterpretResult VM::run() {
 			Push(NUMBER_VAL(-AS_NUMBER(Pop())));
 			break;
 		}
-		case OP_PRINT: {
+		case OP_PRINT:
+		{
+			int argCount = READ_BYTE();
+			int tempArgCount = argCount;
+			int percentCount = 0;
+			Value string = Peek(--tempArgCount);
+			
+			for (int i = 0; AS_STRING(string)->string[i]; i++)
+				if (AS_STRING(string)->string[i] == '%' && AS_STRING(string)->string[i + 1] == '%')
+					i++;
+				else if (AS_STRING(string)->string[i] == '%')
+					percentCount++;
+			
+			if (tempArgCount != percentCount)
+			{
+				RuntimeError("Expected %d arguments but got %d in print call.", percentCount, tempArgCount);
+				break;
+			}
+			
+			for (int i = 0; AS_STRING(string)->string[i]; i++)
+			{
+				if (AS_STRING(string)->string[i] != '%') {
+					printf("%c", AS_STRING(string)->string[i]);
+				} else if (AS_STRING(string)->string[i] == '%' && AS_STRING(string)->string[i + 1] == '%') {
+					printf("%%");
+					i++;
+				} else
+					PrintValue(Peek(--tempArgCount));
+			}
+			stackTop -= argCount;
+			break;
+		}
+
+        case OP_PRINT_REPL:
+		{
 			PrintValue(Pop());
-			std::cout << std::endl;
 			break;
 		}
 
@@ -642,18 +715,31 @@ InterpretResult VM::run() {
 		case OP_CLASS:
 			Push(OBJ_VAL(new ObjectClass(READ_STRING())));
 			break;
+        
+        case OP_INTERFACE:
+			Push(OBJ_VAL(new ObjectInterface(READ_STRING())));
+			break;
 
 		case OP_INHERIT: {
 			Value superclass = Peek(1);
 
-			if (!IS_CLASS(superclass)) {
-				RuntimeError("Superclass must be a class.");
+			if (!IS_CLASS(superclass) && !IS_INTERFACE(superclass)) {
+				RuntimeError("Superclass must be a class or an interface");
 				return INTERPRET_RUNTIME_ERROR;
 			}
-			ObjectClass *subclass = AS_CLASS(Peek(0));
-			subclass->methods.AddAll(AS_CLASS(superclass)->methods);
-			subclass->superClass = AS_CLASS(superclass);
-			subclass->derivedCount = AS_CLASS(superclass)->derivedCount + 1;
+
+            ObjectClass *subclass = AS_CLASS(Peek(0));
+
+            if (IS_CLASS(superclass))
+            {
+                subclass->methods.AddAll(AS_CLASS(superclass)->methods);
+                subclass->superClass = AS_CLASS(superclass);
+                subclass->derivedCount = AS_CLASS(superclass)->derivedCount + 1;
+            }
+            else
+            {
+                subclass->methods.AddAll(AS_INTERFACE(superclass)->methods);
+            }
 			Pop(); // Subclass.
 			break;
 		}
@@ -661,6 +747,14 @@ InterpretResult VM::run() {
 		case OP_METHOD:
 			DefineMethod(READ_STRING());
 			break;
+        
+        case OP_INTERFACE_PROCEDURE:
+        {
+            ObjectInterface *interface = AS_INTERFACE(Peek(0));
+            interface->methods.Set(READ_STRING(), NIL_VAL);
+            // Pop();
+            break;
+        }
 
 		case OP_INVOKE: {
 			ObjectString *method = READ_STRING();
@@ -730,8 +824,8 @@ InterpretResult VM::run() {
 			size_t lastindex = path->string.find_last_of("."); 
 			std::string rawname = path->string.substr(0, lastindex); 
 
-			if (manager.LoadLibrary(rawname))
-				break;
+			// if (manager.LoadLibrary(rawname))
+			// 	break;
 
 			std::ifstream t(file);
 			std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
@@ -766,11 +860,130 @@ InterpretResult VM::run() {
 			break;
 		}
 
-		case OP_CONST: {
+		case OP_CONST:
+		{
 			Value constant = READ_CONSTANT();
 			Push(constant);
 			break;
 		}
+
+		case OP_SUBSCRIPT:
+		{
+            Value indexValue = Peek(0);
+            Value subscriptValue = Peek(1);
+
+            if (!IS_OBJ(subscriptValue))
+			{
+                frame->ip = ip;
+                RuntimeError("Can only subscript on lists, strings or dictionaries.");
+                return INTERPRET_RUNTIME_ERROR;
+            }
+
+            switch (AS_OBJ(subscriptValue)->type)
+			{
+                case OBJ_ARRAY:
+				{
+                    if (!IS_NUMBER(indexValue) && !IS_INT(indexValue))
+					{
+                        RuntimeError("List index must be a number.");
+                        return INTERPRET_RUNTIME_ERROR;
+                    }
+
+                    ObjectArray *list = AS_ARRAY(subscriptValue);
+                    int index = AS_INT(indexValue);
+
+                    // Allow negative indexes
+                    if (index < 0)
+                        index = list->m_vValues.size() + index;
+
+                    if (index >= 0 && index < list->m_vValues.size())
+					{
+                        Pop();
+                        Pop();
+                        Push(list->m_vValues[index]);
+                        break;
+                    }
+
+                    RuntimeError("List index out of bounds.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+
+                case OBJ_STRING:
+				{
+                    ObjectString *string = AS_STRING(subscriptValue);
+                    int index = AS_INT(indexValue);
+
+                    // Allow negative indexes
+                    if (index < 0)
+                        index = string->string.size() + index;
+
+                    if (index >= 0 && index < string->string.size()) {
+                        Pop();
+                        Pop();
+                        Push(OBJ_VAL(m_oParser.CopyString(std::string(1, string->string[index]))));
+                        break;
+                    }
+
+                    RuntimeError("String index out of bounds.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+
+                // case OBJ_DICT: {
+                //     ObjDict *dict = AS_DICT(subscriptValue);
+                //     if (!isValidKey(indexValue)) {
+                //         frame->ip = ip;
+                //         runtimeError(vm, "Dictionary key must be an immutable type.");
+                //         return INTERPRET_RUNTIME_ERROR;
+                //     }
+
+                //     Value v;
+                //     pop(vm);
+                //     pop(vm);
+                //     if (dictGet(dict, indexValue, &v)) {
+                //         push(vm, v);
+                //     } else {
+                //         push(vm, NIL_VAL);
+                //     }
+
+                //     break;
+                // }
+
+                default:
+				{
+                    frame->ip = ip;
+                    RuntimeError("Can only subscript on lists, strings or dictionaries.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+            }
+			break;
+        }
+
+		case OP_ARRAY:
+		{
+            ObjectArray *array = new ObjectArray();
+            Push(OBJ_VAL(array));
+            break;
+        }
+
+        case OP_ADD_LIST:
+		{
+            int argCount = READ_BYTE();
+            Value listValue = Peek(argCount);
+
+            ObjectArray *array = AS_ARRAY(listValue);
+
+			for (int i = argCount - 1; i >= 0; i--)
+			{
+            	array->m_vValues.push_back(Peek(i));
+			}
+
+			stackTop -= argCount;
+
+            Pop();
+
+            Push(OBJ_VAL(array));
+            break;
+        }
 		}
 		// auto endExec = std::chrono::steady_clock::now();
 		// disassembleInstruction(frame->function->chunk, (int)(frame->ip -

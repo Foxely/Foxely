@@ -2,7 +2,6 @@
 #include <iostream>
 #include <stdexcept>
 #include <string.h>
-#include <filesystem>
 #include <fstream>
 #include <streambuf>
 #include "foxely.h"
@@ -33,6 +32,13 @@ Value importNative(int argCount, Value* args)
 ModulePlugin::ModulePlugin()
 {
     // std::cout << "ModulePlugin: Create" << std::endl;
+
+	NativeMethods methods =
+	{
+		std::make_pair<std::string, NativeFn>("load", importNative),
+	};
+
+	m_oMethods = methods;
 }
 
 ModulePlugin::~ModulePlugin()
@@ -43,14 +49,4 @@ ModulePlugin::~ModulePlugin()
 const char* ModulePlugin::GetClassName() const
 {
     return "module";
-}
-
-NativeMethods ModulePlugin::GetMethods()
-{
-	NativeMethods methods =
-	{
-		std::make_pair<std::string, NativeFn>("load", importNative),
-	};
-    
-	return methods;
 }

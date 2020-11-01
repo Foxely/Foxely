@@ -1,104 +1,100 @@
-#include <iostream>
-#include <string>
-#include "library/sfml.h"
+// #include <iostream>
+// #include <string>
+// #include "library/sfml.h"
 
-#include "foxely.h"
-
-
-// SCY_PLUGIN(SFMLPlugin, "SFML Module", "0.0.1")
-
-ObjectAbstractType foxely_sfml_window_type =
-{
-    "sfml/window",
-};
-
-Value initWindowNative(int argCount, Value* args)
-{
-    Fox_FixArity(argCount, 3);
-    Fox_PanicIfNot(Fox_IsString(args[0]), "Expected string value");
-    Fox_PanicIfNot(Fox_IsNumber(args[1]), "Expected number value");
-    Fox_PanicIfNot(Fox_IsNumber(args[2]), "Expected number value");
-    sf::VideoMode mode = sf::VideoMode(Fox_ValueToNumber(args[1]), Fox_ValueToNumber(args[2]));
-    sf::RenderWindow* window = new sf::RenderWindow(mode, Fox_ValueToCString(args[0]));
-
-    Fox_SetInstanceField(args[-1], "m_oWindow", Fox_Abstract(window, &foxely_sfml_window_type));
-    return NIL_VAL;
-}
+// #include "foxely.h"
 
 
-Value windowIsOpenNative(int argCount, Value* args)
-{
-    Fox_FixArity(argCount, 0);
-    Value windowField = Fox_GetInstanceField(args[-1], "m_oWindow");
+// // SCY_PLUGIN(SFMLPlugin, "SFML Module", "0.0.1")
 
-    sf::RenderWindow* window = (sf::RenderWindow *) Fox_AbstractGetData(Fox_ValueToAbstract(windowField));
+// ObjectAbstractType foxely_sfml_window_type =
+// {
+//     "sfml/window",
+// };
 
-    return BOOL_VAL(window->isOpen());
-}
+// Value initWindowNative(int argCount, Value* args)
+// {
+//     Fox_FixArity(argCount, 3);
+//     Fox_PanicIfNot(Fox_IsString(args[0]), "Expected string value");
+//     Fox_PanicIfNot(Fox_IsNumber(args[1]), "Expected number value");
+//     Fox_PanicIfNot(Fox_IsNumber(args[2]), "Expected number value");
+//     sf::VideoMode mode = sf::VideoMode(Fox_ValueToNumber(args[1]), Fox_ValueToNumber(args[2]));
+//     sf::RenderWindow* window = new sf::RenderWindow(mode, Fox_ValueToCString(args[0]));
 
-Value windowClearNative(int argCount, Value* args)
-{
-    Fox_FixArity(argCount, 0);
-    Value windowField = Fox_GetInstanceField(args[-1], "m_oWindow");
+//     Fox_SetInstanceField(args[-1], "m_oWindow", Fox_Abstract(window, &foxely_sfml_window_type));
+//     return NIL_VAL;
+// }
 
-    sf::RenderWindow* window = (sf::RenderWindow *) Fox_AbstractGetData(Fox_ValueToAbstract(windowField));
 
-    window->clear();
-    return NIL_VAL;
-}
+// Value windowIsOpenNative(int argCount, Value* args)
+// {
+//     Fox_FixArity(argCount, 0);
+//     Value windowField = Fox_GetInstanceField(args[-1], "m_oWindow");
 
-Value windowDisplayNative(int argCount, Value* args)
-{
-    Fox_FixArity(argCount, 0);
-    Value windowField = Fox_GetInstanceField(args[-1], "m_oWindow");
+//     sf::RenderWindow* window = (sf::RenderWindow *) Fox_AbstractGetData(Fox_ValueToAbstract(windowField));
 
-    sf::RenderWindow* window = (sf::RenderWindow *) Fox_AbstractGetData(Fox_ValueToAbstract(windowField));
+//     return BOOL_VAL(window->isOpen());
+// }
 
-    window->display();
-    return NIL_VAL;
-}
+// Value windowClearNative(int argCount, Value* args)
+// {
+//     Fox_FixArity(argCount, 0);
+//     Value windowField = Fox_GetInstanceField(args[-1], "m_oWindow");
 
-Value windowPollNative(int argCount, Value* args)
-{
-    Fox_FixArity(argCount, 1);
-    Value windowField = Fox_GetInstanceField(args[-1], "m_oWindow");
+//     sf::RenderWindow* window = (sf::RenderWindow *) Fox_AbstractGetData(Fox_ValueToAbstract(windowField));
 
-    sf::RenderWindow* window = (sf::RenderWindow *) Fox_AbstractGetData(Fox_ValueToAbstract(windowField));
+//     window->clear();
+//     return NIL_VAL;
+// }
 
-    window->pollEvent();
-    return NIL_VAL;
-}
+// Value windowDisplayNative(int argCount, Value* args)
+// {
+//     Fox_FixArity(argCount, 0);
+//     Value windowField = Fox_GetInstanceField(args[-1], "m_oWindow");
 
-SFMLPlugin::SFMLPlugin()
-{
-    // std::cout << "SFMLPlugin: Create" << std::endl;
-}
+//     sf::RenderWindow* window = (sf::RenderWindow *) Fox_AbstractGetData(Fox_ValueToAbstract(windowField));
 
-SFMLPlugin::~SFMLPlugin()
-{
-    // std::cout << "SFMLPlugin: Destroy" << std::endl;
-}
+//     window->display();
+//     return NIL_VAL;
+// }
 
-const char* SFMLPlugin::GetClassName() const
-{
-    return "sfml";
-}
+// Value windowPollNative(int argCount, Value* args)
+// {
+//     Fox_FixArity(argCount, 1);
+//     Value windowField = Fox_GetInstanceField(args[-1], "m_oWindow");
 
-NativeMethods SFMLPlugin::GetMethods()
-{
-	NativeMethods methods =
-	{
-	};
+//     sf::RenderWindow* window = (sf::RenderWindow *) Fox_AbstractGetData(Fox_ValueToAbstract(windowField));
 
-    NativeMethods windowMethods =
-	{
-		std::make_pair<std::string, NativeFn>("init", initWindowNative),
-		std::make_pair<std::string, NativeFn>("isOpen", windowIsOpenNative),
-		std::make_pair<std::string, NativeFn>("clear", windowClearNative),
-		std::make_pair<std::string, NativeFn>("display", windowDisplayNative),
-	};
+//     window->pollEvent();
+//     return NIL_VAL;
+// }
 
-    Fox_DefineClass("Window", windowMethods);
+// SFMLPlugin::SFMLPlugin()
+// {
+//     // std::cout << "SFMLPlugin: Create" << std::endl;
+		// NativeMethods methods =
+		// {
+		// };
 
-	return methods;
-}
+		// NativeMethods windowMethods =
+		// {
+		// 	std::make_pair<std::string, NativeFn>("init", initWindowNative),
+		// 	std::make_pair<std::string, NativeFn>("isOpen", windowIsOpenNative),
+		// 	std::make_pair<std::string, NativeFn>("clear", windowClearNative),
+		// 	std::make_pair<std::string, NativeFn>("display", windowDisplayNative),
+		// };
+
+		// Fox_DefineClass("Window", windowMethods);
+//		m_oMethods = methods;
+
+// }
+
+// SFMLPlugin::~SFMLPlugin()
+// {
+//     // std::cout << "SFMLPlugin: Destroy" << std::endl;
+// }
+
+// const char* SFMLPlugin::GetClassName() const
+// {
+//     return "sfml";
+// }

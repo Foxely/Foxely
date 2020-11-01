@@ -91,9 +91,16 @@ void ImportStatement(Parser& parser)
 
 void PrintStatement(Parser& parser)
 {
-	Expression(parser);
+	parser.Consume(TOKEN_STRING, "Expect string type for the print function.");
+    parser.EmitConstant(OBJ_VAL(parser.CopyString(parser.PreviousToken().GetText())));
+    int argCount = 1;
+    while (parser.Match(TOKEN_COMMA))
+    {
+        Expression(parser);
+        argCount++;
+    }
 	parser.Consume(TOKEN_SEMICOLON, "Expect ';' after value.");
-	parser.EmitByte(OP_PRINT);
+    parser.EmitBytes(OP_PRINT, argCount);
 }
 
 void ExpressionStatement(Parser& parser)
@@ -105,9 +112,12 @@ void ExpressionStatement(Parser& parser)
     }
     else
     {
-	    Expression(parser);
+        Expression(parser);
 	    parser.Consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
-        parser.EmitByte(OP_POP);
+        if (IsRepl) {
+            parser.EmitByte(OP_PRINT_REPL);
+        } else
+            parser.EmitByte(OP_POP);
     }
 }
 

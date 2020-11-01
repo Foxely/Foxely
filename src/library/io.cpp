@@ -12,23 +12,24 @@ ObjectAbstractType foxely_file_type =
 
 Value openNative(int argCount, Value* args)
 {
-    Fox_FixArity(argCount, 1);
-    FILE* fp = fopen(Fox_ValueToCString(args[0]), "r");
+    Fox_FixArity(argCount, 2);
+	Fox_PanicIfNot(Fox_IsString(args[0]), "Expected string value");
+	Fox_PanicIfNot(Fox_IsString(args[1]), "Expected string value");
+	
+    FILE* fp = fopen(Fox_ValueToCString(args[0]), Fox_ValueToCString(args[1]));
     if (fp)
     {
-        Value instance = Fox_DefineInstanceOf("File");
-        Fox_SetInstanceField(instance, "m_oFile", Fox_Abstract(fp, &foxely_file_type));
+        Value instance = Fox_DefineInstanceOfCStruct("File", fp);
         return instance;
     }
+	Fox_RuntimeError("'%s' doesn't exist.", Fox_ValueToCString(args[0]));
     return NIL_VAL;
 }
 
 Value readNative(int argCount, Value* args)
 {
     Fox_Arity(argCount, 0, 1);
-    Value fpField = Fox_GetInstanceField(args[-1], "m_oFile");
-
-    FILE* fp = (FILE *) Fox_AbstractGetData(Fox_ValueToAbstract(fpField));
+    FILE* fp = (FILE *) Fox_GetInstanceCStruct(args[-1]);
 
     if (argCount == 0)
     {
@@ -39,7 +40,10 @@ Value readNative(int argCount, Value* args)
         rewind(fp);
 
         char fcontent[len];
-        fread(fcontent, 1, len, fp);
+        size_t lBytes = fread(fcontent, 1, len, fp);
+
+        if (lBytes < 0)
+            return NIL_VAL;
 
         fcontent[len] = 0;
 
@@ -47,17 +51,12 @@ Value readNative(int argCount, Value* args)
     }
     else
     {
-        if (Fox_Is(args[0], VAL_NUMBER))
-        {
-            int size = Fox_ValueToNumber(args[0]);
-            char chunk[size];
+        Fox_PanicIfNot(Fox_IsNumber(args[0]), "Invalid type, expected number type");
+        int size = Fox_ValueToNumber(args[0]);
+        char chunk[size];
 
-            if (fgets(chunk, sizeof(chunk), fp) != NULL)
-                return Fox_StringToValue(chunk);
-        }
-        else
-            Fox_RuntimeError("Invalid type, expected number type");
-        return NIL_VAL;
+        if (fgets(chunk, sizeof(chunk), fp) != NULL)
+            return Fox_StringToValue(chunk);
     }
     return NIL_VAL;
 }
@@ -65,8 +64,7 @@ Value readNative(int argCount, Value* args)
 Value readLineNative(int argCount, Value* args)
 {
     Fox_FixArity(argCount, 0);
-    Value fpField = Fox_GetInstanceField(args[-1], "m_oFile");
-    FILE* fp = (FILE *) Fox_AbstractGetData(Fox_ValueToAbstract(fpField));
+    FILE* fp = (FILE *) Fox_GetInstanceCStruct(args[-1]);
     size_t len = 0;
     char* line = NULL;
     ssize_t read;
@@ -81,17 +79,22 @@ Value readLineNative(int argCount, Value* args)
     return NIL_VAL;
 }
 
+Value writeNative(int argCount, Value* args)
+{
+    Fox_FixArity(argCount, 1);
+    FILE* fp = (FILE *) Fox_GetInstanceCStruct(args[-1]);
+
+    Fox_PanicIfNot(Fox_IsString(args[0]), "Expected string value in write function");
+    fputs(Fox_ValueToCString(args[0]), fp);
+    return NIL_VAL;
+}
+
 Value closeNative(int argCount, Value* args)
 {
     Fox_FixArity(argCount, 0);
-    Value fpField = Fox_GetInstanceField(args[-1], "m_oFile");
-
-    if (!ValuesEqual(fpField, NIL_VAL))
-    {
-        FILE* fp = (FILE *) Fox_AbstractGetData(Fox_ValueToAbstract(fpField));
+    FILE* fp = (FILE *) Fox_GetInstanceCStruct(args[-1]);
+	if (fp)
         fclose(fp);
-    }
-    
     return NIL_VAL;
 }
 
@@ -100,6 +103,23 @@ Value closeNative(int argCount, Value* args)
 IOPlugin::IOPlugin()
 {
     // std::cout << "IOPlugin: Create" << std::endl;
+
+	NativeMethods methods =
+	{
+		std::make_pair<std::string, NativeFn>("open", openNative),
+	};
+
+    NativeMethods fileMethods =
+	{
+		std::make_pair<std::string, NativeFn>("write", writeNative),
+		std::make_pair<std::string, NativeFn>("read", readNative),
+		std::make_pair<std::string, NativeFn>("readline", readLineNative),
+		std::make_pair<std::string, NativeFn>("close", closeNative),
+	};
+
+    Fox_DefineClass("File", fileMethods);
+
+	m_oMethods = methods;
 }
 
 IOPlugin::~IOPlugin()
@@ -110,23 +130,4 @@ IOPlugin::~IOPlugin()
 const char* IOPlugin::GetClassName() const
 {
     return "io";
-}
-
-NativeMethods IOPlugin::GetMethods()
-{
-	NativeMethods methods =
-	{
-		std::make_pair<std::string, NativeFn>("open", openNative),
-	};
-
-    NativeMethods fileMethods =
-	{
-		std::make_pair<std::string, NativeFn>("read", readNative),
-		std::make_pair<std::string, NativeFn>("readline", readLineNative),
-		std::make_pair<std::string, NativeFn>("close", closeNative),
-	};
-
-    Fox_DefineClass("File", fileMethods);
-
-	return methods;
 }

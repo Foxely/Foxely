@@ -62,20 +62,17 @@ int TokenInserter::Insert(const Token&, const Token&, Token&)
     return -1;
 }
 
-int TokenInserter::Insert(const Token&, const Token&, const Token&,
-    Token&)
+int TokenInserter::Insert(const Token&, const Token&, const Token&, Token&)
 {
     return -1;
 }
 
-int TokenInserter::Insert(const Token&, const Token&, const Token&,
-    const Token&, Token&)
+int TokenInserter::Insert(const Token&, const Token&, const Token&, const Token&, Token&)
 {
     return -1;
 }
 
-int TokenInserter::Insert(const Token&, const Token&, const Token&,
-    const Token&, const Token&, Token&)
+int TokenInserter::Insert(const Token&, const Token&, const Token&, const Token&, const Token&, Token&)
 {
     return -1;
 }

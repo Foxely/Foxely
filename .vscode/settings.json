@@ -54,6 +54,10 @@
         "list": "cpp",
         "codecvt": "cpp",
         "iomanip": "cpp",
-        "filesystem": "cpp"
+        "filesystem": "cpp",
+        "*.fox": "cpp",
+        "condition_variable": "cpp",
+        "mutex": "cpp",
+        "thread": "cpp"
     }
 }

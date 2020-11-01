@@ -99,7 +99,6 @@ public:
             return oEofToken;
     }
 
-    void AddArea(std::pair<char, char> cRange);
     void Define(const std::string& strId, const std::string& strValue, bool bAddInTrash = false);
 	void Define(const int id, const std::string& strRegex, bool bAddInTrash = false);
     void DefineArea(const std::string& strId, char cStart, char cEnd);
@@ -119,6 +118,26 @@ public:
 
 namespace helper
 {
+    inline void replaceAll(std::string& source, const std::string& from, const std::string& to)
+    {
+        std::string newString;
+        newString.reserve(source.length());  // avoids a few memory allocations
+
+        std::string::size_type lastPos = 0;
+        std::string::size_type findPos;
+
+        while(std::string::npos != (findPos = source.find(from, lastPos)))
+        {
+            newString.append(source, lastPos, findPos - lastPos);
+            newString += to;
+            lastPos = findPos + from.length();
+        }
+
+        // Care for the rest after last occurrence
+        newString += source.substr(lastPos);
+
+        source.swap(newString);
+    }
 
     inline void Dump(Lexer& oLexer)
     {

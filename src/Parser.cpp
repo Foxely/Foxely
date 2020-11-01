@@ -25,7 +25,8 @@ Parser::Parser()
 
     oLexer.Define(TOKEN_NEW_LINE,"\n", true);
     oLexer.Define(TOKEN_WS,"[ \t\r\b]+", true);
-    oLexer.Define(TOKEN_NUMBER,"[0-9]+");
+    oLexer.Define(TOKEN_NUMBER,"[0-9]+.[0-9]+[f]");
+    oLexer.Define(TOKEN_INT,"[0-9]+");
     oLexer.DefineArea(TOKEN_STRING,'"', '"');
 	oLexer.Define(TOKEN_PLUS, "\\+");
 	oLexer.Define(TOKEN_MINUS, "-");
@@ -35,6 +36,8 @@ Parser::Parser()
     oLexer.Define(TOKEN_RIGHT_PAREN,"\\)");
     oLexer.Define(TOKEN_LEFT_BRACE,"\\{");
     oLexer.Define(TOKEN_RIGHT_BRACE,"\\}");
+    oLexer.Define(TOKEN_LEFT_BRACKET,"\\[");
+    oLexer.Define(TOKEN_RIGHT_BRACKET,"\\]");
 	oLexer.Define(TOKEN_DOT, "\\.");
     oLexer.Define(TOKEN_SEMICOLON,";");
     oLexer.Define(TOKEN_SLASH,"/");
@@ -63,19 +66,20 @@ Parser::Parser()
     oLexer.Define(TOKEN_BANG_EQUAL, "!=");
     oLexer.Define(TOKEN_CLASS, "class");
     oLexer.Define(TOKEN_ELSE, "else");
+    oLexer.Define(TOKEN_INTERFACE, "interface");
+    oLexer.Define(TOKEN_FOREIGN, "foreign");
     oLexer.Define(TOKEN_EQUAL, "=");
     oLexer.Define(TOKEN_EQUAL_EQUAL, "==");
-    oLexer.Define(TOKEN_IDENTIFIER,"[A-Za-z]+[0-9]*");
     oLexer.Define(TOKEN_SHEBANG,"#[^\n\r]*", true);
-    // oLexer.Define("Open Square Bracket","\\[");
-    // oLexer.Define("Close Square Bracket","\\]");
+    oLexer.Define(TOKEN_IDENTIFIER,"[A-Za-z_]+[0-9]*");
     // oLexer.Define("Arrow","->");
-    // oLexer.DefineArea(TOKEN_SINGLE_COMMENT,'//', '\n');
     oLexer.Define(TOKEN_SINGLE_COMMENT,"//[^\n\r]*", true);
-    oLexer.Define(TOKEN_MULTI_COMMENT,"/\\*.*\\*/", true);
+    oLexer.Define(TOKEN_MULTI_COMMENT,"/\\*.+\\*/", true);
     oLexer.Define(TOKEN_EOF,"[\0]");
 
 
+    rules[TOKEN_RIGHT_BRACKET] = { NULL, NULL, PREC_NONE };
+    rules[TOKEN_LEFT_BRACKET] = { List, Subscript, PREC_CALL };
     rules[TOKEN_LEFT_PAREN] = { Grouping, CallCompiler, PREC_CALL };
     rules[TOKEN_RIGHT_PAREN] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_LEFT_BRACE] = { NULL, NULL, PREC_NONE };
@@ -98,7 +102,8 @@ Parser::Parser()
     rules[TOKEN_IDENTIFIER] = { Variable, NULL, PREC_NONE };
     rules[TOKEN_STRING] = { String, NULL, PREC_NONE };
     rules[TOKEN_NUMBER] = { Number, NULL, PREC_NONE };
-    rules[TOKEN_AND] = { NULL, RuleAnd, PREC_NONE };
+    rules[TOKEN_INT] = { IntNumber, NULL, PREC_NONE };
+    rules[TOKEN_AND] = { NULL, RuleAnd, PREC_AND };
     rules[TOKEN_CLASS] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_ELSE] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_FALSE] = { Literal, NULL, PREC_NONE };
@@ -106,7 +111,7 @@ Parser::Parser()
     rules[TOKEN_FUN] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_IF] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_NIL] = { Literal, NULL, PREC_NONE };
-    rules[TOKEN_OR] = { NULL, RuleOr, PREC_NONE };
+    rules[TOKEN_OR] = { NULL, RuleOr, PREC_OR };
     rules[TOKEN_PRINT] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_RETURN] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_SUPER] = { RuleSuper, NULL, PREC_NONE };
@@ -139,8 +144,8 @@ void Parser::MarkInitialized()
 
 ObjectFunction* Compile(Parser& parser, const std::string& strText, Chunk* chunk)
 {
-    if (!parser.Init(strText))
-        return NULL;
+    parser.Init(strText);
+        // return NULL;
 
 	Compiler compiler(parser, TYPE_SCRIPT, "");
 	parser.compilingChunk = chunk;
@@ -280,10 +285,13 @@ void ParsePrecedence(Parser& parser, Precedence preced)
     }
     bool can_assign = preced <= PREC_ASSIGNMENT;
     prefix_rule(parser, can_assign);
-    while (preced <= parser.GetRule(parser.CurrentToken().m_oType.m_id)->precedence) {
+	pRule = parser.GetRule(parser.CurrentToken().m_oType.m_id);
+    while (pRule && preced <= pRule->precedence && !parser.PreviousToken().GetText().empty()) {
         parser.Advance();
         parse_fn infix_rule = parser.GetRule(parser.PreviousToken().m_oType.m_id)->infix;
-        infix_rule(parser, can_assign);
+		if (infix_rule != NULL)
+        	infix_rule(parser, can_assign);
+		pRule = parser.GetRule(parser.CurrentToken().m_oType.m_id);
     }
 
     if (can_assign && parser.Match(TOKEN_EQUAL)) {
@@ -302,6 +310,12 @@ void Number(Parser& parser, bool can_assign)
 	parser.EmitConstant(NUMBER_VAL(value));
 }
 
+void IntNumber(Parser& parser, bool can_assign)
+{
+	int value = std::stoi(parser.PreviousToken().GetText().c_str(), NULL);
+	parser.EmitConstant(INT_VAL(value));
+}
+
 void Grouping(Parser& parser, bool can_assign)
 {
   	Expression(parser);
@@ -311,7 +325,7 @@ void Grouping(Parser& parser, bool can_assign)
 void Unary(Parser& parser, bool can_assign)
 {
     int operator_type = parser.PreviousToken().m_oType.m_id;
-    Expression(parser);
+    ParsePrecedence(parser, PREC_UNARY);
     switch (operator_type) {
         case TOKEN_BANG:
             parser.EmitByte(OP_NOT);
@@ -429,7 +443,27 @@ void RuleThis(Parser& parser, bool can_assign)
         parser.Error("Cannot use 'this' outside of a class.");
         return;
     }
-   	Variable(parser, false);
+
+   	//Variable(parser, false);
+    NamedVariable(parser, Token("this", 4), false);
+    if (parser.Match(TOKEN_DOT))
+    {
+        parser.Consume(TOKEN_IDENTIFIER, "Expect class method name.");
+        uint8_t name = parser.IdentifierConstant(parser.PreviousToken());
+
+        if (parser.Match(TOKEN_LEFT_PAREN)) {
+            uint8_t arg_count = ArgumentList(parser);
+            parser.EmitBytes(OP_INVOKE, name);
+            parser.EmitByte(arg_count);
+        } else if (parser.Match(TOKEN_EQUAL)) {
+            Expression(parser);
+            parser.EmitBytes(OP_SET_PROPERTY, name);
+        }
+        else
+        {
+            parser.EmitBytes(OP_GET_PROPERTY, name);
+        }
+    }
 }
 
 void RuleSuper(Parser& parser, bool can_assign)
@@ -465,6 +499,8 @@ void Variable(Parser& parser, bool can_assign)
 			FuncDeclaration(parser, name);
 		else if (parser.IsToken(TOKEN_CLASS))
     		ClassDeclaration(parser, name);
+        else if (parser.IsToken(TOKEN_INTERFACE))
+    		InterfaceDeclaration(parser, name);
 	}
 	else
     	NamedVariable(parser, name, can_assign);
@@ -495,6 +531,65 @@ void CallCompiler(Parser& parser, bool can_assign)
 {
     uint8_t arg_count = ArgumentList(parser);
     parser.EmitBytes(OP_CALL, arg_count);
+    // if (IsRepl)
+    //     parser.EmitByte(OP_PRINT);
+}
+
+void List(Parser& parser, bool canAssign)
+{
+
+    parser.EmitByte(OP_ARRAY);
+    int args = 0;
+
+    if (!parser.IsToken(TOKEN_RIGHT_BRACKET, false))
+    {
+        do
+        {
+            args++;
+            Expression(parser);
+
+        } while (parser.Match(TOKEN_COMMA));
+    }
+    parser.Consume(TOKEN_RIGHT_BRACKET, "Expected closing ']'");
+
+    parser.EmitBytes(OP_ADD_LIST, args);
+}
+
+void Subscript(Parser& parser, bool canAssign)
+{
+    // slice with no initial index [1, 2, 3][:100]
+    // if (parser.Match(TOKEN_COLON))
+    // {
+    //     // parser.EmitByte(OP_EMPTY);
+    //     // Expression(parser);
+    //     // parser.EmitByte(OP_SLICE);
+    //     // parser.Consume(TOKEN_RIGHT_BRACKET, "Expected closing ']'");
+    //     // return;
+    // }
+
+    Expression(parser);
+
+    // if (parser.Match(TOKEN_COLON)) {
+    //     // If we slice with no "ending" push EMPTY so we know
+    //     // To go to the end of the iterable
+    //     // i.e [1, 2, 3][1:]
+    //     if (check(compiler, TOKEN_RIGHT_BRACKET)) {
+    //         emitByte(compiler, OP_EMPTY);
+    //     } else {
+    //         expression(compiler);
+    //     }
+    //     emitByte(compiler, OP_SLICE);
+    //     consume(compiler, TOKEN_RIGHT_BRACKET, "Expected closing ']'");
+    //     return;
+    // }
+
+    parser.Consume(TOKEN_RIGHT_BRACKET, "Expected closing ']'");
+
+    if (canAssign && parser.Match(TOKEN_EQUAL)) {
+        Expression(parser);
+        //parser.EmitByte(OP_SUBSCRIPT_ASSIGN);
+    } else
+        parser.EmitByte(OP_SUBSCRIPT);
 }
 
 void Declaration(Parser& parser)
@@ -522,7 +617,8 @@ void Synchronize(Parser& parser)
 		if (parser.PreviousToken().m_oType == TOKEN_SEMICOLON)
 			return;
 
-		switch (parser.CurrentToken().m_oType.m_id) {
+		switch (parser.CurrentToken().m_oType.m_id)
+        {
 		case TOKEN_CLASS:
 		case TOKEN_FUN:
 		case TOKEN_VAR:
@@ -687,6 +783,92 @@ void Function(Parser& parser, FunctionType type, const Token& name)
 	    parser.EmitByte(compiler.upvalues[i].isLocal ? 1 : 0);
 	    parser.EmitByte(compiler.upvalues[i].index);
 	}
+}
+
+void Procedure(Parser& parser)
+{
+	// parser.Consume(TOKEN_IDENTIFIER, "Expect interface name");
+    // Compiler compiler(parser, type, parser.PreviousToken().GetText());
+	// parser.BeginScope();
+
+	// // Compile the parameter list.
+	// parser.Consume(TOKEN_LEFT_PAREN, "Expect '(' after function name.");
+	// if (!parser.IsToken(TOKEN_RIGHT_PAREN, false)) {
+	// 	do
+	// 	{
+	// 		parser.currentCompiler->function->arity++;
+	// 		if (parser.currentCompiler->function->arity > 255)
+	// 		{
+	// 			parser.ErrorAtCurrent("Cannot have more than 255 parameters.");
+	// 		}
+	// 		parser.Consume(TOKEN_IDENTIFIER, "Expect parameter name.");
+	// 		Token& name = (Token&) parser.PreviousToken();
+	// 		uint8_t paramConstant = ParseVariable(parser, name, "Expect parameter name.");
+	// 		DefineVariable(parser, paramConstant);
+	// 	} while (parser.Match(TOKEN_COMMA));
+	// }
+	// parser.Consume(TOKEN_RIGHT_PAREN, "Expect ')' after parameters.");
+	// parser.Consume(TOKEN_SEMICOLON, "Expect ';' after paranthesis.");
+}
+
+/*
+ * @brief Cette fonction permet d'initializer une fonction
+ * @param parser c'est la ref vers le parser
+ * @param type c'est le type de fonction (voir l'enum FunctionType)
+ * @param name c'est le nom de la fonction
+ * @return true si les deux sont égaux sinon false dans le cas contraire
+*/
+void Interface(Parser& parser, FunctionType type)
+{
+	parser.Consume(TOKEN_IDENTIFIER, "Expect interface name");
+	uint8_t constant = parser.IdentifierConstant(parser.PreviousToken());
+    // Compiler compiler(parser, type, parser.PreviousToken().GetText());
+	// parser.BeginScope();
+
+	// Compile the parameter list.
+	parser.Consume(TOKEN_LEFT_PAREN, "Expect '(' after function name.");
+	// if (!parser.IsToken(TOKEN_RIGHT_PAREN, false)) {
+	// 	do
+	// 	{
+	// 		// parser.currentCompiler->function->arity++;
+	// 		// if (parser.currentCompiler->function->arity > 255)
+	// 		// {
+	// 		// 	parser.ErrorAtCurrent("Cannot have more than 255 parameters.");
+	// 		// }
+	// 		parser.Consume(TOKEN_IDENTIFIER, "Expect parameter name.");
+	// 		Token& name = (Token&) parser.PreviousToken();
+	// 		uint8_t paramConstant = ParseVariable(parser, name, "Expect parameter name.");
+	// 		DefineVariable(parser, paramConstant);
+	// 	} while (parser.Match(TOKEN_COMMA));
+	// }
+	parser.Consume(TOKEN_RIGHT_PAREN, "Expect ')' after parameters.");
+	parser.Consume(TOKEN_SEMICOLON, "Expect ';' after paranthesis.");
+
+	parser.EmitBytes(OP_INTERFACE_PROCEDURE, constant);
+}
+
+void InterfaceDeclaration(Parser& parser, Token name)
+{
+    uint8_t nameConstant = parser.IdentifierConstant(name);
+	DeclareVariable(parser, name);
+
+	parser.EmitBytes(OP_INTERFACE, nameConstant);
+	DefineVariable(parser, nameConstant);
+
+	ClassCompiler classCompiler(name);
+	classCompiler.enclosing = parser.currentClass;
+	classCompiler.hasSuperclass = false;
+	parser.currentClass = &classCompiler;
+
+	NamedVariable(parser, name, false);
+
+	parser.Consume(TOKEN_LEFT_BRACE, "Expect '{' before interface body.");
+	while (!parser.IsToken(TOKEN_RIGHT_BRACE, false) && !parser.IsToken(TOKEN_EOF, false))
+    {
+		Interface(parser, TYPE_FUNCTION);
+	}
+	parser.Consume(TOKEN_RIGHT_BRACE, "Expect '}' after interface block.");
+	parser.EmitByte(OP_POP);
 }
 
 

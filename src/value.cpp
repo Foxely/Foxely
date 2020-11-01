@@ -115,6 +115,11 @@ std::string ObjectToString(Value value)
             string += AS_CLASS(value)->name->string;
             string += ">";
 			break;
+        case OBJ_INTERFACE:
+			string += "<interface ";
+            string += AS_INTERFACE(value)->name->string;
+            string += ">";
+			break;
 		case OBJ_INSTANCE:
 			string += AS_INSTANCE(value)->klass->name->string;
             string += " instance";
@@ -152,6 +157,7 @@ std::string ValueToString(Value value)
         case VAL_BOOL: string += (AS_BOOL(value) ? "true" : "false"); break;
         case VAL_NIL:    string +=  "nil"; break;
         case VAL_NUMBER: string +=  std::to_string(AS_NUMBER(value)); break;
+        case VAL_INT: string +=  std::to_string(AS_INT(value)); break;
         case VAL_OBJ: string += ObjectToString(value); break;
     }
     return string;

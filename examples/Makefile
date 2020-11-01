@@ -7,16 +7,16 @@
 
 CC = g++ -std=c++17
 
-NAME	= foxely
-SRC_DIR = src
+EXECUTABLE	= foxely
 
-SRC = $(shell find $(SRC_DIR) -name '*.cpp')
-OBJ = $(SRC:%.cpp=%.o)
+
+MAIN_SRC = main.cpp
+MAIN_OBJ = $(MAIN_SRC:%.cpp=%.o)
 
 # CFLAGS += -std=c++17 -W -Wall -Wextra $(if $(DEBUG),-g3) $(if $(DEBUG),-DDEBUG -DDEBUG_TRACE_EXECUTION)
 # CFLAGS += $(if $(DEBUG_TOKEN),-DDEBUG_TOKEN)
-LDFLAGS = -Llib -llexer -ldl -lstdc++fs -lpthread
-INC_FLAGS = -Iinclude -Ilib/GenericLexer/include
+LDFLAGS = -L../ -lfoxely -L../lib -llexer -lstdc++fs -ldl
+INC_FLAGS = -I../include -I../lib/GenericLexer/include
 
 ifeq ($(BUILD),debug)
 # "Debug" build - no optimization, and debugging symbols
@@ -29,13 +29,13 @@ else
 CFLAGS += -O3 -s -DNDEBUG
 endif
 
-all: lib_make lib
+all: bin/$(EXECUTABLE)
 
-lib_make:
-	@make -sC lib/GenericLexer/
+run: all
+	@./bin/$(EXECUTABLE) $(ARGS)
 
-lib: $(OBJ)
-	@ar -rc lib$(NAME).a $(OBJ)
+bin/$(EXECUTABLE): $(MAIN_OBJ)
+	@$(CC) -export-dynamic -o $@ $(MAIN_OBJ) $(CFLAGS) $(INC_FLAGS) $(LDFLAGS)
 
 %.o: %.cpp
 	@$(CC) $(INC_FLAGS) $(CFLAGS) -c $< -o $@
@@ -43,14 +43,19 @@ lib: $(OBJ)
 
 .PHONY: clean
 clean:
-	@$(RM) -r $(OBJ)
 	@$(RM) -r $(MAIN_OBJ)
 
 .PHONY: fclean
 fclean: clean
-	@$(RM) -r lib$(NAME).a
+	@$(RM) -r bin/$(EXECUTABLE)
 	@$(RM) -r vgcore*
-	@make fclean -sC lib/GenericLexer
 
 .PHONY: re
 re: fclean all
+
+valgrind:
+	valgrind --leak-check=full -s ./bin/$(EXECUTABLE) $(ARGS)
+
+debug:
+	@make "BUILD=debug" -sC lib/GenericLexer
+	@make "BUILD=debug"

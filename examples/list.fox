@@ -1,0 +1,10 @@
+
+list: var = [2];
+string: var = "salut";
+
+
+print "%\n", list[0];
+print "%\n", string[1];
+
+list.push(3);
+print "%\n", list[1];
