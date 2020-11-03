@@ -7,6 +7,8 @@
 #include <string>
 #include <time.h>
 #include <utility>
+#include <map>
+
 #include "chunk.hpp"
 #include "value.hpp"
 #include "Table.hpp"
@@ -47,10 +49,12 @@ public:
     Parser m_oParser;
 	Table strings;
 	Table globals;
-	Table imports;
+	// Table imports;
+	Table modules;
 	ObjectUpvalue* openUpvalues;
 	ObjectString* initString;
 	GC gc;
+	ObjectModule* currentModule;
 
     Table arrayMethods;
 
@@ -65,7 +69,10 @@ public:
 	void Load();
 	void LoadStandard(const std::string& name);
 
-    InterpretResult interpret(const char* source);
+	Value NewString(const char* string);
+
+    InterpretResult Interpret(const char* module, const char* source);
+	ObjectClosure* CompileSource(const char* module, const char* source, bool isExpression, bool printErrors);
 
     void ResetStack();
     void Push(Value value);
@@ -98,6 +105,13 @@ public:
 	bool Invoke(ObjectString* name, int argCount);
 	bool InvokeFromClass(ObjectClass* klass, ObjectString* name, int argCount);
 	bool InvokeFromNativeClass(ObjectNativeClass *klass, ObjectString *name, int argCount);
+
+	ObjectModule* GetModule(Value name);
+	ObjectClosure* CompileInModule(Value name, const char* source, bool isExpression, bool printErrors);
+	Value FindVariable(ObjectModule* module, const char* name);
+	void GetVariable(const char* module, const char* name, int slot);
+	Value ImportModule(Value name);
+	Value GetModuleVariable(ObjectModule* module, Value variableName);
 
 private:
     InterpretResult run();

@@ -10,8 +10,8 @@
 Value importNative(VM* oVM, int argCount, Value* args)
 {
     Fox_FixArity(oVM, argCount, 1);
-    if (!oVM->imports.Set(AS_STRING(args[0]), NIL_VAL))
-        return NIL_VAL;
+    // if (!oVM->imports.Set(AS_STRING(args[0]), NIL_VAL))
+    //     return NIL_VAL;
     std::ifstream t(Fox_ValueToCString(args[0]));
 	std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
     t.close();

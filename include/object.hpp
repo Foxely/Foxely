@@ -37,6 +37,7 @@ class VM;
 #define IS_FUNCTION(val)      is_obj_type(val, OBJ_FUNCTION)
 #define IS_NATIVE(val)        is_obj_type(val, OBJ_NATIVE)
 #define IS_STRING(val)        is_obj_type(val, OBJ_STRING)
+#define IS_MODULE(val)        is_obj_type(val, OBJ_MODULE)
 
 #define AS_ARRAY(val)           ((ObjectArray *)AS_OBJ(val))
 #define AS_ABSTRACT(val)        ((ObjectAbstract *)AS_OBJ(val))
@@ -53,6 +54,7 @@ class VM;
 #define AS_INTERFACE(val)       ((ObjectInterface *)AS_OBJ(val))
 #define AS_STRING(val)        	((ObjectString *)AS_OBJ(val))
 #define AS_CSTRING(val)       	(((ObjectString *)AS_OBJ(val))->string.c_str())
+#define AS_MODULE(val)       	((ObjectModule *)AS_OBJ(val))
 
 typedef enum {
     OBJ_ARRAY,
@@ -69,6 +71,7 @@ typedef enum {
     OBJ_STRING,
     OBJ_UPVALUE,
     OBJ_INTERFACE,
+    OBJ_MODULE,
 } ObjType;
 
 
@@ -358,12 +361,33 @@ public:
     }
 };
 
+
+// A loaded module and the top-level variables it defines.
+//
+// While this is an Object and is managed by the GC, it never appears as a
+// first-class object in Foxely.
+class ObjectModule : public Object
+{
+public:
+    explicit ObjectModule(ObjectString* strName)
+	{
+		type = OBJ_MODULE;
+        m_strName = strName;
+	}
+
+    bool operator==(const ObjectModule& other) const
+    {
+        return m_strName == other.m_strName;
+    }
+
+    Table m_vVariables;
+    // The name of the module.
+    ObjectString* m_strName;
+};
+
 static inline bool is_obj_type(Value val, ObjType type)
 {
     return IS_OBJ(val) && AS_OBJ(val)->type == type;
 }
-
-#define ALLOCATE_OBJ(type, objectType) \
-    static_cast<type*>(allocateObject(objectType))
 
 #endif
