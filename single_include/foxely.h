@@ -1086,7 +1086,7 @@ public:
 	void Load();
 	void LoadStandard(const std::string& name);
 
-    InterpretResult interpret(const char* source);
+    InterpretResult Interpret(const char* module, const char* source);
 
     void ResetStack();
     void Push(Value value);

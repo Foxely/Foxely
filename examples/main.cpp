@@ -247,7 +247,7 @@ void replv3(int ac, char** av)
         /* Do something with the string. */
         if (line[0] != '\0' && line[0] != '#')
         {
-            oVM.interpret(line);
+            oVM.Interpret(NULL, line);
             linenoiseHistoryAdd(line); /* Add to the history. */
             linenoiseHistorySave("history.txt"); /* Save the history on disk. */
         }
@@ -272,7 +272,7 @@ void runFile(int ac, char** av, const char* path)
 	std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
     t.close();
 
-    InterpretResult result = oVM.interpret(str.c_str());
+    InterpretResult result = oVM.Interpret(NULL, str.c_str());
 
     if (result == INTERPRET_COMPILE_ERROR) exit(65);
     if (result == INTERPRET_RUNTIME_ERROR) exit(70);

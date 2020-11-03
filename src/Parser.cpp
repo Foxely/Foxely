@@ -169,8 +169,8 @@ void Parser::MarkInitialized()
 
 ObjectFunction* Compile(Parser& parser, const std::string& strText, Chunk* chunk)
 {
-    parser.Init(strText);
-        // return NULL;
+    if (!parser.Init(strText))
+        return NULL;
 
 	Compiler compiler(parser, TYPE_SCRIPT, "");
 	parser.compilingChunk = chunk;
