@@ -217,6 +217,8 @@ void Parser::EmitConstant(Value value)
 
 void Parser::EmitReturn()
 {
+    if (currentCompiler->enclosing == NULL)
+        EmitByte(OP_END_MODULE);
     if (currentCompiler->type == TYPE_INITIALIZER)
         EmitBytes(OP_GET_LOCAL, 0);
     else

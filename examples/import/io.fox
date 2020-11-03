@@ -1,0 +1,10 @@
+
+
+
+io :: class
+{
+    init()
+    {
+        print "This is the IO Class\n";
+    }
+}

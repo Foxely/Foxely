@@ -96,6 +96,29 @@ public:
     std::string string;
 };
 
+// A loaded module and the top-level variables it defines.
+//
+// While this is an Object and is managed by the GC, it never appears as a
+// first-class object in Foxely.
+class ObjectModule : public Object
+{
+public:
+    explicit ObjectModule(ObjectString* strName)
+	{
+		type = OBJ_MODULE;
+        m_strName = strName;
+	}
+
+    bool operator==(const ObjectModule& other) const
+    {
+        return m_strName == other.m_strName;
+    }
+
+    Table m_vVariables;
+    // The name of the module.
+    ObjectString* m_strName;
+};
+
 class ObjectFunction : public Object
 {
 public:
@@ -103,6 +126,7 @@ public:
     int upValueCount;
     Chunk chunk;
     ObjectString *name;
+    ObjectModule* module;
 
 	explicit ObjectFunction()
 	{
@@ -359,30 +383,6 @@ public:
     {
         return m_vValues == other.m_vValues;
     }
-};
-
-
-// A loaded module and the top-level variables it defines.
-//
-// While this is an Object and is managed by the GC, it never appears as a
-// first-class object in Foxely.
-class ObjectModule : public Object
-{
-public:
-    explicit ObjectModule(ObjectString* strName)
-	{
-		type = OBJ_MODULE;
-        m_strName = strName;
-	}
-
-    bool operator==(const ObjectModule& other) const
-    {
-        return m_strName == other.m_strName;
-    }
-
-    Table m_vVariables;
-    // The name of the module.
-    ObjectString* m_strName;
 };
 
 static inline bool is_obj_type(Value val, ObjType type)

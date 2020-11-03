@@ -422,6 +422,22 @@ bool VM::Invoke(ObjectString *name, int argCount)
 
 InterpretResult VM::Interpret(const char* module, const char* source)
 {
+    ResetStack();
+    if (!isInit)
+    {
+        m_oParser.m_pVm = this;
+        openUpvalues = NULL;
+        initString = NULL;
+        initString = AS_STRING(NewString("init"));
+        // ModulePlugin module(this);
+        // DefineLib(module.GetClassName(), module.m_oMethods);
+        // DefineNative("clock", clockNative);
+        ArrayPlugin array(this);
+        isInit = true;
+    }
+    
+    result = INTERPRET_OK;
+
     ObjectClosure* closure = CompileSource(module, source, false, true);
     if (closure == NULL) return INTERPRET_COMPILE_ERROR;
     
@@ -436,7 +452,7 @@ InterpretResult VM::Interpret(const char* module, const char* source)
 
 ObjectClosure* VM::CompileSource(const char* module, const char* source, bool isExpression, bool printErrors)
 {
-    Value nameValue = NIL_VAL;
+    Value nameValue = NewString("core");
     if (module != NULL)
     {
         nameValue = NewString(module);
@@ -903,6 +919,11 @@ InterpretResult VM::run()
             break;
         }
 
+        case OP_END_MODULE:
+            currentModule = frames[frameCount - 1].closure->function->module;
+            Push(NIL_VAL);
+            break;
+
         case OP_CONST:
         {
             Value constant = READ_CONSTANT();
@@ -1213,7 +1234,7 @@ void VM::GetVariable(const char* module, const char* name, int slot)
 ObjectModule* VM::GetModule(Value name)
 {
     Value moduleValue;
-    if (modules.Get(AS_STRING(name), moduleValue))
+    if (IS_STRING(name) && modules.Get(AS_STRING(name), moduleValue))
         return AS_MODULE(moduleValue);
     return NULL;
 }
@@ -1238,7 +1259,7 @@ ObjectClosure* VM::CompileInModule(Value name, const char* source, bool isExpres
         Pop();
 
         // Implicitly import the core module.
-        ObjectModule* coreModule = GetModule(NIL_VAL);
+        ObjectModule* coreModule = GetModule(NewString("core"));
         for (int i = 0; i < coreModule->m_vVariables.m_iCount; i++)
         {
             module->m_vVariables.AddAll(coreModule->m_vVariables);
@@ -1317,6 +1338,7 @@ Value VM::ImportModule(Value name)
     if (source == NULL)
     {
         ObjectString* nameString = AS_STRING(name);
+        nameString->string += ".fox";
 
         std::ifstream t(nameString->string);
         std::string str((   std::istreambuf_iterator<char>(t)),

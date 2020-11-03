@@ -74,7 +74,7 @@ void repl()
             break;
 
         if (input[0] != '\n' && input[0] != '\0')
-            oVM.interpret(input.c_str());
+            oVM.Interpret(NULL, input.c_str());
         else {
             std::cout << std::endl;
             break;
