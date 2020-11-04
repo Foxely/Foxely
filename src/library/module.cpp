@@ -5,7 +5,7 @@
 #include <streambuf>
 
 #include "foxely.h"
-#include "library/module.h"
+#include "library/library.h"
 
 Value importNative(VM* oVM, int argCount, Value* args)
 {
@@ -29,25 +29,12 @@ Value importNative(VM* oVM, int argCount, Value* args)
     return NIL_VAL;
 }
 
-
-ModulePlugin::ModulePlugin(VM* oVM) : fox::pluga::IModule(oVM)
+void DefineModuleModule(VM* oVM)
 {
-    // std::cout << "ModulePlugin: Create" << std::endl;
-
-	NativeMethods methods =
+    NativeMethods methods =
 	{
 		std::make_pair<std::string, NativeFn>("load", importNative),
 	};
-
-	m_oMethods = methods;
-}
-
-ModulePlugin::~ModulePlugin()
-{
-    // std::cout << "ModulePlugin: Destroy" << std::endl;
-}
-
-const char* ModulePlugin::GetClassName() const
-{
-    return "module";
+    oVM->DefineModule("module");
+    oVM->DefineClass("module", "module", methods);
 }

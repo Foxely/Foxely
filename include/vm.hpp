@@ -51,6 +51,7 @@ public:
 	Table globals;
 	// Table imports;
 	Table modules;
+	Table m_oUserModules;
 	ObjectUpvalue* openUpvalues;
 	ObjectString* initString;
 	GC gc;
@@ -63,8 +64,6 @@ public:
 
     VM();
 	~VM();
-
-	// static VM* GetInstance();
 
 	void Load();
 	void LoadStandard(const std::string& name);
@@ -85,10 +84,11 @@ public:
     void Concatenate();
 	bool CallValue(Value callee, int argCount);
 	bool Call(ObjectClosure* closure, int argCount);
-	void DefineNative(const std::string& name, NativeFn function);
-	void DefineNativeClass(const std::string& name, NativeMethods& functions);
+	void DefineFunction(const std::string &strModule, const std::string& name, NativeFn function);
+	void DefineClass(const std::string &strModule, const std::string& name, NativeMethods& functions);
 	void DefineLib(const std::string &name, NativeMethods &functions);
 	void DefineBuiltIn(Table& methods, NativeMethods &functions);
+	void DefineModule(const std::string& strName);
 
 	ObjectUpvalue* CaptureUpvalue(Value* local);
 	void CloseUpvalues(Value* last);
@@ -112,6 +112,8 @@ public:
 	void GetVariable(const char* module, const char* name, int slot);
 	Value ImportModule(Value name);
 	Value GetModuleVariable(ObjectModule* module, Value variableName);
+
+	void BeginModule(std::string strModuleName);
 
 private:
     InterpretResult run();

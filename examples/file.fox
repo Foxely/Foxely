@@ -2,7 +2,7 @@ import "io";
 
 start: var = clock();
 
-file: var = io.open(".replit");
+file: var = io.open("lexer.fox");
 
 print "File Parsed:\n{\n";
 print "%\n", file.read();

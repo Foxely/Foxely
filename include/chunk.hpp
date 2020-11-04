@@ -52,6 +52,10 @@ typedef enum {
     OP_ARRAY,
     OP_ADD_LIST,
 
+    OP_FOREIGN,
+
+    OP_END_MODULE,
+
     // CODES for Repl Mode
     OP_PRINT_REPL,
 } OpCode;

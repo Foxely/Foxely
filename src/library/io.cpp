@@ -1,8 +1,9 @@
-#include "library/io.h"
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
 #include <string.h>
+
+#include "library/library.h"
 #include "foxely.h"
 
 ObjectAbstractType foxely_file_type =
@@ -98,36 +99,22 @@ Value closeNative(VM* oVM, int argCount, Value* args)
     return NIL_VAL;
 }
 
-
-
-IOPlugin::IOPlugin(VM* oVM) : fox::pluga::IModule(oVM)
+NativeMethods methods =
 {
-    // std::cout << "IOPlugin: Create" << std::endl;
+    std::make_pair<std::string, NativeFn>("open", openNative),
+};
 
-	NativeMethods methods =
-	{
-		std::make_pair<std::string, NativeFn>("open", openNative),
-	};
-
-    NativeMethods fileMethods =
-	{
-		std::make_pair<std::string, NativeFn>("write", writeNative),
-		std::make_pair<std::string, NativeFn>("read", readNative),
-		std::make_pair<std::string, NativeFn>("readline", readLineNative),
-		std::make_pair<std::string, NativeFn>("close", closeNative),
-	};
-
-    Fox_DefineClass(oVM, "File", fileMethods);
-
-	m_oMethods = methods;
-}
-
-IOPlugin::~IOPlugin()
+NativeMethods fileMethods =
 {
-    // std::cout << "IOPlugin: Destroy" << std::endl;
-}
+    std::make_pair<std::string, NativeFn>("write", writeNative),
+    std::make_pair<std::string, NativeFn>("read", readNative),
+    std::make_pair<std::string, NativeFn>("readline", readLineNative),
+    std::make_pair<std::string, NativeFn>("close", closeNative),
+};
 
-const char* IOPlugin::GetClassName() const
+void DefineIOModule(VM* oVM)
 {
-    return "io";
+    oVM->DefineModule("io");
+    oVM->DefineClass("io", "io", methods);
+    oVM->DefineClass("io", "File", fileMethods);
 }
