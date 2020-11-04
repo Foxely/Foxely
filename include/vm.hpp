@@ -86,7 +86,7 @@ public:
 	bool Call(ObjectClosure* closure, int argCount);
 	void DefineFunction(const std::string &strModule, const std::string& name, NativeFn function);
 	void DefineClass(const std::string &strModule, const std::string& name, NativeMethods& functions);
-	void DefineLib(const std::string &name, NativeMethods &functions);
+	void DefineLib(const std::string &strModule, const std::string &name, NativeMethods &functions);
 	void DefineBuiltIn(Table& methods, NativeMethods &functions);
 	void DefineModule(const std::string& strName);
 
@@ -123,7 +123,7 @@ private:
 	bool isInit;
 };
 
-static Value clockNative(VM* oVM, int argCount, Value* args)
+inline Value clockNative(VM* oVM, int argCount, Value* args)
 {
 	return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
 }

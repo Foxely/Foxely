@@ -17,19 +17,7 @@
 #include "vm.hpp"
 #include "object.hpp"
 
-
-VM VM::m_oInstance = VM();
-
 using Standard = std::pair<std::string, fox::pluga::IModule>;
-
-std::vector<std::string> standardLib = 
-{
-    "os",
-    "io",
-    "array",
-    "math",
-    "sfml",
-};
 
 #define TRACE2(arg1) char arg1; \
                             FOX_MODULE_CALL(arg1);
@@ -46,6 +34,7 @@ VM::VM() : gc(), m_oParser(), openUpvalues(NULL), initString(NULL)
     // DefineLib(module.GetClassName(), module.m_oMethods);
     // DefineNative("clock", clockNative);
     DefineCoreArray(this);
+    DefineModule("core");
 }
 
 VM::~VM()
@@ -241,33 +230,42 @@ void VM::DefineFunction(const std::string &strModule, const std::string &name, N
     ObjectModule* module = GetModule(oStrModuleName);
     if (module != NULL)
     {
-        Push(OBJ_VAL(m_oParser.CopyString(name)));
+        Push(NewString(name.c_str()));
         Push(OBJ_VAL(gc.New<ObjectNative>(function)));
         module->m_vVariables.Set(AS_STRING(PeekStart(0)), PeekStart(1));
         Pop();
         Pop();
     }
+    else
+        std::cerr << "'" << strModule << "': Could not find the module." << std::endl;
 }
 
-void VM::DefineLib(const std::string &name, NativeMethods &functions)
+void VM::DefineLib(const std::string &strModule, const std::string &name, NativeMethods &functions)
 {
-    Push(OBJ_VAL(m_oParser.CopyString(name)));
-    Push(OBJ_VAL(gc.New<ObjectLib>(AS_STRING(PeekStart(0)))));
-    currentModule->m_vVariables.Set(AS_STRING(PeekStart(0)), PeekStart(1));
-    ObjectLib *klass = AS_LIB(Pop());
-    Pop();
-    Push(OBJ_VAL(klass));
-    for (auto &it : functions)
+    Value oStrModuleName = NewString(strModule.c_str());
+
+    // See if the module has already been loaded.
+    ObjectModule* module = GetModule(oStrModuleName);
+    if (module != NULL)
     {
-        Push(OBJ_VAL(m_oParser.CopyString(it.first)));
-        Push(OBJ_VAL(gc.New<ObjectNative>(it.second)));
-
-        klass->methods.Set(AS_STRING(PeekStart(1)), PeekStart(2));
-
+        Push(OBJ_VAL(m_oParser.CopyString(name)));
+        Push(OBJ_VAL(gc.New<ObjectLib>(AS_STRING(PeekStart(0)))));
+        module->m_vVariables.Set(AS_STRING(PeekStart(0)), PeekStart(1));
+        ObjectLib *klass = AS_LIB(Pop());
         Pop();
+        Push(OBJ_VAL(klass));
+        for (auto &it : functions)
+        {
+            Push(OBJ_VAL(m_oParser.CopyString(it.first)));
+            Push(OBJ_VAL(gc.New<ObjectNative>(it.second)));
+
+            klass->methods.Set(AS_STRING(PeekStart(1)), PeekStart(2));
+
+            Pop();
+            Pop();
+        }
         Pop();
     }
-    Pop();
 }
 
 void VM::DefineModule(const std::string& strName)
@@ -278,7 +276,6 @@ void VM::DefineModule(const std::string& strName)
     ObjectModule* module = GetModule(oStrName);
     if (module == NULL)
     {
-        std::cout << AS_STRING(oStrName)->string << std::endl;
         module = gc.New<ObjectModule>(AS_STRING(oStrName));
 
         // It's possible for the wrenMapSet below to resize the modules map,
@@ -293,9 +290,9 @@ void VM::DefineModule(const std::string& strName)
         Pop();
 
         // Implicitly import the core module.
-        ObjectModule* coreModule = GetModule(NewString("core"));
-        for (int i = 0; i < coreModule->m_vVariables.m_iCount; i++)
-            module->m_vVariables.AddAll(coreModule->m_vVariables);
+    //     ObjectModule* coreModule = GetModule(NewString("core"));
+    //     for (int i = 0; i < coreModule->m_vVariables.m_iCount; i++)
+    //         module->m_vVariables.AddAll(coreModule->m_vVariables);
     }
     else
         std::cerr << "'" << strName << "': This module already exist !!" << std::endl;
@@ -434,18 +431,6 @@ bool VM::Invoke(ObjectString *name, int argCount)
 InterpretResult VM::Interpret(const char* module, const char* source)
 {
     ResetStack();
-    // if (!isInit)
-    // {
-    //     m_oParser.m_pVm = this;
-    //     openUpvalues = NULL;
-    //     initString = NULL;
-    //     initString = AS_STRING(NewString("init"));
-    //     // ModulePlugin module(this);
-    //     // DefineLib(module.GetClassName(), module.m_oMethods);
-    //     // DefineNative("clock", clockNative);
-    //     ArrayPlugin array(this);
-    //     isInit = true;
-    // }
     
     result = INTERPRET_OK;
 
@@ -481,41 +466,6 @@ Value VM::NewString(const char* string)
 {
     return OBJ_VAL(m_oParser.TakeString(string));
 }
-
-// InterpretResult VM::interpret(const char* module, const char* source)
-// {
-//     ResetStack();
-//     if (!isInit)
-//     {
-//         m_oParser.m_pVm = this;
-//         openUpvalues = NULL;
-//         DefineNative("clock", clockNative);
-//         initString = NULL;
-//         initString = m_oParser.CopyString("init");
-//         ModulePlugin module(this);
-//         DefineLib(module.GetClassName(), module.m_oMethods);
-//         ArrayPlugin array(this);
-//         isInit = true;
-//     }
-    
-//     result = INTERPRET_OK;
-
-//     Chunk oChunk;
-//     ObjectFunction *function = Compile(m_oParser, source, &oChunk);
-
-//     if (function == NULL)
-//         return (INTERPRET_COMPILE_ERROR);
-
-//     Push(OBJ_VAL(function));
-//     ObjectClosure *closure = gc.New<ObjectClosure>(this, function);
-//     Pop();
-//     Push(OBJ_VAL(closure));
-//     CallValue(OBJ_VAL(closure), 0);
-
-//     InterpretResult result = run();
-
-//     return result;
-// }
 
 InterpretResult VM::run()
 {
@@ -599,7 +549,7 @@ InterpretResult VM::run()
         {
             ObjectString *name = READ_STRING();
             Value value;
-            if (!globals.Get(name, value)) {
+            if (!currentModule->m_vVariables.Get(name, value)) {
                 RuntimeError("Undefined variable '%s'.", name->string.c_str());
                 return INTERPRET_RUNTIME_ERROR;
             }
@@ -609,15 +559,15 @@ InterpretResult VM::run()
 
         case OP_DEFINE_GLOBAL: {
             ObjectString *name = READ_STRING();
-            globals.Set(name, Peek(0));
+            currentModule->m_vVariables.Set(name, Peek(0));
             Pop();
             break;
         }
 
         case OP_SET_GLOBAL: {
             ObjectString *name = READ_STRING();
-            if (globals.Set(name, Peek(0))) {
-                globals.Delete(name);
+            if (currentModule->m_vVariables.Set(name, Peek(0))) {
+                currentModule->m_vVariables.Delete(name);
                 RuntimeError("Undefined variable '%s'.", name->string.c_str());
                 return INTERPRET_RUNTIME_ERROR;
             }
@@ -898,8 +848,8 @@ InterpretResult VM::run()
             // std::ifstream t(file);
             // std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
 
-            if (result == INTERPRET_RUNTIME_ERROR)
-                break;
+            // if (result == INTERPRET_RUNTIME_ERROR)
+            //     break;
             if (IS_CLOSURE(Peek(0)))
             {
                 Call(AS_CLOSURE(Peek(0)), 0);
@@ -909,7 +859,9 @@ InterpretResult VM::run()
             {
                 // The module has already been loaded. Remember it so we can import
                 // variables from it if needed.
-                currentModule = AS_MODULE(Peek(0));
+                currentModule->m_vVariables.AddAll(AS_MODULE(Pop())->m_vVariables);
+                // currentModule = AS_MODULE(Pop());
+                // std::cerr << frameCount << " Frames::::" << std::endl;
             }
             break;
         }
@@ -1103,6 +1055,7 @@ void VM::AddToRoots() {
     }
 
     AddTableToRoot(globals);
+    AddTableToRoot(modules);
     AddCompilerToRoots();
     AddObjectToRoot((Object *)initString);
 }
@@ -1286,6 +1239,8 @@ ObjectClosure* VM::CompileInModule(Value name, const char* source, bool isExpres
         }
     }
 
+    currentModule = module;
+
     Chunk chunk;
     ObjectFunction* fn = Compile(m_oParser, source, &chunk);
     if (fn == NULL)
@@ -1342,7 +1297,7 @@ Value VM::ImportModule(Value name)
     Value existing;
     if (modules.Get(AS_STRING(name), existing))
         return existing;
-
+    
     Push(name);
 
     const char* source = NULL;

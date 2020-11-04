@@ -115,6 +115,6 @@ NativeMethods fileMethods =
 void DefineIOModule(VM* oVM)
 {
     oVM->DefineModule("io");
-    oVM->DefineClass("io", "io", methods);
+    oVM->DefineLib("io", "io", methods);
     oVM->DefineClass("io", "File", fileMethods);
 }

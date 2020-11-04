@@ -1,4 +1,6 @@
 
+import "io";
+
 list: var = [2];
 string: var = "salut";
 

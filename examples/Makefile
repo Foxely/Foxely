@@ -57,5 +57,4 @@ valgrind:
 	valgrind --leak-check=full -s ./bin/$(EXECUTABLE) $(ARGS)
 
 debug:
-	@make "BUILD=debug" -sC lib/GenericLexer
 	@make "BUILD=debug"

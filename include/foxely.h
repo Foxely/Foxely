@@ -73,7 +73,7 @@ extern "C"
 	{
         Value klass;
         Value name = Fox_StringToValue(oVM, klassName);
-        if (!oVM->globals.Get(AS_STRING(name), klass))
+        if (!oVM->currentModule->m_vVariables.Get(AS_STRING(name), klass))
             return NIL_VAL;
 
 		return OBJ_VAL(oVM->gc.New<ObjectNativeInstance>(AS_NATIVE_CLASS(klass)));
@@ -83,7 +83,7 @@ extern "C"
 	{
         Value klass;
         Value name = Fox_StringToValue(oVM, klassName);
-        if (!oVM->globals.Get(AS_STRING(name), klass))
+        if (!oVM->currentModule->m_vVariables.Get(AS_STRING(name), klass))
             return NIL_VAL;
 
 		return OBJ_VAL(oVM->gc.New<ObjectNativeInstance>(AS_NATIVE_CLASS(klass), cStruct));

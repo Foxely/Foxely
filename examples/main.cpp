@@ -273,9 +273,10 @@ void runFile(int ac, char** av, const char* path)
 	std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
     t.close();
 
+    oVM.DefineFunction("core", "clock", clockNative);
     DefineIOModule(&oVM);
 
-    InterpretResult result = oVM.Interpret(NULL, str.c_str());
+    InterpretResult result = oVM.Interpret("main", str.c_str());
 
     if (result == INTERPRET_COMPILE_ERROR) exit(65);
     if (result == INTERPRET_RUNTIME_ERROR) exit(70);
