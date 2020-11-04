@@ -63,9 +63,9 @@ extern "C"
 		return abstract->data;
 	}
 
-    static inline Value Fox_DefineClass(VM* oVM, const char* klassName, NativeMethods methods)
+    static inline Value Fox_DefineClass(VM* oVM, const char* strModuleName, const char* strClassName, NativeMethods methods)
 	{
-        oVM->DefineNativeClass(klassName, methods);
+        oVM->DefineClass(strModuleName, strClassName, methods);
         return NIL_VAL;
 	}
 

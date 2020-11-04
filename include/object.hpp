@@ -80,6 +80,7 @@ class Object : public Traceable
 {
 public:
     ObjType type;
+    bool bIsForeign;
 
     bool operator==(const Object& other) const
     {

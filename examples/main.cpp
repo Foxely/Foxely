@@ -8,6 +8,7 @@
 #include <sstream>
 #include <algorithm>
 
+#include "library/library.h"
 #include "foxely.h"
 
 
@@ -271,6 +272,8 @@ void runFile(int ac, char** av, const char* path)
 	std::ifstream t(path);
 	std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
     t.close();
+
+    DefineIOModule(&oVM);
 
     InterpretResult result = oVM.Interpret(NULL, str.c_str());
 

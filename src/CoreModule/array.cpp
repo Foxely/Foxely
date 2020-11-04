@@ -1,16 +1,11 @@
-#include "library/array.h"
 #include <iostream>
 #include <stdexcept>
 #include <string.h>
 #include <algorithm>
+
+#include "library/library.h"
 #include "value.hpp"
-
-// SCY_PLUGIN(ArrayPlugin, "IO Module", "0.1.0")
-
-// ObjectAbstractType foxely_file_type =
-// {
-//     "core/file"
-// };
+#include "foxely.h"
 
 bool ValidArgs(VM* oVM, int argCount, Value* args)
 {
@@ -161,13 +156,9 @@ Value toStringNative(VM* oVM, int argCount, Value* args)
 //     return NIL_VAL;
 // }
 
-
-
-ArrayPlugin::ArrayPlugin(VM* oVM) : fox::pluga::IModule(oVM)
+void DefineCoreArray(VM* oVM)
 {
-    // std::cout << "ArrayPlugin: Create" << std::endl;
-
-	NativeMethods methods =
+    NativeMethods methods =
 	{
 		std::make_pair<std::string, NativeFn>("push", pushNative),
 		std::make_pair<std::string, NativeFn>("pop", popNative),
@@ -179,31 +170,5 @@ ArrayPlugin::ArrayPlugin(VM* oVM) : fox::pluga::IModule(oVM)
 		std::make_pair<std::string, NativeFn>("toString", toStringNative),
 	};
 
-	oVM->DefineBuiltIn(oVM->arrayMethods, methods);
-	m_oMethods = methods;
+    oVM->DefineBuiltIn(oVM->arrayMethods, methods);
 }
-
-ArrayPlugin::~ArrayPlugin()
-{
-    // std::cout << "ArrayPlugin: Destroy" << std::endl;
-}
-
-const char* ArrayPlugin::GetClassName() const
-{
-    return "Array";
-}
-
-// FOX_MODULE(array)
-// {
-// 	NativeMethods methods =
-// 	{
-// 		std::make_pair<std::string, NativeFn>("push", pushNative),
-// 		std::make_pair<std::string, NativeFn>("get", getNative),
-// 		std::make_pair<std::string, NativeFn>("set", setNative),
-// 		std::make_pair<std::string, NativeFn>("size", sizeNative),
-// 		std::make_pair<std::string, NativeFn>("contain", containNative),
-// 		std::make_pair<std::string, NativeFn>("find", findNative),
-// 		std::make_pair<std::string, NativeFn>("toString", toStringNative),
-// 	};
-// 	oVM.DefineBuiltIn(oVM.arrayMethods, methods);
-// }

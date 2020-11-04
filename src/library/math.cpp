@@ -1,8 +1,9 @@
-#include "library/math.h"
 #include <iostream>
 #include <string.h>
 #include <algorithm>
+
 #include "math.h"
+#include "library/library.h"
 #include "foxely.h"
 
 Value sinNative(VM* oVM, int argCount, Value* args)
@@ -27,27 +28,13 @@ Value cosNative(VM* oVM, int argCount, Value* args)
     return (NUMBER_VAL(value));
 }
 
-
-
-MathPlugin::MathPlugin(VM* oVM) : fox::pluga::IModule(oVM)
+void DefineMathModule(VM* oVM)
 {
-    // std::cout << "MathPlugin: Create" << std::endl;
-
-	NativeMethods methods =
+    NativeMethods methods =
 	{
 		std::make_pair<std::string, NativeFn>("sin", sinNative),
 		std::make_pair<std::string, NativeFn>("cos", cosNative),
 	};
-
-	m_oMethods = methods;
-}
-
-MathPlugin::~MathPlugin()
-{
-    // std::cout << "MathPlugin: Destroy" << std::endl;
-}
-
-const char* MathPlugin::GetClassName() const
-{
-    return "math";
+    oVM->DefineModule("Math");
+    oVM->DefineClass("Math", "Math", methods);
 }

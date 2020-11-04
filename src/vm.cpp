@@ -10,10 +10,7 @@
 #include "scy/pluga/pluga.h"
 #include "scy/pluga/plugin_api.h"
 #include "scy/pluga/sharedlibrary.h"
-#include "library/io.h"
-#include "library/os.h"
-#include "library/array.h"
-#include "library/module.h"
+#include "library/library.h"
 #include "library/sfml.h"
 #include "foxely.h"
 #include "Parser.h"
@@ -38,53 +35,23 @@ std::vector<std::string> standardLib =
                             FOX_MODULE_CALL(arg1);
 #define TRACE(arg1,...)  TRACE2(arg1)
 
-void VM::LoadStandard(const std::string& name)
-{
-    NativeMethods methods;
-
-    OSPlugin os(this);
-    IOPlugin io(this);
-
-    if (name == "os")
-    {
-        DefineLib(os.GetClassName(), os.m_oMethods);
-    }
-    else if (name == "io")
-    {
-        DefineLib(io.GetClassName(), io.m_oMethods);
-    }
-    else if (name == "array")
-    {
-        // DefineNativeClass(array.GetClassName(), array.m_oMethods);
-    }
-    else if (name == "sfml")
-    {
-        // DefineNativeClass(sfml.GetClassName(), sfml.m_oMethods);
-    }
-}
-
-VM::VM()
+VM::VM() : gc(), m_oParser(), openUpvalues(NULL), initString(NULL)
 {
     gc.pVm = this;
     isInit = false;
-    // m_oParser.m_pVm = this;
-    // openUpvalues = NULL;
-    // stack[0] = Value();
-    // ResetStack();
+    m_oParser.m_pVm = this;
+    ResetStack();
+    initString = AS_STRING(NewString("init"));
+    // ModulePlugin module(this);
+    // DefineLib(module.GetClassName(), module.m_oMethods);
     // DefineNative("clock", clockNative);
-    // initString = NULL;
-    // initString = m_oParser.CopyString("init");
+    DefineCoreArray(this);
 }
 
 VM::~VM()
 {
     initString = NULL;
 }
-
-// VM *VM::GetInstance()
-// {
-// 	return &m_oInstance;
-// }
 
 void VM::ResetStack()
 {
@@ -266,13 +233,20 @@ void VM::CloseUpvalues(Value *last)
     }
 }
 
-void VM::DefineNative(const std::string &name, NativeFn function)
+void VM::DefineFunction(const std::string &strModule, const std::string &name, NativeFn function)
 {
-    Push(OBJ_VAL(m_oParser.CopyString(name)));
-    Push(OBJ_VAL(gc.New<ObjectNative>(function)));
-    currentModule->m_vVariables.Set(AS_STRING(PeekStart(0)), PeekStart(1));
-    Pop();
-    Pop();
+    Value oStrModuleName = NewString(strModule.c_str());
+
+    // See if the module has already been loaded.
+    ObjectModule* module = GetModule(oStrModuleName);
+    if (module != NULL)
+    {
+        Push(OBJ_VAL(m_oParser.CopyString(name)));
+        Push(OBJ_VAL(gc.New<ObjectNative>(function)));
+        module->m_vVariables.Set(AS_STRING(PeekStart(0)), PeekStart(1));
+        Pop();
+        Pop();
+    }
 }
 
 void VM::DefineLib(const std::string &name, NativeMethods &functions)
@@ -296,26 +270,64 @@ void VM::DefineLib(const std::string &name, NativeMethods &functions)
     Pop();
 }
 
-void VM::DefineNativeClass(const std::string &name, NativeMethods &functions)
+void VM::DefineModule(const std::string& strName)
 {
-    Push(OBJ_VAL(m_oParser.CopyString(name)));
-    Push(OBJ_VAL(gc.New<ObjectNativeClass>(AS_STRING(PeekStart(0)))));
-    currentModule->m_vVariables.Set(AS_STRING(PeekStart(0)), PeekStart(1));
-    ObjectNativeClass *klass = AS_NATIVE_CLASS(Pop());
-    Pop();
-    Push(OBJ_VAL(klass));
-    for (auto &it : functions) {
-        NativeFn func = it.second;
+    Value oStrName = NewString(strName.c_str());
 
-        Push(OBJ_VAL(m_oParser.CopyString(it.first)));
-        Push(OBJ_VAL(gc.New<ObjectNative>(func)));
+    // See if the module has already been loaded.
+    ObjectModule* module = GetModule(oStrName);
+    if (module == NULL)
+    {
+        std::cout << AS_STRING(oStrName)->string << std::endl;
+        module = gc.New<ObjectModule>(AS_STRING(oStrName));
 
-        klass->methods.Set(AS_STRING(PeekStart(1)), PeekStart(2));
+        // It's possible for the wrenMapSet below to resize the modules map,
+        // and trigger a GC while doing so. When this happens it will collect
+        // the module we've just created. Once in the map it is safe.
+        Push(OBJ_VAL(module));
+
+        // Store it in the VM's module registry so we don't load the same module
+        // multiple times.
+        modules.Set(AS_STRING(oStrName), OBJ_VAL(module));
 
         Pop();
+
+        // Implicitly import the core module.
+        ObjectModule* coreModule = GetModule(NewString("core"));
+        for (int i = 0; i < coreModule->m_vVariables.m_iCount; i++)
+            module->m_vVariables.AddAll(coreModule->m_vVariables);
+    }
+    else
+        std::cerr << "'" << strName << "': This module already exist !!" << std::endl;
+}
+
+void VM::DefineClass(const std::string &strModule, const std::string &name, NativeMethods &functions)
+{
+    Value oStrModuleName = NewString(strModule.c_str());
+
+    // See if the module has already been loaded.
+    ObjectModule* module = GetModule(oStrModuleName);
+    if (module != NULL)
+    {
+        Push(OBJ_VAL(m_oParser.CopyString(name)));
+        Push(OBJ_VAL(gc.New<ObjectNativeClass>(AS_STRING(PeekStart(0)))));
+        module->m_vVariables.Set(AS_STRING(PeekStart(0)), PeekStart(1));
+        ObjectNativeClass *klass = AS_NATIVE_CLASS(Pop());
+        Pop();
+        Push(OBJ_VAL(klass));
+        for (auto &it : functions) {
+            NativeFn func = it.second;
+
+            Push(OBJ_VAL(m_oParser.CopyString(it.first)));
+            Push(OBJ_VAL(gc.New<ObjectNative>(func)));
+
+            klass->methods.Set(AS_STRING(PeekStart(1)), PeekStart(2));
+
+            Pop();
+            Pop();
+        }
         Pop();
     }
-    Pop();
 }
 
 void VM::DefineBuiltIn(Table& methods, NativeMethods &functions)
@@ -419,22 +431,21 @@ bool VM::Invoke(ObjectString *name, int argCount)
     }
 }
 
-
 InterpretResult VM::Interpret(const char* module, const char* source)
 {
     ResetStack();
-    if (!isInit)
-    {
-        m_oParser.m_pVm = this;
-        openUpvalues = NULL;
-        initString = NULL;
-        initString = AS_STRING(NewString("init"));
-        // ModulePlugin module(this);
-        // DefineLib(module.GetClassName(), module.m_oMethods);
-        // DefineNative("clock", clockNative);
-        ArrayPlugin array(this);
-        isInit = true;
-    }
+    // if (!isInit)
+    // {
+    //     m_oParser.m_pVm = this;
+    //     openUpvalues = NULL;
+    //     initString = NULL;
+    //     initString = AS_STRING(NewString("init"));
+    //     // ModulePlugin module(this);
+    //     // DefineLib(module.GetClassName(), module.m_oMethods);
+    //     // DefineNative("clock", clockNative);
+    //     ArrayPlugin array(this);
+    //     isInit = true;
+    // }
     
     result = INTERPRET_OK;
 
@@ -1022,6 +1033,15 @@ InterpretResult VM::run()
             break;
         }
 
+        case OP_FOREIGN:
+        {
+            if (IS_OBJ(Peek(0)))
+            {
+                AS_OBJ(Peek(0))->bIsForeign = true;
+            }
+            break;
+        }
+
         case OP_ARRAY:
         {
             ObjectArray *array = gc.New<ObjectArray>();
@@ -1335,17 +1355,17 @@ Value VM::ImportModule(Value name)
     // }
     
     // If the host didn't provide it, see if it's a built in optional module.
-    if (source == NULL)
-    {
-        ObjectString* nameString = AS_STRING(name);
-        nameString->string += ".fox";
+    // if (source == NULL)
+    // {
+    ObjectString* nameString = AS_STRING(name);
+    nameString->string += ".fox";
 
-        std::ifstream t(nameString->string);
-        std::string str((   std::istreambuf_iterator<char>(t)),
-                            std::istreambuf_iterator<char>());
-        source = str.c_str();
-        allocatedSource = false;
-    }
+    std::ifstream t(nameString->string);
+    std::string str((   std::istreambuf_iterator<char>(t)),
+                        std::istreambuf_iterator<char>());
+    source = str.c_str();
+    allocatedSource = false;
+    // }
     
     if (source == NULL)
     {
@@ -1385,4 +1405,9 @@ Value VM::GetModuleVariable(ObjectModule* module, Value variableName)
     
     RuntimeError("Could not find a variable named '%s' in module '%s'.", AS_CSTRING(variableName), module->m_strName->string.c_str());
     return NIL_VAL;
+}
+
+void VM::BeginModule(std::string strModuleName)
+{
+    
 }

@@ -1,7 +1,8 @@
-#include "library/os.h"
 #include <iostream>
 #include <stdexcept>
 #include <string.h>
+
+#include "library/library.h"
 #include "foxely.h"
 
 
@@ -73,12 +74,9 @@ Value argsNative(VM* oVM, int argCount, Value* args)
 }
 
 
-
-OSPlugin::OSPlugin(VM* oVM) : fox::pluga::IModule(oVM)
+void DefineOSModule(VM* oVM)
 {
-    // std::cout << "OSPlugin: Create" << std::endl;
-
-	NativeMethods methods =
+    NativeMethods methods =
 	{
 		std::make_pair<std::string, NativeFn>("which", whichNative),
         std::make_pair<std::string, NativeFn>("shell", shellNative),
@@ -87,15 +85,6 @@ OSPlugin::OSPlugin(VM* oVM) : fox::pluga::IModule(oVM)
 		std::make_pair<std::string, NativeFn>("args", argsNative),
 	};
 
-	m_oMethods = methods;
-}
-
-OSPlugin::~OSPlugin()
-{
-    // std::cout << "OSPlugin: Destroy" << std::endl;
-}
-
-const char* OSPlugin::GetClassName() const
-{
-    return "os";
+    oVM->DefineModule("os");
+    oVM->DefineClass("os", "os", methods);
 }

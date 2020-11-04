@@ -148,6 +148,7 @@ Parser::Parser()
     rules[TOKEN_EOF] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_COLON] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_DOUBLE_COLON] = { NULL, NULL, PREC_NONE };
+    rules[TOKEN_FOREIGN] = { Foreign, NULL, PREC_NONE };
 }
 
 bool Parser::IsEnd()
@@ -617,6 +618,12 @@ void Subscript(Parser& parser, bool canAssign)
         //parser.EmitByte(OP_SUBSCRIPT_ASSIGN);
     } else
         parser.EmitByte(OP_SUBSCRIPT);
+}
+
+void Foreign(Parser& parser, bool can_assign)
+{
+    Expression(parser);
+    parser.EmitByte(OP_FOREIGN);
 }
 
 void Declaration(Parser& parser)
