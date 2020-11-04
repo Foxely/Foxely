@@ -101,7 +101,7 @@ void VM::RuntimeError(const char *format, ...)
     result = InterpretResult::INTERPRET_RUNTIME_ERROR;
 }
 
-bool VM::Call(ObjectClosure *closure, int argCount)
+bool VM::CallFunction(ObjectClosure *closure, int argCount)
 {
     // Check the number of args pass to the function call
     if (argCount != closure->function->arity) {
@@ -144,7 +144,7 @@ bool VM::CallValue(Value callee, int argCount)
         {
             ObjectBoundMethod *bound = AS_BOUND_METHOD(callee);
             stackTop[-argCount - 1] = bound->receiver;
-            return Call(bound->method, argCount);
+            return CallFunction(bound->method, argCount);
         }
 
         case OBJ_CLASS:
@@ -153,7 +153,7 @@ bool VM::CallValue(Value callee, int argCount)
             stackTop[-argCount - 1] = OBJ_VAL(gc.New<ObjectInstance>(klass));
             Value initializer;
             if (klass->methods.Get(initString, initializer))
-                return Call(AS_CLOSURE(initializer), argCount);
+                return CallFunction(AS_CLOSURE(initializer), argCount);
             else if (argCount != 0)
             {
                 RuntimeError("Expected 0 arguments but got %d.", argCount);
@@ -179,7 +179,7 @@ bool VM::CallValue(Value callee, int argCount)
         }
 
         case OBJ_CLOSURE:
-            return Call(AS_CLOSURE(callee), argCount);
+            return CallFunction(AS_CLOSURE(callee), argCount);
 
         default:
             // Non-callable object type.
@@ -358,7 +358,7 @@ bool VM::InvokeFromClass(ObjectClass *klass, ObjectString *name, int argCount)
         return false;
     }
 
-    return Call(AS_CLOSURE(method), argCount);
+    return CallFunction(AS_CLOSURE(method), argCount);
 }
 
 bool VM::InvokeFromNativeClass(ObjectNativeClass *klass, ObjectString *name, int argCount)
@@ -852,7 +852,7 @@ InterpretResult VM::run()
             //     break;
             if (IS_CLOSURE(Peek(0)))
             {
-                Call(AS_CLOSURE(Peek(0)), 0);
+                CallFunction(AS_CLOSURE(Peek(0)), 0);
                 frame = &frames[frameCount - 1];
             }
             else
@@ -1355,14 +1355,200 @@ Value VM::GetModuleVariable(ObjectModule* module, Value variableName)
     Value oModule;
 
     // It's a runtime error if the imported variable does not exist.
-    if (modules.Get(AS_STRING(variableName), oModule))
+    if (module->m_vVariables.Get(AS_STRING(variableName), oModule))
         return oModule;
     
     RuntimeError("Could not find a variable named '%s' in module '%s'.", AS_CSTRING(variableName), module->m_strName->string.c_str());
     return NIL_VAL;
 }
 
-void VM::BeginModule(std::string strModuleName)
+InterpretResult VM::Call(Handle* pMethod)
 {
+    if (pMethod == NULL)
+    {
+        std::cerr << "Method cannot be NULL." << std::endl;
+        return INTERPRET_RUNTIME_ERROR;
+    }
+
+    if (!IS_CLOSURE(pMethod->value))
+    {
+        std::cerr << "Method must be a method handle." << std::endl;
+        return INTERPRET_RUNTIME_ERROR;
+    }
     
+    ObjectClosure* closure = AS_CLOSURE(pMethod->value);
+
+    if (stackTop - stack < closure->function->arity)
+    {
+        std::cerr << "Stack must have enough arguments for method." << std::endl;
+        return INTERPRET_RUNTIME_ERROR;
+    }
+
+    m_pApiStack = NULL;
+    
+    CallValue(pMethod->value, closure->function->arity);
+    InterpretResult result = run();
+    
+    return result;
+}
+
+Handle* VM::Method(const std::string& strModuleName, const std::string& strName)
+{
+    ObjectModule* pModule = GetModule(NewString(strModuleName.c_str()));
+    Value oFunction;
+
+    if (pModule)
+    {
+        oFunction = GetModuleVariable(pModule, NewString(strName.c_str()));
+        return MakeHandle(oFunction);
+    }
+    return NULL;
+}
+
+Handle* VM::MakeHandle(Value value)
+{
+    if (IS_OBJ(value)) Push(value);
+    
+    // Make a handle for it.
+    Handle* handle = gc.New<Handle>();
+    handle->value = value;
+
+    if (IS_OBJ(value)) Pop();
+
+    // Add it to the front of the linked list of handles.
+    m_vHandles.push_back(handle);
+    
+    return handle;
+}
+
+void VM::ReleaseHandle(Handle* handle)
+{
+    if (handle == NULL)
+    {
+        std::cerr << "Handle cannot be NULL." << std::endl;
+        return;
+    }
+
+    // // Update the VM's head pointer if we're releasing the first handle.
+    // if (handles == handle) vm->handles = handle->next;
+
+    // Unlink it from the list.
+    // if (handle->prev != NULL) handle->prev->next = handle->next;
+    // if (handle->next != NULL) handle->next->prev = handle->prev;
+
+    // Clear it out. This isn't strictly necessary since we're going to free it,
+    // but it makes for easier debugging.
+    // handle->prev = NULL;
+    // handle->next = NULL;
+    // handle->value = NULL_VAL;
+    std::vector<Handle*>::iterator it = std::find(m_vHandles.begin(), m_vHandles.end(), handle);
+    m_vHandles.erase(it);
+    delete handle;
+    // DEALLOCATE(vm, handle);
+}
+
+int VM::GetSlotCount()
+{
+    return (int)(stackTop - m_pApiStack);
+}
+
+void VM::EnsureSlots(int numSlots)
+{
+    for (int i = 0; i < numSlots; i++)
+        Push(NIL_VAL);
+
+    m_pApiStack = stackTop - numSlots;
+}
+
+// Ensures that [slot] is a valid index into the API's stack of slots.
+bool VM::ValidateApiSlot(int slot)
+{
+    Fox_ApiPanicIfNot(this, slot >= 0, "Slot cannot be negative.\n");
+    Fox_ApiPanicIfNot(this, slot < GetSlotCount(), "Not that many slots.\n");
+    return true;
+}
+
+// Stores [value] in [slot] in the foreign call stack.
+void VM::SetSlot(int slot, Value value)
+{
+    ValidateApiSlot(slot);
+    m_pApiStack[slot] = value;
+}
+
+void VM::SetSlotBool(int slot, bool value)
+{
+    SetSlot(slot, BOOL_VAL(value));
+}
+
+void VM::SetSlotDouble(int slot, double value)
+{
+    SetSlot(slot, NUMBER_VAL(value));
+}
+
+void VM::SetSlotInteger(int slot, int value)
+{
+    SetSlot(slot, INT_VAL(value));
+}
+
+void VM::SetSlotNewList(int slot)
+{
+    SetSlot(slot, OBJ_VAL(gc.New<ObjectArray>()));
+}
+
+// void wrenSetSlotNewMap(WrenVM* vm, int slot)
+// {
+//   setSlot(vm, slot, OBJ_VAL(wrenNewMap(vm)));
+// }
+
+void VM::SetSlotNull(int slot)
+{
+    SetSlot(slot, NIL_VAL);
+}
+
+void VM::SetSlotString(int slot, const char* text)
+{
+    Fox_ApiPanicIfNot(this, text != NULL, "String cannot be NULL.\n");
+    
+    SetSlot(slot, NewString(text));
+}
+
+// void wrenSetSlotHandle(WrenVM* vm, int slot, WrenHandle* handle)
+// {
+//   ASSERT(handle != NULL, "Handle cannot be NULL.");
+
+//   setSlot(vm, slot, handle->value);
+// }
+
+int VM::GetListCount(int slot)
+{
+    ValidateApiSlot(slot);
+    Fox_ApiPanicIfNot(this, IS_ARRAY(m_pApiStack[slot]), "Slot must hold a list.\n");
+
+    return AS_ARRAY(m_pApiStack[slot])->m_vValues.size();
+}
+
+void VM::GetListElement(int listSlot, int index, int elementSlot)
+{
+    ValidateApiSlot(listSlot);
+    ValidateApiSlot(elementSlot);
+    Fox_ApiPanicIfNot(this, IS_ARRAY(m_pApiStack[listSlot]), "Slot must hold a list.\n");
+    
+    m_pApiStack[elementSlot] = AS_ARRAY(m_pApiStack[listSlot])->m_vValues[index];
+}
+
+void VM::SetListElement(int listSlot, int index, int elementSlot)
+{
+    ValidateApiSlot(listSlot);
+    ValidateApiSlot(elementSlot);
+    Fox_ApiPanicIfNot(this, IS_ARRAY(m_pApiStack[listSlot]), "Must insert into a list.\n");
+    
+    ObjectArray* array = AS_ARRAY(m_pApiStack[listSlot]);
+    
+    // Negative indices count from the end.
+    if (index < 0)
+        index = array->m_vValues.size() + 1 + index;
+    
+    Fox_ApiPanicIfNot(this, index <= array->m_vValues.size(), "Index out of bounds.\n");
+
+    array->m_vValues[index] = m_pApiStack[elementSlot];
 }

@@ -1,0 +1,11 @@
+
+
+sayHello :: func()
+{
+    print "Hello!\n";
+}
+
+add :: func(a, b)
+{
+    print "% + % = %\n", a, b, a + b;
+}

@@ -23,7 +23,7 @@ Value importNative(VM* oVM, int argCount, Value* args)
     oVM->Push(OBJ_VAL(function));
     ObjectClosure *closure = oVM->gc.New<ObjectClosure>(oVM, function);
     oVM->Pop();
-    oVM->Call(closure, 0);
+    oVM->CallFunction(closure, 0);
     CallFrame *frame = &oVM->frames[oVM->frameCount - 1];
     frame = &oVM->frames[oVM->frameCount - 1];
     return NIL_VAL;

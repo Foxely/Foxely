@@ -21,10 +21,18 @@ class Parser;
 #define FRAMES_MAX 64
 #define STACK_MAX (FRAMES_MAX * UINT8_COUNT)
 
-struct CallFrame {
+struct CallFrame
+{
 	ObjectClosure* closure;
 	std::vector<uint8_t>::iterator ip;
 	Value* slots;
+};
+
+// A handle to a value, basically just a linked list of extra GC roots.
+class Handle : public Object
+{
+public:
+  	Value value;
 };
 
 typedef enum
@@ -46,6 +54,7 @@ public:
     std::vector<uint8_t>::iterator ip;
     Value stack[STACK_MAX];
     Value* stackTop;
+    Value* m_pApiStack;
     Parser m_oParser;
 	Table strings;
 	Table globals;
@@ -56,6 +65,7 @@ public:
 	ObjectString* initString;
 	GC gc;
 	ObjectModule* currentModule;
+	std::vector<Handle*> m_vHandles;
 
     Table arrayMethods;
 
@@ -83,12 +93,19 @@ public:
     void EmitByte(uint8_t byte);
     void Concatenate();
 	bool CallValue(Value callee, int argCount);
-	bool Call(ObjectClosure* closure, int argCount);
+	bool CallFunction(ObjectClosure* closure, int argCount);
+	
 	void DefineFunction(const std::string &strModule, const std::string& name, NativeFn function);
 	void DefineClass(const std::string &strModule, const std::string& name, NativeMethods& functions);
 	void DefineLib(const std::string &strModule, const std::string &name, NativeMethods &functions);
 	void DefineBuiltIn(Table& methods, NativeMethods &functions);
 	void DefineModule(const std::string& strName);
+	
+	InterpretResult Call(Handle* pMethod);
+	// template <typename... Args>
+	// InterpretResult Call(Handle* pMethod, Args&&... args);
+	void ReleaseHandle(Handle* handle);
+	Handle* MakeHandle(Value value);
 
 	ObjectUpvalue* CaptureUpvalue(Value* local);
 	void CloseUpvalues(Value* last);
@@ -113,7 +130,21 @@ public:
 	Value ImportModule(Value name);
 	Value GetModuleVariable(ObjectModule* module, Value variableName);
 
-	void BeginModule(std::string strModuleName);
+	Handle* Method(const std::string& strModuleName, const std::string& strName);
+
+	int GetSlotCount();
+	void EnsureSlots(int numSlots);
+	bool ValidateApiSlot(int slot);
+	void SetSlot(int slot, Value value);
+	void SetSlotBool(int slot, bool value);
+	void SetSlotInteger(int slot, int value);
+	void SetSlotDouble(int slot, double value);
+	void SetSlotNewList(int slot);
+	void SetSlotNull(int slot);
+	void SetSlotString(int slot, const char* text);
+	int GetListCount(int slot);
+	void GetListElement(int listSlot, int index, int elementSlot);
+	void SetListElement(int listSlot, int index, int elementSlot);
 
 private:
     InterpretResult run();
@@ -122,6 +153,21 @@ private:
 	InterpretResult result;
 	bool isInit;
 };
+
+// template <typename... Args>
+// inline InterpretResult VM::Call(Handle* pMethod, Args&&... args)
+// {
+//     constexpr auto count = sizeof...(Args);
+// 	for (int i = 0; i < count; i++)
+// 	{
+// 		if (typeid(decltype(args[i])).name() == "int")
+// 		{
+// 			std::cout << "int" << std::endl;
+// 		}
+// 	}
+//     std::cout << "Size: " << count << std::endl;
+//     return Call(pMethod);
+// }
 
 inline Value clockNative(VM* oVM, int argCount, Value* args)
 {

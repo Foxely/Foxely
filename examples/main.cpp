@@ -267,6 +267,7 @@ void replv3(int ac, char** av)
 void runFile(int ac, char** av, const char* path)
 {
     VM oVM;
+
     oVM.argc = ac;
     oVM.argv = av;
 	std::ifstream t(path);
@@ -278,6 +279,15 @@ void runFile(int ac, char** av, const char* path)
 
     InterpretResult result = oVM.Interpret("main", str.c_str());
 
+    Handle* say = oVM.Method("main", "sayHello");
+    oVM.Call(say);
+
+    Handle* add = oVM.Method("main", "add");
+    oVM.EnsureSlots(2);
+    oVM.SetSlotInteger(0, 2);
+    oVM.SetSlotInteger(1, 1);
+    oVM.Call(add);
+
     if (result == INTERPRET_COMPILE_ERROR) exit(65);
     if (result == INTERPRET_RUNTIME_ERROR) exit(70);
 }
@@ -286,8 +296,7 @@ int main(int ac, char** av)
 {
     if (ac == 1) {
         IsRepl = true;
-        replv3(ac, av);
-        // repl();
+        repl();
     } else if (ac >= 2) {
         runFile(ac, av, av[1]);
     } else {

@@ -1203,6 +1203,7 @@ extern "C"
 #define FOX_MODULE(name) void name##_entry()
 #define FOX_MODULE_CALL(name) name##_entry()
 
+#define Fox_ApiError(oVM, msg, ...) { fprintf(stderr, msg, ##__VA_ARGS__); oVM->result = INTERPTRE_RUNTIME_ERROR; }
 #define Fox_RuntimeError(oVM, msg, ...) oVM->RuntimeError(msg, ##__VA_ARGS__)
 #define Fox_PanicIfNot(oVM, cond, msg, ...) if (!(cond)) { Fox_RuntimeError(oVM, msg, ##__VA_ARGS__); return NIL_VAL; }
 

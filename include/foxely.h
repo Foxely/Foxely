@@ -14,12 +14,24 @@ extern "C"
 #define FOX_MODULE(name) void name##_entry()
 #define FOX_MODULE_CALL(name) name##_entry()
 
+#define Fox_ApiError(oVM, msg, ...) { fprintf(stderr, msg, ##__VA_ARGS__); oVM->result = INTERPRET_RUNTIME_ERROR; }
 #define Fox_RuntimeError(oVM, msg, ...) oVM->RuntimeError(msg, ##__VA_ARGS__)
 #define Fox_PanicIfNot(oVM, cond, msg, ...) if (!(cond)) { Fox_RuntimeError(oVM, msg, ##__VA_ARGS__); return NIL_VAL; }
+#define Fox_ApiPanicIfNot(oVM, cond, msg, ...) if (!(cond)) { Fox_ApiError(oVM, msg, ##__VA_ARGS__); exit(84); }
 
 	static inline Value Fox_StringToValue(VM* oVM, const char* str)
 	{
 		return OBJ_VAL(oVM->m_oParser.TakeString(str));
+	}
+
+	static inline Value Fox_NumberToValue(int iNumber)
+	{
+		return NUMBER_VAL(iNumber);
+	}
+
+	static inline Value Fox_BoolToValue(bool bValue)
+	{
+		return BOOL_VAL(bValue);
 	}
 
     static const char* Fox_ValueToCString(Value val)
@@ -46,7 +58,6 @@ extern "C"
 	{
 		return AS_BOOL(value);
 	}
-
 
     static inline Value Fox_Abstract(VM* oVM, void* data, ObjectAbstractType* type)
 	{
