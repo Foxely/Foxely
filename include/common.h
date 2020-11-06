@@ -34,4 +34,31 @@ inline bool IsRepl;
 //     }
 // }
 
+
+// Assertions are used to validate program invariants. They indicate things the
+// program expects to be true about its internal state during execution. If an
+// assertion fails, there is a bug in Wren.
+//
+// Assertions add significant overhead, so are only enabled in debug builds.
+#ifdef DEBUG
+
+    #include <stdio.h>
+
+    #define FOX_ASSERT(condition, message)                                           \
+        do                                                                       \
+        {                                                                        \
+            if (!(condition))                                                      \
+            {                                                                      \
+                fprintf(stderr, "[%s:%d] Assert failed in %s(): %s\n",               \
+                    __FILE__, __LINE__, __func__, message);                          \
+                abort();                                                             \
+            }                                                                      \
+        } while (false)
+
+#else
+
+  #define FOX_ASSERT(condition, message)
+
+#endif
+
 #endif

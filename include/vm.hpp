@@ -136,7 +136,7 @@ public:
 
 	int GetSlotCount();
 	void EnsureSlots(int numSlots);
-	bool ValidateApiSlot(int slot);
+	void ValidateApiSlot(int slot);
 
     ValueType GetSlotType(int slot);
 	Value GetSlot(int slot);
@@ -195,6 +195,11 @@ public:
 		if (result == INTERPRET_OK)
 			return m_pVM->GetSlot(0);
 		return NIL_VAL;
+    }
+
+    bool IsValid()
+    {
+		return IS_CLOSURE(m_pVariable->value);
     }
 
     template <typename T, std::size_t index> void read(T value)

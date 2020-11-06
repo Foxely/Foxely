@@ -52,6 +52,7 @@ void VM::Push(Value value)
 
 Value VM::Pop()
 {
+    FOX_ASSERT(stackTop != NULL, "No temporary roots to release.");
     stackTop--;
     return *stackTop;
 }
@@ -1199,37 +1200,19 @@ Value VM::FindVariable(ObjectModule* module, const char* name)
 
 void VM::GetVariable(const char* module, const char* name, int slot)
 {
-    if (module == NULL)
-    {
-        std::cerr << "Module cannot be NULL." << std::endl;
-        return;
-    }
-    if (name == NULL)
-    {
-        std::cerr << "Variable name cannot be NULL." << std::endl;
-        return;
-    }
+    FOX_ASSERT(module != NULL, "Module cannot be NULL.");
+    FOX_ASSERT(name != NULL, "Variable name cannot be NULL.");  
 
     Value moduleName = NewString(module);
     Push(moduleName);
     
     ObjectModule* moduleObj = GetModule(moduleName);
-    // ASSERT(moduleObj != NULL, "Could not find module.");
-    if (moduleObj == NULL)
-    {
-        std::cerr << "Could not find module." << std::endl;
-        return;
-    }
+    FOX_ASSERT(moduleObj != NULL, "Could not find module.");
     
     Pop(); // moduleName.
 
     Value oVariable = FindVariable(moduleObj, name);
-    // ASSERT(variableSlot != -1, "Could not find variable.");
-    if (oVariable == NIL_VAL)
-    {
-        std::cerr << "Could not find variable." << std::endl;
-        return;
-    }
+    FOX_ASSERT(variableSlot != NIL_VAL, "Could not find variable.");
     
     SetSlot(slot, oVariable);
 }
@@ -1397,25 +1380,14 @@ Value VM::GetModuleVariable(ObjectModule* module, Value variableName)
 
 InterpretResult VM::Call(Handle* pMethod)
 {
-    if (pMethod == NULL)
-    {
-        std::cerr << "Method cannot be NULL." << std::endl;
-        return INTERPRET_RUNTIME_ERROR;
-    }
-
-    if (!IS_CLOSURE(pMethod->value))
-    {
-        std::cerr << "Method must be a method handle." << std::endl;
-        return INTERPRET_RUNTIME_ERROR;
-    }
+    FOX_ASSERT(pMethod != NULL, "Method cannot be NULL.");
+    FOX_ASSERT(IS_CLOSURE(pMethod->value), "Method must be a method handle.");
+    FOX_ASSERT(m_pApiStack != NULL, "Must set up arguments for call first.");
     
     ObjectClosure* closure = AS_CLOSURE(pMethod->value);
 
-    if (stackTop - m_pApiStack < closure->function->arity)
-    {
-        std::cerr << "Stack must have enough arguments for method." << std::endl;
-        return INTERPRET_RUNTIME_ERROR;
-    }
+    FOX_ASSERT(stackTop - m_pApiStack >= closure->function->arity, "Stack must have enough arguments for method.");
+
     m_pApiStack = NULL;
     // stackTop = &stack[closure->function->arity + 1];
     CallFunction(closure, closure->function->arity);
@@ -1463,20 +1435,11 @@ Handle* VM::MakeHandle(Value value)
 
 Handle* VM::MakeCallHandle(const char* signature)
 {
-    if (signature == NULL)
-    {
-        std::cerr << "Signature cannot be NULL." << std::endl;
-        return NULL;
-    }
+    FOX_ASSERT(signature != NULL, "Signature cannot be NULL.");
     
     int signatureLength = (int)strlen(signature);
+    FOX_ASSERT(signatureLength > 0, "Signature cannot be empty.");
 
-    if (signatureLength <= 0)
-    {
-        std::cerr << "Signature cannot be empty." << std::endl;
-        return NULL;
-    }
-    
     // Count the number parameters the method expects.
     int numParams = 0;
     if (signature[signatureLength - 1] == ')')
@@ -1498,9 +1461,6 @@ Handle* VM::MakeCallHandle(const char* signature)
         }
     }
     
-    // Add the signatue to the method table.
-    // int method =  wrenSymbolTableEnsure(vm, &vm->methodNames, signature, signatureLength);
-    
     // Create a little stub function that assumes the arguments are on the stack
     // and calls the method.
     ObjectFunction* fn = gc.New<ObjectFunction>();
@@ -1519,32 +1479,17 @@ Handle* VM::MakeCallHandle(const char* signature)
 
 void VM::ReleaseHandle(Handle* handle)
 {
-    if (handle == NULL)
-    {
-        std::cerr << "Handle cannot be NULL." << std::endl;
-        return;
-    }
+    FOX_ASSERT(handle != NULL, "Handle cannot be NULL.");
 
-    // // Update the VM's head pointer if we're releasing the first handle.
-    // if (handles == handle) vm->handles = handle->next;
-
-    // Unlink it from the list.
-    // if (handle->prev != NULL) handle->prev->next = handle->next;
-    // if (handle->next != NULL) handle->next->prev = handle->prev;
-
-    // Clear it out. This isn't strictly necessary since we're going to free it,
-    // but it makes for easier debugging.
-    // handle->prev = NULL;
-    // handle->next = NULL;
-    // handle->value = NULL_VAL;
+    handle->value = NIL_VAL;
     std::vector<Handle*>::iterator it = std::find(m_vHandles.begin(), m_vHandles.end(), handle);
     m_vHandles.erase(it);
     delete handle;
-    // DEALLOCATE(vm, handle);
 }
 
 int VM::GetSlotCount()
 {
+    if (m_pApiStack == NULL) return 0;
     return (int)(stackTop - m_pApiStack);
 }
 
@@ -1557,11 +1502,10 @@ void VM::EnsureSlots(int numSlots)
 }
 
 // Ensures that [slot] is a valid index into the API's stack of slots.
-bool VM::ValidateApiSlot(int slot)
+void VM::ValidateApiSlot(int slot)
 {
-    Fox_ApiPanicIfNot(this, slot >= 0, "Slot cannot be negative.\n");
-    Fox_ApiPanicIfNot(this, slot < GetSlotCount(), "Not that many slots.\n");
-    return true;
+    FOX_ASSERT(slot >= 0, "Slot cannot be negative.");
+    FOX_ASSERT(slot < wrenGetSlotCount(vm), "Not that many slots.");
 }
 
 
@@ -1581,7 +1525,6 @@ ValueType VM::GetSlotType(int slot)
 Value VM::GetSlot(int slot)
 {
     ValidateApiSlot(slot);
-    // ASSERT(IS_BOOL(m_pApiStack[slot]), "Slot must hold a bool.");
 
     return m_pApiStack[slot];
 }
@@ -1589,7 +1532,7 @@ Value VM::GetSlot(int slot)
 bool VM::GetSlotBool(int slot)
 {
     ValidateApiSlot(slot);
-    // ASSERT(IS_BOOL(m_pApiStack[slot]), "Slot must hold a bool.");
+    FOX_ASSERT(IS_BOOL(m_pApiStack[slot]), "Slot must hold a bool.");
 
     return AS_BOOL(m_pApiStack[slot]);
 }
@@ -1597,7 +1540,7 @@ bool VM::GetSlotBool(int slot)
 double VM::GetSlotDouble(int slot)
 {
     ValidateApiSlot(slot);
-    // ASSERT(IS_NUMBER(m_pApiStack[slot]), "Slot must hold a number.");
+    FOX_ASSERT(IS_NUMBER(m_pApiStack[slot]), "Slot must hold a number.");
 
     return AS_NUMBER(m_pApiStack[slot]);
 }
@@ -1605,7 +1548,7 @@ double VM::GetSlotDouble(int slot)
 const char* VM::GetSlotString(int slot)
 {
     ValidateApiSlot(slot);
-    // ASSERT(IS_STRING(m_pApiStack[slot]), "Slot must hold a string.");
+    FOX_ASSERT(IS_STRING(m_pApiStack[slot]), "Slot must hold a string.");
 
     return AS_CSTRING(m_pApiStack[slot]);
 }
@@ -1655,19 +1598,14 @@ void VM::SetSlotNull(int slot)
 
 void VM::SetSlotString(int slot, const char* text)
 {
-    Fox_ApiPanicIfNot(this, text != NULL, "String cannot be NULL.\n");
+    FOX_ASSERT(text != NULL, "String cannot be NULL.\n");
     
     SetSlot(slot, NewString(text));
 }
 
 void VM::SetSlotHandle(int slot, Handle* handle)
 {
-    // ASSERT(handle != NULL, "Handle cannot be NULL.");
-    if (handle == NULL)
-    {
-        std::cerr << "Handle cannot be NULL." << std::endl;
-        return;
-    }
+    FOX_ASSERT(handle != NULL, "Handle cannot be NULL.");
 
     SetSlot(slot, handle->value);
 }
@@ -1675,7 +1613,7 @@ void VM::SetSlotHandle(int slot, Handle* handle)
 int VM::GetListCount(int slot)
 {
     ValidateApiSlot(slot);
-    Fox_ApiPanicIfNot(this, IS_ARRAY(m_pApiStack[slot]), "Slot must hold a list.\n");
+    FOX_ASSERT(IS_ARRAY(m_pApiStack[slot]), "Slot must hold a list.\n");
 
     return AS_ARRAY(m_pApiStack[slot])->m_vValues.size();
 }
@@ -1684,7 +1622,7 @@ void VM::GetListElement(int listSlot, int index, int elementSlot)
 {
     ValidateApiSlot(listSlot);
     ValidateApiSlot(elementSlot);
-    Fox_ApiPanicIfNot(this, IS_ARRAY(m_pApiStack[listSlot]), "Slot must hold a list.\n");
+    FOX_ASSERT(IS_ARRAY(m_pApiStack[listSlot]), "Slot must hold a list.\n");
     
     m_pApiStack[elementSlot] = AS_ARRAY(m_pApiStack[listSlot])->m_vValues[index];
 }
@@ -1693,7 +1631,7 @@ void VM::SetListElement(int listSlot, int index, int elementSlot)
 {
     ValidateApiSlot(listSlot);
     ValidateApiSlot(elementSlot);
-    Fox_ApiPanicIfNot(this, IS_ARRAY(m_pApiStack[listSlot]), "Must insert into a list.\n");
+    FOX_ASSERT(IS_ARRAY(m_pApiStack[listSlot]), "Must insert into a list.\n");
     
     ObjectArray* array = AS_ARRAY(m_pApiStack[listSlot]);
     
@@ -1701,7 +1639,7 @@ void VM::SetListElement(int listSlot, int index, int elementSlot)
     if (index < 0)
         index = array->m_vValues.size() + 1 + index;
     
-    Fox_ApiPanicIfNot(this, index <= array->m_vValues.size(), "Index out of bounds.\n");
+    FOX_ASSERT(index <= array->m_vValues.size(), "Index out of bounds.\n");
 
     array->m_vValues[index] = m_pApiStack[elementSlot];
 }
