@@ -25,11 +25,11 @@ void Traceable::mark()
 
 void Traceable::markChildren() { }
 
-GC::GC()
+GC::GC(VM* pVm)
 {
 	bytesAllocated = 0;
 	nextGC = 1024 * 1024;
-	pVm = NULL;
+	m_pVm = pVm;
 }
 
 /**

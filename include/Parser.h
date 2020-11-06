@@ -43,11 +43,11 @@ typedef enum {
     TOKEN_SINGLE_COMMENT,
     TOKEN_MULTI_COMMENT,
     TOKEN_WS,
+    TOKEN_SHEBANG,
     TOKEN_MAX,
     TOKEN_EOF = -1,
     TOKEN_NEW_LINE = 83,
     TOKEN_ERROR = 84,
-    TOKEN_SHEBANG,
 } TokenType;
 
 typedef enum {
@@ -116,7 +116,7 @@ public:
     Compiler *currentCompiler;
 	ClassCompiler* currentClass;
 
-    Parser();
+    Parser(VM* pVm);
 	bool IsEnd();
     void Advance();
     void MarkInitialized();

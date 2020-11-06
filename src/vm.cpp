@@ -17,24 +17,20 @@
 #include "vm.hpp"
 #include "object.hpp"
 
-using Standard = std::pair<std::string, fox::pluga::IModule>;
-
-#define TRACE2(arg1) char arg1; \
-                            FOX_MODULE_CALL(arg1);
-#define TRACE(arg1,...)  TRACE2(arg1)
-
-VM::VM() : gc(), m_oParser(), openUpvalues(NULL), initString(NULL)
+VM::VM() : gc(this), m_oParser(this), modules()
 {
-    gc.pVm = this;
-    isInit = false;
-    m_oParser.m_pVm = this;
     ResetStack();
+    isInit = false;
+    currentModule = NULL;
+    m_pApiStack = NULL;
+    openUpvalues = NULL;
+    DefineModule("core");
     initString = AS_STRING(NewString("init"));
+    DefineCoreArray(this);
+    // ResetStack();
     // ModulePlugin module(this);
     // DefineLib(module.GetClassName(), module.m_oMethods);
     // DefineNative("clock", clockNative);
-    DefineCoreArray(this);
-    DefineModule("core");
 }
 
 VM::~VM()
@@ -431,16 +427,24 @@ bool VM::Invoke(ObjectString *name, int argCount)
 InterpretResult VM::Interpret(const char* module, const char* source)
 {
     ResetStack();
+
+    // if (!isInit)
+    // {
+    //     initString = AS_STRING(NewString("init"));
+    //     DefineCoreArray(this);
+    //     isInit = true;
+    // }
     
     result = INTERPRET_OK;
 
     ObjectClosure* closure = CompileSource(module, source, false, true);
-    if (closure == NULL) return INTERPRET_COMPILE_ERROR;
+    if (closure == NULL)
+        return INTERPRET_COMPILE_ERROR;
     
     Push(OBJ_VAL(closure));
     // ObjFiber* fiber = wrenNewFiber(vm, closure);
     // wrenPopRoot(vm); // closure.
-    // vm->apiStack = NULL;
+    // m_pApiStack = NULL;
     CallValue(OBJ_VAL(closure), 0);
 
     return run();
@@ -671,10 +675,12 @@ InterpretResult VM::run()
             Value string = Peek(--tempArgCount);
             
             for (int i = 0; AS_STRING(string)->string[i]; i++)
+            {
                 if (AS_STRING(string)->string[i] == '%' && AS_STRING(string)->string[i + 1] == '%')
                     i++;
                 else if (AS_STRING(string)->string[i] == '%')
                     percentCount++;
+            }
             
             if (tempArgCount != percentCount)
             {
@@ -870,8 +876,12 @@ InterpretResult VM::run()
             Value result = Pop();
             CloseUpvalues(frame->slots);
             frameCount--;
-            if (frameCount == 0) {
+            if (frameCount <= 0)
+            {
                 Pop();
+                frameCount = 0;
+                stack[0] = result;
+                stackTop = stack + 1;
                 return INTERPRET_OK;
             }
 
@@ -882,9 +892,14 @@ InterpretResult VM::run()
             break;
         }
 
+        case OP_END:
+        {
+            return INTERPRET_OK;
+        }
+
         case OP_END_MODULE:
             currentModule = frames[frameCount - 1].closure->function->module;
-            Push(NIL_VAL);
+            // Push(NIL_VAL);
             break;
 
         case OP_CONST:
@@ -1054,7 +1069,7 @@ void VM::AddToRoots() {
         AddObjectToRoot((Object *)upvalue);
     }
 
-    AddTableToRoot(globals);
+    // AddTableToRoot(globals);
     AddTableToRoot(modules);
     AddCompilerToRoots();
     AddObjectToRoot((Object *)initString);
@@ -1184,21 +1199,39 @@ Value VM::FindVariable(ObjectModule* module, const char* name)
 
 void VM::GetVariable(const char* module, const char* name, int slot)
 {
-    // ASSERT(module != NULL, "Module cannot be NULL.");
-    // ASSERT(name != NULL, "Variable name cannot be NULL.");  
+    if (module == NULL)
+    {
+        std::cerr << "Module cannot be NULL." << std::endl;
+        return;
+    }
+    if (name == NULL)
+    {
+        std::cerr << "Variable name cannot be NULL." << std::endl;
+        return;
+    }
 
-    // Value moduleName = wrenStringFormat(vm, "$", module);
-    // Push(AS_OBJ(moduleName));
+    Value moduleName = NewString(module);
+    Push(moduleName);
     
-    // ObjectModule* moduleObj = getModule(vm, moduleName);
+    ObjectModule* moduleObj = GetModule(moduleName);
     // ASSERT(moduleObj != NULL, "Could not find module.");
+    if (moduleObj == NULL)
+    {
+        std::cerr << "Could not find module." << std::endl;
+        return;
+    }
     
-    // Pop(vm); // moduleName.
+    Pop(); // moduleName.
 
-    // int variableSlot = wrenSymbolTableFind(&moduleObj->variableNames, name, strlen(name));
+    Value oVariable = FindVariable(moduleObj, name);
     // ASSERT(variableSlot != -1, "Could not find variable.");
+    if (oVariable == NIL_VAL)
+    {
+        std::cerr << "Could not find variable." << std::endl;
+        return;
+    }
     
-    // setSlot(vm, slot, moduleObj->variables.data[variableSlot]);
+    SetSlot(slot, oVariable);
 }
 
 // Looks up the previously loaded module with [name].
@@ -1378,31 +1411,38 @@ InterpretResult VM::Call(Handle* pMethod)
     
     ObjectClosure* closure = AS_CLOSURE(pMethod->value);
 
-    if (stackTop - stack < closure->function->arity)
+    if (stackTop - m_pApiStack < closure->function->arity)
     {
         std::cerr << "Stack must have enough arguments for method." << std::endl;
         return INTERPRET_RUNTIME_ERROR;
     }
-
     m_pApiStack = NULL;
-    
-    CallValue(pMethod->value, closure->function->arity);
+    // stackTop = &stack[closure->function->arity + 1];
+    CallFunction(closure, closure->function->arity);
     InterpretResult result = run();
-    
+    m_pApiStack = stack;
     return result;
 }
 
-Handle* VM::Method(const std::string& strModuleName, const std::string& strName)
+Callable VM::Function(const std::string& strModuleName, const std::string& strSignature)
 {
-    ObjectModule* pModule = GetModule(NewString(strModuleName.c_str()));
-    Value oFunction;
+    EnsureSlots(1);
+    int nameLength = 0;
 
-    if (pModule)
-    {
-        oFunction = GetModuleVariable(pModule, NewString(strName.c_str()));
-        return MakeHandle(oFunction);
-    }
-    return NULL;
+    for (int i = 0; i < strSignature.size() && strSignature[i] != '('; i++)
+        nameLength++;
+
+    std::string strName = strSignature.substr(0, nameLength);
+    GetVariable(strModuleName.c_str(), strName.c_str(), 0);
+    Handle* variable = GetSlotHandle(0);
+    Pop();
+    Handle* handle = MakeCallHandle(strSignature.c_str());
+
+    Callable m;
+    m.m_pVariable = variable;
+    m.m_pMethod = handle;
+    m.m_pVM = this;
+    return m;
 }
 
 Handle* VM::MakeHandle(Value value)
@@ -1410,7 +1450,7 @@ Handle* VM::MakeHandle(Value value)
     if (IS_OBJ(value)) Push(value);
     
     // Make a handle for it.
-    Handle* handle = gc.New<Handle>();
+    Handle* handle = new Handle;
     handle->value = value;
 
     if (IS_OBJ(value)) Pop();
@@ -1419,6 +1459,62 @@ Handle* VM::MakeHandle(Value value)
     m_vHandles.push_back(handle);
     
     return handle;
+}
+
+Handle* VM::MakeCallHandle(const char* signature)
+{
+    if (signature == NULL)
+    {
+        std::cerr << "Signature cannot be NULL." << std::endl;
+        return NULL;
+    }
+    
+    int signatureLength = (int)strlen(signature);
+
+    if (signatureLength <= 0)
+    {
+        std::cerr << "Signature cannot be empty." << std::endl;
+        return NULL;
+    }
+    
+    // Count the number parameters the method expects.
+    int numParams = 0;
+    if (signature[signatureLength - 1] == ')')
+    {
+        for (int i = signatureLength - 1; i > 0 && signature[i] != '('; i--)
+        {
+            if (signature[i] == '_')
+                numParams++;
+        }
+    }
+    
+    // Count subscript arguments.
+    if (signature[0] == '[')
+    {
+        for (int i = 0; i < signatureLength && signature[i] != ']'; i++)
+        {
+            if (signature[i] == '_')
+                numParams++;
+        }
+    }
+    
+    // Add the signatue to the method table.
+    // int method =  wrenSymbolTableEnsure(vm, &vm->methodNames, signature, signatureLength);
+    
+    // Create a little stub function that assumes the arguments are on the stack
+    // and calls the method.
+    ObjectFunction* fn = gc.New<ObjectFunction>();
+    
+    // Wrap the function in a closure and then in a handle. Do this here so it
+    // doesn't get collected as we fill it in.
+    Handle* value = MakeHandle(OBJ_VAL(fn));
+    value->value = OBJ_VAL(gc.New<ObjectClosure>(this, fn));
+
+    fn->chunk.WriteChunk((uint8_t)OP_CALL, 0);
+    fn->chunk.WriteChunk((uint8_t)numParams, 0);
+    fn->chunk.WriteChunk((uint8_t)OP_RETURN, 0);
+    fn->name = AS_STRING(NewString(signature));
+    return value;
 }
 
 void VM::ReleaseHandle(Handle* handle)
@@ -1468,6 +1564,58 @@ bool VM::ValidateApiSlot(int slot)
     return true;
 }
 
+
+// Gets the type of the object in [slot].
+ValueType VM::GetSlotType(int slot)
+{
+    ValidateApiSlot(slot);
+    if (IS_BOOL(m_pApiStack[slot])) return VAL_BOOL;
+    if (IS_NUMBER(m_pApiStack[slot])) return VAL_NUMBER;
+//   if (IS_LIST(m_pApiStack[slot])) return WREN_TYPE_LIST;
+//   if (IS_MAP(m_pApiStack[slot])) return WREN_TYPE_MAP;
+    if (IS_NIL(m_pApiStack[slot])) return VAL_NIL;
+//   if (IS_STRING(m_pApiStack[slot])) return WREN_TYPE_STRING;
+    return VAL_NIL;
+}
+
+Value VM::GetSlot(int slot)
+{
+    ValidateApiSlot(slot);
+    // ASSERT(IS_BOOL(m_pApiStack[slot]), "Slot must hold a bool.");
+
+    return m_pApiStack[slot];
+}
+
+bool VM::GetSlotBool(int slot)
+{
+    ValidateApiSlot(slot);
+    // ASSERT(IS_BOOL(m_pApiStack[slot]), "Slot must hold a bool.");
+
+    return AS_BOOL(m_pApiStack[slot]);
+}
+
+double VM::GetSlotDouble(int slot)
+{
+    ValidateApiSlot(slot);
+    // ASSERT(IS_NUMBER(m_pApiStack[slot]), "Slot must hold a number.");
+
+    return AS_NUMBER(m_pApiStack[slot]);
+}
+
+const char* VM::GetSlotString(int slot)
+{
+    ValidateApiSlot(slot);
+    // ASSERT(IS_STRING(m_pApiStack[slot]), "Slot must hold a string.");
+
+    return AS_CSTRING(m_pApiStack[slot]);
+}
+
+Handle* VM::GetSlotHandle(int slot)
+{
+    ValidateApiSlot(slot);
+    return MakeHandle(m_pApiStack[slot]);
+}
+
 // Stores [value] in [slot] in the foreign call stack.
 void VM::SetSlot(int slot, Value value)
 {
@@ -1495,7 +1643,7 @@ void VM::SetSlotNewList(int slot)
     SetSlot(slot, OBJ_VAL(gc.New<ObjectArray>()));
 }
 
-// void wrenSetSlotNewMap(WrenVM* vm, int slot)
+// void wrenSetSlotNewMap(int slot)
 // {
 //   setSlot(vm, slot, OBJ_VAL(wrenNewMap(vm)));
 // }
@@ -1512,12 +1660,17 @@ void VM::SetSlotString(int slot, const char* text)
     SetSlot(slot, NewString(text));
 }
 
-// void wrenSetSlotHandle(WrenVM* vm, int slot, WrenHandle* handle)
-// {
-//   ASSERT(handle != NULL, "Handle cannot be NULL.");
+void VM::SetSlotHandle(int slot, Handle* handle)
+{
+    // ASSERT(handle != NULL, "Handle cannot be NULL.");
+    if (handle == NULL)
+    {
+        std::cerr << "Handle cannot be NULL." << std::endl;
+        return;
+    }
 
-//   setSlot(vm, slot, handle->value);
-// }
+    SetSlot(slot, handle->value);
+}
 
 int VM::GetListCount(int slot)
 {

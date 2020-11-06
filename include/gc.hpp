@@ -79,10 +79,10 @@ class GC
 public:
 	int bytesAllocated;
 	int nextGC;
-	VM* pVm;
+	VM* m_pVm;
 
 
-	GC();
+	GC(VM* pVm);
 	~GC();
 	void Dump(const char *label);
 	void Collect();
@@ -111,8 +111,9 @@ inline T* GC::New(Args&&... args)
 
 	if (bytesAllocated > nextGC)
     {
+        std::cerr << "Collect Garbage" << std::endl;
 		ClearRoots();
-		pVm->AddToRoots();
+		m_pVm->AddToRoots();
     	Collect();
     }
     return pObject;
@@ -127,8 +128,9 @@ template <class T> inline T* GC::New()
 
 	if (bytesAllocated > nextGC)
     {
+        std::cerr << "Collect Garbage" << std::endl;
 		ClearRoots();
-		pVm->AddToRoots();
+		m_pVm->AddToRoots();
     	Collect();
     }
     return pObject;
@@ -152,7 +154,7 @@ inline T* GC::NewArray(size_t count)
 	if (bytesAllocated > nextGC)
     {
 		ClearRoots();
-		pVm->AddToRoots();
+		m_pVm->AddToRoots();
     	Collect();
     }
     return pObject;

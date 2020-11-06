@@ -55,6 +55,7 @@ typedef enum {
     OP_FOREIGN,
 
     OP_END_MODULE,
+    OP_END,
 
     // CODES for Repl Mode
     OP_PRINT_REPL,

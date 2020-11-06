@@ -26,7 +26,7 @@ extern "C"
 
 	static inline Value Fox_NumberToValue(int iNumber)
 	{
-		return NUMBER_VAL(iNumber);
+		return INT_VAL(iNumber);
 	}
 
 	static inline Value Fox_BoolToValue(bool bValue)

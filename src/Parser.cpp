@@ -43,8 +43,9 @@ Compiler::Compiler (Parser& parser, FunctionType eType, const std::string& name)
     }
 }
 
-Parser::Parser()
+Parser::Parser(VM* pVm)
 {
+    m_pVm = pVm;
 	currentCompiler = NULL;
 	currentClass = NULL;
 
@@ -144,11 +145,11 @@ Parser::Parser()
     rules[TOKEN_TRUE] = { Literal, NULL, PREC_NONE };
     rules[TOKEN_VAR] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_WHILE] = { NULL, NULL, PREC_NONE };
-    rules[TOKEN_ERROR] = { NULL, NULL, PREC_NONE };
-    rules[TOKEN_EOF] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_COLON] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_DOUBLE_COLON] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_FOREIGN] = { Foreign, NULL, PREC_NONE };
+    // rules[TOKEN_ERROR] = { NULL, NULL, PREC_NONE };
+    // rules[TOKEN_EOF] = { NULL, NULL, PREC_NONE };
 }
 
 bool Parser::IsEnd()
@@ -220,6 +221,7 @@ void Parser::EmitReturn()
 {
     if (currentCompiler->enclosing == NULL)
         EmitByte(OP_END_MODULE);
+        
     if (currentCompiler->type == TYPE_INITIALIZER)
         EmitBytes(OP_GET_LOCAL, 0);
     else
@@ -559,8 +561,6 @@ void CallCompiler(Parser& parser, bool can_assign)
 {
     uint8_t arg_count = ArgumentList(parser);
     parser.EmitBytes(OP_CALL, arg_count);
-    // if (IsRepl)
-    //     parser.EmitByte(OP_PRINT);
 }
 
 void List(Parser& parser, bool canAssign)

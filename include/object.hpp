@@ -135,6 +135,7 @@ public:
 		name = NULL;
 		upValueCount = 0;
 		type = OBJ_FUNCTION;
+        module = NULL;
 	}
 };
 

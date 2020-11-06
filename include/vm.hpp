@@ -16,6 +16,7 @@
 #include "gc.hpp"
 
 class Parser;
+class Callable;
 
 #define UINT8_COUNT (UINT8_MAX + 1)
 #define FRAMES_MAX 64
@@ -57,10 +58,10 @@ public:
     Value* m_pApiStack;
     Parser m_oParser;
 	Table strings;
-	Table globals;
+	// Table globals;
 	// Table imports;
 	Table modules;
-	Table m_oUserModules;
+	// Table m_oUserModules;
 	ObjectUpvalue* openUpvalues;
 	ObjectString* initString;
 	GC gc;
@@ -106,6 +107,7 @@ public:
 	// InterpretResult Call(Handle* pMethod, Args&&... args);
 	void ReleaseHandle(Handle* handle);
 	Handle* MakeHandle(Value value);
+    Handle* MakeCallHandle(const char* signature);
 
 	ObjectUpvalue* CaptureUpvalue(Value* local);
 	void CloseUpvalues(Value* last);
@@ -130,11 +132,19 @@ public:
 	Value ImportModule(Value name);
 	Value GetModuleVariable(ObjectModule* module, Value variableName);
 
-	Handle* Method(const std::string& strModuleName, const std::string& strName);
+	Callable Function(const std::string& strModuleName, const std::string& strSignature);
 
 	int GetSlotCount();
 	void EnsureSlots(int numSlots);
 	bool ValidateApiSlot(int slot);
+
+    ValueType GetSlotType(int slot);
+	Value GetSlot(int slot);
+    bool GetSlotBool(int slot);
+    double GetSlotDouble(int slot);
+    const char* GetSlotString(int slot);
+    Handle* GetSlotHandle(int slot);
+
 	void SetSlot(int slot, Value value);
 	void SetSlotBool(int slot, bool value);
 	void SetSlotInteger(int slot, int value);
@@ -142,6 +152,7 @@ public:
 	void SetSlotNewList(int slot);
 	void SetSlotNull(int slot);
 	void SetSlotString(int slot, const char* text);
+    void SetSlotHandle(int slot, Handle* handle);
 	int GetListCount(int slot);
 	void GetListElement(int listSlot, int index, int elementSlot);
 	void SetListElement(int listSlot, int index, int elementSlot);
@@ -152,6 +163,31 @@ private:
 
 	InterpretResult result;
 	bool isInit;
+};
+
+class Callable
+{
+public:
+    Handle* m_pVariable;
+    Handle* m_pMethod;
+    VM* m_pVM;
+
+	template<typename... Args>
+    Value Call(Args... args)
+    {
+		constexpr const int iArity = sizeof...(Args);
+		
+        m_pVM->EnsureSlots(iArity + 1);
+        m_pVM->SetSlotHandle(0, m_pVariable);
+
+        // std::tuple<Args...> tuple = std::make_tuple(args...);
+        // detail::passArgumentsToWren(vm_->ptr(), tuple, std::make_index_sequence<Arity>{});
+
+        auto result = m_pVM->Call(m_pMethod);
+		if (result == INTERPRET_OK)
+			return m_pVM->GetSlot(0);
+		return NIL_VAL;
+    }
 };
 
 // template <typename... Args>

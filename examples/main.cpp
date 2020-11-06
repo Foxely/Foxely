@@ -277,16 +277,19 @@ void runFile(int ac, char** av, const char* path)
     oVM.DefineFunction("core", "clock", clockNative);
     DefineIOModule(&oVM);
 
-    InterpretResult result = oVM.Interpret("main", str.c_str());
+    InterpretResult result = INTERPRET_OK;
+    result = oVM.Interpret("main", str.c_str());
 
-    Handle* say = oVM.Method("main", "sayHello");
-    oVM.Call(say);
+    Callable say = oVM.Function("main", "sayHello()");
+    // while(true) {
+        PrintValue(say.Call());
+    // }
 
-    Handle* add = oVM.Method("main", "add");
-    oVM.EnsureSlots(2);
-    oVM.SetSlotInteger(0, 2);
-    oVM.SetSlotInteger(1, 1);
-    oVM.Call(add);
+    // Callable add = oVM.Function("main", "add(_,_)");
+    // oVM.EnsureSlots(2);
+    // oVM.SetSlotInteger(0, 2);
+    // oVM.SetSlotInteger(1, 1);
+    // add.Call(2);
 
     if (result == INTERPRET_COMPILE_ERROR) exit(65);
     if (result == INTERPRET_RUNTIME_ERROR) exit(70);
