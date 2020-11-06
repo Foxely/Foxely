@@ -165,6 +165,14 @@ private:
 	bool isInit;
 };
 
+struct ExpandType
+{
+    template<typename... T>
+    ExpandType(T&&...)
+    {
+    }
+};
+
 class Callable
 {
 public:
@@ -180,13 +188,29 @@ public:
         m_pVM->EnsureSlots(iArity + 1);
         m_pVM->SetSlotHandle(0, m_pVariable);
 
-        // std::tuple<Args...> tuple = std::make_tuple(args...);
-        // detail::passArgumentsToWren(vm_->ptr(), tuple, std::make_index_sequence<Arity>{});
+        std::tuple<Args...> tuple = std::make_tuple(args...);
+        passArguments(tuple, std::make_index_sequence<iArity>{});
 
         auto result = m_pVM->Call(m_pMethod);
 		if (result == INTERPRET_OK)
 			return m_pVM->GetSlot(0);
 		return NIL_VAL;
+    }
+
+    template <typename T, std::size_t index> void read(T value)
+    {
+        if (typeid(T) == typeid(int) || typeid(T) == typeid(unsigned int))
+            m_pVM->SetSlotInteger(index + 1, value);
+        else if (typeid(T) == typeid(float) || typeid(T) == typeid(double))
+            m_pVM->SetSlotDouble(index + 1, value);
+        else if (typeid(T) == typeid(bool))
+            m_pVM->SetSlotBool(index + 1, value);
+    }
+
+    template <typename... Args, std::size_t... index>
+    void passArguments(const std::tuple<Args...>& tuple, std::index_sequence<index...>) 
+    {
+        ExpandType {0, (read<Args, index>(std::get<index>(tuple)), 0)...};
     }
 };
 

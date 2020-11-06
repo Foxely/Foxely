@@ -101,8 +101,14 @@ Parser::Parser(VM* pVm)
     // oLexer.Define("Arrow","->");
     oLexer.Define(TOKEN_SINGLE_COMMENT,"//[^\n\r]*", true);
     oLexer.Define(TOKEN_MULTI_COMMENT,"/\\*.+\\*/", true);
-    oLexer.Define(TOKEN_EOF,"[\0]");
+    oLexer.Define(TOKEN_EOF,"\\0");
 
+    for (int i = 0; i < TOKEN_MAX; i++)
+    {
+        rules[i].prefix = NULL;
+        rules[i].infix = NULL;
+        rules[i].precedence = PREC_NONE;
+    }
 
     rules[TOKEN_RIGHT_BRACKET] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_LEFT_BRACKET] = { List, Subscript, PREC_CALL };
@@ -301,26 +307,27 @@ bool Parser::Match(int type)
 
 ParseRule *Parser::GetRule(int type)
 {
+    if (type < 0 && type > TOKEN_MAX)
+        return NULL;
     return &rules[type];
 }
 
 void ParsePrecedence(Parser& parser, Precedence preced)
 {
     parser.Advance();
-    ParseRule* pRule = parser.GetRule(parser.PreviousToken().m_oType.m_id);
-    parse_fn prefix_rule = pRule ? pRule->prefix : nullptr;
-    if (prefix_rule == NULL) {
+    ParseRule* pPrefixRule = parser.GetRule(parser.PreviousToken().m_oType.m_id);
+    if (pPrefixRule && pPrefixRule->prefix == NULL) {
         parser.Error("Expect expression.");
         return;
     }
     bool can_assign = preced <= PREC_ASSIGNMENT;
-    prefix_rule(parser, can_assign);
-	pRule = parser.GetRule(parser.CurrentToken().m_oType.m_id);
-    while (pRule && preced <= pRule->precedence && !parser.PreviousToken().GetText().empty()) {
+    pPrefixRule->prefix(parser, can_assign);
+	ParseRule* pRule = parser.GetRule(parser.CurrentToken().m_oType.m_id);
+    while (pRule && preced <= pRule->precedence && !parser.IsEnd()) {
         parser.Advance();
-        parse_fn infix_rule = parser.GetRule(parser.PreviousToken().m_oType.m_id)->infix;
-		if (infix_rule != NULL)
-        	infix_rule(parser, can_assign);
+        ParseRule* pInfixRule = parser.GetRule(parser.PreviousToken().m_oType.m_id);
+		if (pInfixRule&& pInfixRule->infix)
+        	pInfixRule->infix(parser, can_assign);
 		pRule = parser.GetRule(parser.CurrentToken().m_oType.m_id);
     }
 
@@ -646,7 +653,7 @@ void Synchronize(Parser& parser)
 {
 	parser.panicMode = false;
 
-	while (parser.CurrentToken().m_oType != TOKEN_EOF)
+	while (!parser.IsEnd())
 	{
 		if (parser.PreviousToken().m_oType == TOKEN_SEMICOLON)
 			return;
@@ -897,7 +904,7 @@ void InterfaceDeclaration(Parser& parser, Token name)
 	NamedVariable(parser, name, false);
 
 	parser.Consume(TOKEN_LEFT_BRACE, "Expect '{' before interface body.");
-	while (!parser.IsToken(TOKEN_RIGHT_BRACE, false) && !parser.IsToken(TOKEN_EOF, false))
+	while (!parser.IsToken(TOKEN_RIGHT_BRACE, false) && !parser.IsEnd())
     {
 		Interface(parser, TYPE_FUNCTION);
 	}
@@ -1207,7 +1214,7 @@ void ClassDeclaration(Parser& parser, Token& name)
 	NamedVariable(parser, name, false);
 
 	parser.Consume(TOKEN_LEFT_BRACE, "Expect '{' before class body.");
-	while (!parser.PeekTokenIsType(TOKEN_RIGHT_BRACE) && !parser.PeekTokenIsType(TOKEN_EOF)) {
+	while (!parser.PeekTokenIsType(TOKEN_RIGHT_BRACE) && !parser.IsEnd()) {
 		Method(parser);
 	}
 	parser.Consume(TOKEN_RIGHT_BRACE, "Expect '}' after class body.");

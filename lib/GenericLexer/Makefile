@@ -31,7 +31,7 @@ $(NAME): $(OBJ)
 		@cp $(NAME).a ../
 
 %.o : %.cpp
-	@gcc $(CFLAGS) -Iinclude -W -Wall -c $< -o $@
+	@g++ $(CFLAGS) -Iinclude -W -Wall -c $< -o $@
 	@echo "\033[1;32mCompiled \033[1;37m'$<'\033[m"
 
 .PHONY: clean

@@ -20,7 +20,7 @@ INC_FLAGS = -I../include -I../lib/GenericLexer/include
 
 ifeq ($(BUILD),debug)
 # "Debug" build - no optimization, and debugging symbols
-CFLAGS += -O0 -g3 -std=c++17
+CFLAGS += -O0 -g3
 CFLAGS += -DDEBUG -DDEBUG_TRACE_EXECUTION
 CFLAGS += $(if $(DEBUG_TOKEN),-DDEBUG_TOKEN)
 CFLAGS += $(if $(DEBUG_LOG_GC),-DDEBUG_LOG_GC)

@@ -281,15 +281,10 @@ void runFile(int ac, char** av, const char* path)
     result = oVM.Interpret("main", str.c_str());
 
     Callable say = oVM.Function("main", "sayHello()");
-    // while(true) {
-        PrintValue(say.Call());
-    // }
+    say.Call();
 
-    // Callable add = oVM.Function("main", "add(_,_)");
-    // oVM.EnsureSlots(2);
-    // oVM.SetSlotInteger(0, 2);
-    // oVM.SetSlotInteger(1, 1);
-    // add.Call(2);
+    Callable add = oVM.Function("main", "add(_,_)");
+    add.Call(1, 2);
 
     if (result == INTERPRET_COMPILE_ERROR) exit(65);
     if (result == INTERPRET_RUNTIME_ERROR) exit(70);

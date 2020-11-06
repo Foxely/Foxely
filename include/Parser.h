@@ -44,10 +44,10 @@ typedef enum {
     TOKEN_MULTI_COMMENT,
     TOKEN_WS,
     TOKEN_SHEBANG,
-    TOKEN_MAX,
-    TOKEN_EOF = -1,
+    TOKEN_EOF,
     TOKEN_NEW_LINE = 83,
     TOKEN_ERROR = 84,
+    TOKEN_MAX,
 } TokenType;
 
 typedef enum {
