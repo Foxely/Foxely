@@ -202,6 +202,12 @@ public:
 		return IS_CLOSURE(m_pVariable->value);
     }
 
+    void Release()
+    {
+		m_pVM->ReleaseHandle(m_pVariable);
+		m_pVM->ReleaseHandle(m_pMethod);
+    }
+
     template <typename T, std::size_t index> void read(T value)
     {
         if (typeid(T) == typeid(int) || typeid(T) == typeid(unsigned int))
