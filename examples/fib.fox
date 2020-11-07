@@ -6,12 +6,9 @@ fibonacci :: func(n) {
   return fibonacci(n - 2) + fibonacci(n - 1);
 }
 
-for (i: var = 0; i < 20; i = i + 1)
+for (i: var = 0; i <= 35; i = i + 1)
 {
     print "%\n", fibonacci(i);
 }
 
 print "Time: %\n", clock() - start;
-
-
-// ./bin/foxely ../print.fox > print.c && gcc print.c && rm print.c

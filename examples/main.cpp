@@ -280,13 +280,13 @@ void runFile(int ac, char** av, const char* path)
     InterpretResult result = INTERPRET_OK;
     result = oVM.Interpret("main", str.c_str());
 
-    Callable say = oVM.Function("main", "sayHello()");
-    if (say.IsValid())
-        say.Call();
+    // Callable say = oVM.Function("main", "sayHello()");
+    // if (say.IsValid())
+        // say.Call();
 
-    Callable add = oVM.Function("main", "add(_,_)");
-    if (add.IsValid())
-        add.Call(1, 2);
+    // Callable add = oVM.Function("main", "add(_,_)");
+    // if (add.IsValid())
+    //     add.Call(1, 2);
 
     if (result == INTERPRET_COMPILE_ERROR) exit(65);
     if (result == INTERPRET_RUNTIME_ERROR) exit(70);

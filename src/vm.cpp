@@ -472,6 +472,15 @@ Value VM::NewString(const char* string)
     return OBJ_VAL(m_oParser.TakeString(string));
 }
 
+static bool ValueIsNumber(Value oNumber)
+{
+    if (IS_NUMBER(oNumber))
+        return true;
+    if (IS_INT(oNumber))
+        return true;
+    return false;
+}
+
 InterpretResult VM::run()
 {
     CallFrame *frame = &frames[frameCount - 1];
@@ -483,15 +492,15 @@ InterpretResult VM::run()
 #define READ_SHORT()                                                           \
     (frame->ip += 2, (uint16_t)((frame->ip[-2] << 8) | frame->ip[-1]))
 
-#define BINARY_OP(valueType, op)                                               \
+#define BINARY_OP(ValueType, type, op)                                         \
     do {                                                                       \
-        if (!IS_NUMBER(Peek(0)) || !IS_NUMBER(Peek(1))) {                      \
+        if (!ValueIsNumber(Peek(0)) || !ValueIsNumber(Peek(1))) {              \
             RuntimeError("Operands must be numbers.");                         \
             return INTERPRET_RUNTIME_ERROR;                                    \
         }                                                                      \
-        double b = AS_NUMBER(Pop());                                           \
-        double a = AS_NUMBER(Pop());                                           \
-        Push(valueType(a op b));                                               \
+        type b = AS_##ValueType(Pop());                                           \
+        type a = AS_##ValueType(Pop());                                           \
+        Push(ValueType##_VAL(a op b));                                       \
     } while (false)
 
     while (true) {
@@ -625,10 +634,10 @@ InterpretResult VM::run()
         }
 
         case OP_GREATER:
-            BINARY_OP(BOOL_VAL, >);
+            BINARY_OP(BOOL, double, >);
             break;
         case OP_LESS:
-            BINARY_OP(BOOL_VAL, <);
+            BINARY_OP(BOOL, double, <);
             break;
         case OP_ADD: {
             if (IS_STRING(Peek(0)) && IS_STRING(Peek(1))) {
@@ -648,13 +657,22 @@ InterpretResult VM::run()
             break;
         }
         case OP_SUB:
-            BINARY_OP(NUMBER_VAL, -);
+            if (IS_NUMBER(Peek(0)))
+                BINARY_OP(NUMBER, double, -);
+            else if (IS_INT(Peek(0)))
+                BINARY_OP(INT, int, -);
             break;
         case OP_MUL:
-            BINARY_OP(NUMBER_VAL, *);
+            if (IS_NUMBER(Peek(0)))
+                BINARY_OP(NUMBER, double, *);
+            else if (IS_INT(Peek(0)))
+                BINARY_OP(INT, int, *);
             break;
         case OP_DIV:
-            BINARY_OP(NUMBER_VAL, /);
+            if (IS_NUMBER(Peek(0)))
+                BINARY_OP(NUMBER, double,  /);
+            else if (IS_INT(Peek(0)))
+                BINARY_OP(INT, int, /);
             break;
         case OP_NOT:
             Push(BOOL_VAL(IsFalsey(Pop())));
@@ -1212,7 +1230,7 @@ void VM::GetVariable(const char* module, const char* name, int slot)
     Pop(); // moduleName.
 
     Value oVariable = FindVariable(moduleObj, name);
-    FOX_ASSERT(variableSlot != NIL_VAL, "Could not find variable.");
+    FOX_ASSERT(!(oVariable == NIL_VAL), "Could not find variable.");
     
     SetSlot(slot, oVariable);
 }
@@ -1505,7 +1523,7 @@ void VM::EnsureSlots(int numSlots)
 void VM::ValidateApiSlot(int slot)
 {
     FOX_ASSERT(slot >= 0, "Slot cannot be negative.");
-    FOX_ASSERT(slot < wrenGetSlotCount(vm), "Not that many slots.");
+    FOX_ASSERT(slot < GetSlotCount(), "Not that many slots.");
 }
 
 
