@@ -150,27 +150,11 @@ bool VM::CallValue(Value callee, int argCount)
             stackTop[-argCount - 1] = OBJ_VAL(gc.New<ObjectInstance>(klass));
             Value initializer;
             if (klass->methods.Get(initString, initializer))
-                return CallFunction(AS_CLOSURE(initializer), argCount);
+                return CallValue(initializer, argCount);
             else if (argCount != 0)
             {
                 RuntimeError("Expected 0 arguments but got %d.", argCount);
                 return false;
-            }
-            return true;
-        }
-
-        case OBJ_NATIVE_CLASS:
-        {
-            ObjectNativeClass *klass = AS_NATIVE_CLASS(callee);
-            stackTop[-argCount - 1] = OBJ_VAL(gc.New<ObjectNativeInstance>(klass));
-            
-            Value initializer;
-
-            if (klass->methods.Get(initString, initializer))
-            {
-                NativeFn native = AS_NATIVE(initializer);
-                native(this, argCount, stackTop - argCount);
-                stackTop -= argCount;
             }
             return true;
         }
@@ -304,9 +288,9 @@ void VM::DefineClass(const std::string &strModule, const std::string &name, Nati
     if (module != NULL)
     {
         Push(OBJ_VAL(m_oParser.CopyString(name)));
-        Push(OBJ_VAL(gc.New<ObjectNativeClass>(AS_STRING(PeekStart(0)))));
+        Push(OBJ_VAL(gc.New<ObjectClass>(AS_STRING(PeekStart(0)))));
         module->m_vVariables.Set(AS_STRING(PeekStart(0)), PeekStart(1));
-        ObjectNativeClass *klass = AS_NATIVE_CLASS(Pop());
+        ObjectClass *klass = AS_CLASS(Pop());
         Pop();
         Push(OBJ_VAL(klass));
         for (auto &it : functions) {
@@ -355,17 +339,6 @@ bool VM::InvokeFromClass(ObjectClass *klass, ObjectString *name, int argCount)
         return false;
     }
 
-    return CallFunction(AS_CLOSURE(method), argCount);
-}
-
-bool VM::InvokeFromNativeClass(ObjectNativeClass *klass, ObjectString *name, int argCount)
-{
-    Value method;
-    if (!klass->methods.Get(name, method))
-    {
-        RuntimeError("Undefined property '%s'.", name->string.c_str());
-        return false;
-    }
     return CallValue(method, argCount);
 }
 
@@ -386,16 +359,16 @@ bool VM::Invoke(ObjectString *name, int argCount)
             return InvokeFromClass(instance->klass, name, argCount);
         }
 
-        case OBJ_NATIVE_INSTANCE:
-        {
-            ObjectNativeInstance *instance = AS_NATIVE_INSTANCE(receiver);
-            if (instance->fields.Get(name, value))
-            {
-                stackTop[-argCount - 1] = value;
-                return CallValue(value, argCount);
-            }
-            return InvokeFromNativeClass(instance->klass, name, argCount);
-        }
+        // case OBJ_NATIVE_INSTANCE:
+        // {
+        //     ObjectNativeInstance *instance = AS_NATIVE_INSTANCE(receiver);
+        //     if (instance->fields.Get(name, value))
+        //     {
+        //         stackTop[-argCount - 1] = value;
+        //         return CallValue(value, argCount);
+        //     }
+        //     return InvokeFromNativeClass(instance->klass, name, argCount);
+        // }
 
         case OBJ_LIB:
         {

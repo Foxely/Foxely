@@ -28,11 +28,9 @@ class VM;
 #define IS_LIB(val)           is_obj_type(val, OBJ_LIB)
 #define IS_BOUND_METHOD(val)  is_obj_type(val, OBJ_BOUND_METHOD)
 #define IS_CLASS(val)         is_obj_type(val, OBJ_CLASS)
-#define IS_NATIVE_CLASS(val)         is_obj_type(val, OBJ_NATIVE_CLASS)
 #define IS_LIB(val)         is_obj_type(val, OBJ_LIB)
 #define IS_CLOSURE(val)       is_obj_type(val, OBJ_CLOSURE)
 #define IS_INSTANCE(val)      is_obj_type(val, OBJ_INSTANCE)
-#define IS_NATIVE_INSTANCE(val)      is_obj_type(val, OBJ_NATIVE_INSTANCE)
 #define IS_INTERFACE(val)      is_obj_type(val, OBJ_INTERFACE)
 #define IS_FUNCTION(val)      is_obj_type(val, OBJ_FUNCTION)
 #define IS_NATIVE(val)        is_obj_type(val, OBJ_NATIVE)
@@ -44,12 +42,10 @@ class VM;
 #define AS_LIB(val)           	((ObjectLib *)AS_OBJ(val))
 #define AS_BOUND_METHOD(val)  	((ObjectBoundMethod *)AS_OBJ(val))
 #define AS_CLASS(val)         	((ObjectClass *)AS_OBJ(val))
-#define AS_NATIVE_CLASS(val)	((ObjectNativeClass *)AS_OBJ(val))
 #define AS_LIB(val)         	((ObjectLib *)AS_OBJ(val))
 #define AS_CLOSURE(val)       	((ObjectClosure *)AS_OBJ(val))
 #define AS_FUNCTION(val)      	((ObjectFunction *)AS_OBJ(val))
 #define AS_INSTANCE(val)        ((ObjectInstance *)AS_OBJ(val))
-#define AS_NATIVE_INSTANCE(val) ((ObjectNativeInstance *)AS_OBJ(val))
 #define AS_NATIVE(val)        	(((ObjectNative *)AS_OBJ(val))->function)
 #define AS_INTERFACE(val)       ((ObjectInterface *)AS_OBJ(val))
 #define AS_STRING(val)        	((ObjectString *)AS_OBJ(val))
@@ -64,7 +60,7 @@ typedef enum {
     OBJ_CLOSURE,
     OBJ_FUNCTION,
     OBJ_INSTANCE,
-    OBJ_NATIVE_INSTANCE,
+    // OBJ_NATIVE_INSTANCE,
     OBJ_NATIVE,
     OBJ_NATIVE_CLASS,
     OBJ_LIB,
@@ -190,49 +186,6 @@ public:
 	}
 };
 
-class ObjectNativeClass : public Object
-{
-public:
-    ObjectString *name;
-    Table methods;
-
-	explicit ObjectNativeClass(ObjectString* n)
-	{
-		type = OBJ_NATIVE_CLASS;
-		name = n;
-		methods = Table();
-	}
-};
-
-class ObjectNativeInstance : public Object
-{
-public:
-    ObjectNativeClass *klass;
-    Table fields;
-	void* cStruct;
-
-	explicit ObjectNativeInstance(ObjectNativeClass *k)
-	{
-		type = OBJ_NATIVE_INSTANCE;
-		klass = k;
-		fields = Table();
-		cStruct = NULL;
-	}
-
-	explicit ObjectNativeInstance(ObjectNativeClass *k, void* c)
-	{
-		type = OBJ_NATIVE_INSTANCE;
-		klass = k;
-		fields = Table();
-		cStruct = c;
-	}
-
-    bool operator==(const ObjectNativeInstance& other) const
-    {
-        return klass == other.klass && fields.m_vEntries == other.fields.m_vEntries;
-    }
-};
-
 class ObjectClosure : public Object
 {
 public:
@@ -281,12 +234,22 @@ class ObjectInstance : public Object
 public:
     ObjectClass *klass;
     Table fields;
+	void* cStruct;
 
 	explicit ObjectInstance(ObjectClass *k)
 	{
 		type = OBJ_INSTANCE;
 		klass = k;
 		fields = Table();
+        cStruct = nullptr;
+	}
+
+    explicit ObjectInstance(ObjectClass *k, void* cS)
+	{
+		type = OBJ_INSTANCE;
+		klass = k;
+		fields = Table();
+        cStruct = cS;
 	}
 
     bool operator==(const ObjectInstance& other) const

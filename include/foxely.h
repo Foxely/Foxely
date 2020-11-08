@@ -87,7 +87,7 @@ extern "C"
         if (!oVM->currentModule->m_vVariables.Get(AS_STRING(name), klass))
             return NIL_VAL;
 
-		return OBJ_VAL(oVM->gc.New<ObjectNativeInstance>(AS_NATIVE_CLASS(klass)));
+		return OBJ_VAL(oVM->gc.New<ObjectInstance>(AS_CLASS(klass)));
 	}
 
 	static inline Value Fox_DefineInstanceOfCStruct(VM* oVM, const char* klassName, void* cStruct)
@@ -97,14 +97,14 @@ extern "C"
         if (!oVM->currentModule->m_vVariables.Get(AS_STRING(name), klass))
             return NIL_VAL;
 
-		return OBJ_VAL(oVM->gc.New<ObjectNativeInstance>(AS_NATIVE_CLASS(klass), cStruct));
+		return OBJ_VAL(oVM->gc.New<ObjectInstance>(AS_CLASS(klass), cStruct));
 	}
 
     static inline void Fox_CallMethod(VM* oVM, Value instance, const char* methodName, int argCount, Value* params)
 	{
         Value method;
         Value methodNameValue = Fox_StringToValue(oVM, methodName);
-        if (AS_NATIVE_INSTANCE(instance)->klass->methods.Get(AS_STRING(methodNameValue), method))
+        if (AS_INSTANCE(instance)->klass->methods.Get(AS_STRING(methodNameValue), method))
         {
             AS_NATIVE(method)(oVM, argCount, params);
         }
@@ -113,7 +113,7 @@ extern "C"
     static inline Value Fox_SetInstanceField(VM* oVM, Value instance, const char* fieldName, Value value)
 	{
         Value name = Fox_StringToValue(oVM, fieldName);
-        AS_NATIVE_INSTANCE(instance)->fields.Set(AS_STRING(name), value);
+        AS_INSTANCE(instance)->fields.Set(AS_STRING(name), value);
 
 		return NIL_VAL;
 	}
@@ -122,7 +122,7 @@ extern "C"
 	{
         Value value;
         Value name = Fox_StringToValue(oVM, fieldName);
-        if (!AS_NATIVE_INSTANCE(instance)->fields.Get(AS_STRING(name), value))
+        if (!AS_INSTANCE(instance)->fields.Get(AS_STRING(name), value))
         {
             return NIL_VAL;
         }
@@ -131,13 +131,13 @@ extern "C"
 
 	static inline void* Fox_GetInstanceCStruct(Value instance)
 	{
-        return AS_NATIVE_INSTANCE(instance)->cStruct;
+        return AS_INSTANCE(instance)->cStruct;
 	}
 
 	static inline void* Fox_SetInstanceCStruct(Value instance, void* data)
 	{
-		AS_NATIVE_INSTANCE(instance)->cStruct = data;
-        return AS_NATIVE_INSTANCE(instance)->cStruct;
+		AS_INSTANCE(instance)->cStruct = data;
+        return AS_INSTANCE(instance)->cStruct;
 	}
 
     static inline void Fox_Arity(VM* oVM, int argCount, int min, int max)
@@ -167,10 +167,10 @@ extern "C"
         return IS_STRING(value);
 	}
 
-    static inline bool Fox_IsNativeInstance(Value value)
-	{
-        return IS_NATIVE_INSTANCE(value);
-	}
+    // static inline bool Fox_IsNativeInstance(Value value)
+	// {
+    //     return IS_NATIVE_INSTANCE(value);
+	// }
 
     static inline bool Fox_IsNumber(Value value)
 	{

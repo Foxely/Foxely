@@ -123,7 +123,6 @@ public:
 	bool BindMethod(ObjectClass* klass, ObjectString* name);
 	bool Invoke(ObjectString* name, int argCount);
 	bool InvokeFromClass(ObjectClass* klass, ObjectString* name, int argCount);
-	bool InvokeFromNativeClass(ObjectNativeClass *klass, ObjectString *name, int argCount);
 
 	ObjectModule* GetModule(Value name);
 	ObjectClosure* CompileInModule(Value name, const char* source, bool isExpression, bool printErrors);

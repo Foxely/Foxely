@@ -20,7 +20,7 @@ class ObjectClosure;
 class ObjectString;
 class ObjectUpvalue;
 class ObjectNative;
-class ObjectNativeClass;
+// class ObjectNativeClass;
 class ObjectLis;
 class ObjectClass;
 class ObjectInstance;
@@ -397,7 +397,7 @@ public:
 #define AS_LIB(val)           	((ObjectLib *)AS_OBJ(val))
 #define AS_BOUND_METHOD(val)  	((ObjectBoundMethod *)AS_OBJ(val))
 #define AS_CLASS(val)         	((ObjectClass *)AS_OBJ(val))
-#define AS_NATIVE_CLASS(val)	((ObjectNativeClass *)AS_OBJ(val))
+// #define AS_NATIVE_CLASS(val)	((ObjectNativeClass *)AS_OBJ(val))
 #define AS_LIB(val)         	((ObjectLib *)AS_OBJ(val))
 #define AS_CLOSURE(val)       	((ObjectClosure *)AS_OBJ(val))
 #define AS_FUNCTION(val)      	((ObjectFunction *)AS_OBJ(val))

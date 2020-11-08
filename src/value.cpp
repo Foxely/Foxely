@@ -37,8 +37,8 @@ bool CompareObject(Value a, Value b)
     {
     case OBJ_INSTANCE:
         return *AS_INSTANCE(a) == *AS_INSTANCE(b);
-    case OBJ_NATIVE_INSTANCE:
-        return *AS_NATIVE_INSTANCE(a) == *AS_NATIVE_INSTANCE(b);
+    // case OBJ_NATIVE_INSTANCE:
+    //     return *AS_NATIVE_INSTANCE(a) == *AS_NATIVE_INSTANCE(b);
     case OBJ_STRING:
         return AS_STRING(a) == AS_STRING(b);
     case OBJ_ARRAY:
@@ -127,15 +127,15 @@ std::string ObjectToString(Value value)
 		case OBJ_BOUND_METHOD:
 			string += FunctionToString(AS_BOUND_METHOD(value)->method->function);
 			break;
-        case OBJ_NATIVE_CLASS:
-			string += "<native class ";
-            string += AS_NATIVE_CLASS(value)->name->string;
-            string += ">";
-			break;
-        case OBJ_NATIVE_INSTANCE:
-			string += AS_NATIVE_INSTANCE(value)->klass->name->string;
-            string += " native instance";
-			break;
+        // case OBJ_NATIVE_CLASS:
+		// 	string += "<native class ";
+        //     string += AS_NATIVE_CLASS(value)->name->string;
+        //     string += ">";
+		// 	break;
+        // case OBJ_NATIVE_INSTANCE:
+		// 	string += AS_NATIVE_INSTANCE(value)->klass->name->string;
+        //     string += " native instance";
+		// 	break;
         case OBJ_ABSTRACT:
 			string += AS_ABSTRACT(value)->abstractType->name;
             string += " Abstract";
