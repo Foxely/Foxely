@@ -101,6 +101,7 @@ public:
 	void DefineLib(const std::string &strModule, const std::string &name, NativeMethods &functions);
 	void DefineBuiltIn(Table& methods, NativeMethods &functions);
 	void DefineModule(const std::string& strName);
+	void DefineVariable(const char* module, const char* name, Value oValue);
 	
 	InterpretResult Call(Handle* pMethod);
 	// template <typename... Args>

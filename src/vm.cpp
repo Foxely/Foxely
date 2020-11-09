@@ -1172,6 +1172,21 @@ void VM::GetVariable(const char* module, const char* name, int slot)
     SetSlot(slot, oVariable);
 }
 
+void VM::DefineVariable(const char* strModule, const char* strName, Value oValue)
+{
+    FOX_ASSERT(strModule != NULL, "Module cannot be NULL.");
+    FOX_ASSERT(strName != NULL, "Variable name cannot be NULL.");
+
+    // See if the module has already been loaded.
+    ObjectModule* pModule = GetModule(NewString(strModule));
+    FOX_ASSERT(pModule != NULL, "Could not find module.");
+
+    if (pModule != NULL)
+    {
+        pModule->m_vVariables.Set(AS_STRING(NewString(strName)), oValue);
+    }
+}
+
 // Looks up the previously loaded module with [name].
 //
 // Returns `NULL` if no module with that name has been loaded.
@@ -1228,38 +1243,6 @@ ObjectClosure* VM::CompileInModule(Value name, const char* source, bool isExpres
     return closure;
 }
 
-
-// // Let the host resolve an imported module name if it wants to.
-// Value ResolveModule(VM* vm, Value name)
-// {
-//   // If the host doesn't care to resolve, leave the name alone.
-//   // if (vm->config.resolveModuleFn == NULL) return name;
-
-//   // ObjFiber* fiber = vm->fiber;
-// //   ObjFn* fn = fiber->frames[fiber->numFrames - 1].closure->fn;
-// //   ObjString* importer = fn->module->name;
-//     ObjectFunction* fn = vm->frames[vm->frameCount - 1].closure->function;
-//     ObjectString* importer = fn->module->name;
-  
-//   const char* resolved = vm->config.resolveModuleFn(vm, importer->value,
-//                                                     AS_CSTRING(name));
-//   if (resolved == NULL)
-//   {
-//     vm->fiber->error = wrenStringFormat(vm,
-//         "Could not resolve module '@' imported from '@'.",
-//         name, OBJ_VAL(importer));
-//     return NULL_VAL;
-//   }
-  
-//   // If they resolved to the exact same string, we don't need to copy it.
-//   if (resolved == AS_CSTRING(name)) return name;
-
-//   // Copy the string into a Wren String object.
-//   name = wrenNewString(vm, resolved);
-//   DEALLOCATE(vm, (char*)resolved);
-//   return name;
-// }
-
 Value VM::ImportModule(Value name)
 {
     // name = resolveModule(vm, name);
@@ -1273,12 +1256,6 @@ Value VM::ImportModule(Value name)
 
     const char* source = NULL;
     bool allocatedSource = true;
-    
-    // Let the host try to provide the module.
-    // if (vm->config.loadModuleFn != NULL)
-    // {
-    //     source = vm->config.loadModuleFn(vm, AS_CSTRING(name));
-    // }
     
     // If the host didn't provide it, see if it's a built in optional module.
     // if (source == NULL)
