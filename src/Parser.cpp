@@ -92,7 +92,6 @@ Parser::Parser(VM* pVm)
     oLexer.Define(TOKEN_BANG_EQUAL, "!=");
     oLexer.Define(TOKEN_CLASS, "class");
     oLexer.Define(TOKEN_ELSE, "else");
-    oLexer.Define(TOKEN_INTERFACE, "interface");
     oLexer.Define(TOKEN_FOREIGN, "foreign");
     oLexer.Define(TOKEN_EQUAL, "=");
     oLexer.Define(TOKEN_EQUAL_EQUAL, "==");
@@ -536,8 +535,6 @@ void Variable(Parser& parser, bool can_assign)
 			FuncDeclaration(parser, name);
 		else if (parser.IsToken(TOKEN_CLASS))
     		ClassDeclaration(parser, name);
-        else if (parser.IsToken(TOKEN_INTERFACE))
-    		InterfaceDeclaration(parser, name);
 	}
 	else
     	NamedVariable(parser, name, can_assign);
@@ -572,7 +569,6 @@ void CallCompiler(Parser& parser, bool can_assign)
 
 void List(Parser& parser, bool canAssign)
 {
-
     parser.EmitByte(OP_ARRAY);
     int args = 0;
 
@@ -588,6 +584,27 @@ void List(Parser& parser, bool canAssign)
     parser.Consume(TOKEN_RIGHT_BRACKET, "Expected closing ']'");
 
     parser.EmitBytes(OP_ADD_LIST, args);
+}
+
+void Map(Parser& parser, bool canAssign)
+{
+    parser.EmitByte(OP_MAP);
+
+    int args = 0;
+
+    if (!parser.IsToken(TOKEN_RIGHT_BRACE, false))
+    {
+        do
+        {
+            args++;
+            Expression(parser);
+            parser.Consume(TOKEN_COLON, "Expected ':'");
+            Expression(parser);
+        } while (parser.Match(TOKEN_COMMA));
+    }
+    parser.Consume(TOKEN_RIGHT_BRACE, "Expected closing ']'");
+
+    parser.EmitBytes(OP_ADD_MAP, args);
 }
 
 void Subscript(Parser& parser, bool canAssign)
@@ -851,68 +868,6 @@ void Procedure(Parser& parser)
 	// parser.Consume(TOKEN_RIGHT_PAREN, "Expect ')' after parameters.");
 	// parser.Consume(TOKEN_SEMICOLON, "Expect ';' after paranthesis.");
 }
-
-/*
- * @brief Cette fonction permet d'initializer une fonction
- * @param parser c'est la ref vers le parser
- * @param type c'est le type de fonction (voir l'enum FunctionType)
- * @param name c'est le nom de la fonction
- * @return true si les deux sont égaux sinon false dans le cas contraire
-*/
-void Interface(Parser& parser, FunctionType type)
-{
-	parser.Consume(TOKEN_IDENTIFIER, "Expect interface name");
-	uint8_t constant = parser.IdentifierConstant(parser.PreviousToken());
-    // Compiler compiler(parser, type, parser.PreviousToken().GetText());
-	// parser.BeginScope();
-
-	// Compile the parameter list.
-	parser.Consume(TOKEN_LEFT_PAREN, "Expect '(' after function name.");
-	// if (!parser.IsToken(TOKEN_RIGHT_PAREN, false)) {
-	// 	do
-	// 	{
-	// 		// parser.currentCompiler->function->arity++;
-	// 		// if (parser.currentCompiler->function->arity > 255)
-	// 		// {
-	// 		// 	parser.ErrorAtCurrent("Cannot have more than 255 parameters.");
-	// 		// }
-	// 		parser.Consume(TOKEN_IDENTIFIER, "Expect parameter name.");
-	// 		Token& name = (Token&) parser.PreviousToken();
-	// 		uint8_t paramConstant = ParseVariable(parser, name, "Expect parameter name.");
-	// 		DefineVariable(parser, paramConstant);
-	// 	} while (parser.Match(TOKEN_COMMA));
-	// }
-	parser.Consume(TOKEN_RIGHT_PAREN, "Expect ')' after parameters.");
-	parser.Consume(TOKEN_SEMICOLON, "Expect ';' after paranthesis.");
-
-	parser.EmitBytes(OP_INTERFACE_PROCEDURE, constant);
-}
-
-void InterfaceDeclaration(Parser& parser, Token name)
-{
-    uint8_t nameConstant = parser.IdentifierConstant(name);
-	DeclareVariable(parser, name);
-
-	parser.EmitBytes(OP_INTERFACE, nameConstant);
-	DefineVariable(parser, nameConstant);
-
-	ClassCompiler classCompiler(name);
-	classCompiler.enclosing = parser.currentClass;
-	classCompiler.hasSuperclass = false;
-	parser.currentClass = &classCompiler;
-
-	NamedVariable(parser, name, false);
-
-	parser.Consume(TOKEN_LEFT_BRACE, "Expect '{' before interface body.");
-	while (!parser.IsToken(TOKEN_RIGHT_BRACE, false) && !parser.IsEnd())
-    {
-		Interface(parser, TYPE_FUNCTION);
-	}
-	parser.Consume(TOKEN_RIGHT_BRACE, "Expect '}' after interface block.");
-	parser.EmitByte(OP_POP);
-}
-
-
 
 // -----------------------------------------
 //		UpValue				   			   -

@@ -38,7 +38,7 @@ typedef enum {
     TOKEN_FOR, TOKEN_FUN, TOKEN_IF, TOKEN_NIL, TOKEN_OR,
     TOKEN_PRINT, TOKEN_RETURN, TOKEN_SUPER, TOKEN_THIS,
     TOKEN_TRUE, TOKEN_VAR, TOKEN_WHILE, TOKEN_IMPORT,
-    TOKEN_INTERFACE, TOKEN_FOREIGN,
+    TOKEN_FOREIGN,
 
     TOKEN_SINGLE_COMMENT,
     TOKEN_MULTI_COMMENT,
@@ -184,6 +184,7 @@ void String(Parser& parser, bool can_assign = false);
 void CallCompiler(Parser& parser, bool can_assign = false);
 void Subscript(Parser& parser, bool canAssign = false);
 void List(Parser& parser, bool canAssign = false);
+void Map(Parser& parser, bool canAssign = false);
 void Foreign(Parser& parser, bool can_assign);
 
 void Block(Parser& parser);
@@ -198,9 +199,6 @@ int ResolveLocal(Parser& parser, Compiler *comp, Token& name);
 
 void Function(Parser& parser, FunctionType type, const Token& name);
 void FuncDeclaration(Parser& parser, Token name);
-
-void InterfaceDeclaration(Parser& parser, Token name);
-void Interface(Parser& parser, FunctionType type, const Token& name);
 
 int ResolveUpvalue(Parser& parser, Compiler *comp, Token& name);
 void ClassDeclaration(Parser& parser, Token& name);

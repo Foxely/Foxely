@@ -44,9 +44,9 @@ void VM::ResetStack()
     frameCount = 0;
 }
 
-void VM::Push(Value value)
+void VM::Push(Value oValue)
 {
-    *stackTop = value;
+    *stackTop = oValue;
     stackTop++;
 }
 
@@ -57,19 +57,19 @@ Value VM::Pop()
     return *stackTop;
 }
 
-Value VM::Peek(int distance) {
-    return stackTop[-1 - distance];
+Value VM::Peek(int iDistance) {
+    return stackTop[-1 - iDistance];
 }
 
-Value VM::PeekStart(int distance)
+Value VM::PeekStart(int iDistance)
 {
     if (!isInit)
-        return stack[distance];
-    return stack[distance + 1];
+        return stack[iDistance];
+    return stack[iDistance + 1];
 }
 
-bool IsFalsey(Value value) {
-    return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
+bool IsFalsey(Value oValue) {
+    return IS_NIL(oValue) || (IS_BOOL(oValue) && !AS_BOOL(oValue));
 }
 
 void VM::RuntimeError(const char *format, ...)
@@ -98,14 +98,14 @@ void VM::RuntimeError(const char *format, ...)
     result = InterpretResult::INTERPRET_RUNTIME_ERROR;
 }
 
-bool VM::CallFunction(ObjectClosure *closure, int argCount)
+bool VM::CallFunction(ObjectClosure *pClosure, int iArgCount)
 {
     // Check the number of args pass to the function call
-    if (argCount != closure->function->arity) {
+    if (iArgCount != pClosure->function->arity) {
         RuntimeError(
             "Expected %d arguments but got %d.",
-            closure->function->arity,
-            argCount);
+            pClosure->function->arity,
+            iArgCount);
         return false;
     }
 
@@ -114,53 +114,53 @@ bool VM::CallFunction(ObjectClosure *closure, int argCount)
         return false;
     }
 
-    CallFrame *frame = &frames[frameCount++];
-    frame->closure = closure;
-    frame->ip = closure->function->chunk.m_vCode.begin();
+    CallFrame *pFrame = &frames[frameCount++];
+    pFrame->closure = pClosure;
+    pFrame->ip = pClosure->function->chunk.m_vCode.begin();
 
-    frame->slots = stackTop - argCount - 1;
+    pFrame->slots = stackTop - iArgCount - 1;
     return true;
 }
 
-bool VM::CallValue(Value callee, int argCount)
+bool VM::CallValue(Value oCallee, int iArgCount)
 {
-    if (IS_OBJ(callee))
+    if (IS_OBJ(oCallee))
     {
-        switch (OBJ_TYPE(callee))
+        switch (OBJ_TYPE(oCallee))
         {
         case OBJ_NATIVE:
         {
-            NativeFn native = AS_NATIVE(callee);
-            Value result = native(this, argCount, stackTop - argCount);
-            stackTop -= argCount + 1;
-            Push(result);
+            NativeFn native = AS_NATIVE(oCallee);
+            Value oResult = native(this, iArgCount, stackTop - iArgCount);
+            stackTop -= iArgCount + 1;
+            Push(oResult);
             return true;
         }
 
         case OBJ_BOUND_METHOD:
         {
-            ObjectBoundMethod *bound = AS_BOUND_METHOD(callee);
-            stackTop[-argCount - 1] = bound->receiver;
-            return CallFunction(bound->method, argCount);
+            ObjectBoundMethod *pBound = AS_BOUND_METHOD(oCallee);
+            stackTop[-iArgCount - 1] = pBound->receiver;
+            return CallFunction(pBound->method, iArgCount);
         }
 
         case OBJ_CLASS:
         {
-            ObjectClass *klass = AS_CLASS(callee);
-            stackTop[-argCount - 1] = OBJ_VAL(gc.New<ObjectInstance>(klass));
-            Value initializer;
-            if (klass->methods.Get(initString, initializer))
-                return CallValue(initializer, argCount);
-            else if (argCount != 0)
+            ObjectClass *pKlass = AS_CLASS(oCallee);
+            stackTop[-iArgCount - 1] = OBJ_VAL(gc.New<ObjectInstance>(pKlass));
+            Value oInitializer;
+            if (pKlass->methods.Get(initString, oInitializer))
+                return CallValue(oInitializer, iArgCount);
+            else if (iArgCount != 0)
             {
-                RuntimeError("Expected 0 arguments but got %d.", argCount);
+                RuntimeError("Expected 0 arguments but got %d.", iArgCount);
                 return false;
             }
             return true;
         }
 
         case OBJ_CLOSURE:
-            return CallFunction(AS_CLOSURE(callee), argCount);
+            return CallFunction(AS_CLOSURE(oCallee), iArgCount);
 
         default:
             // Non-callable object type.
@@ -174,46 +174,46 @@ bool VM::CallValue(Value callee, int argCount)
 
 ObjectUpvalue *VM::CaptureUpvalue(Value *local)
 {
-    ObjectUpvalue *prevUpvalue = NULL;
-    ObjectUpvalue *upvalue = openUpvalues;
+    ObjectUpvalue *pPrevUpvalue = NULL;
+    ObjectUpvalue *pUpvalue = openUpvalues;
 
-    while (upvalue != NULL && upvalue->location > local) {
-        prevUpvalue = upvalue;
-        upvalue = upvalue->next;
+    while (pUpvalue != NULL && pUpvalue->location > local) {
+        pPrevUpvalue = pUpvalue;
+        pUpvalue = pUpvalue->next;
     }
 
-    if (upvalue != NULL && upvalue->location == local)
-        return upvalue;
-    ObjectUpvalue *createdUpvalue = gc.New<ObjectUpvalue>(local);
-    if (prevUpvalue == NULL) {
-        openUpvalues = createdUpvalue;
+    if (pUpvalue != NULL && pUpvalue->location == local)
+        return pUpvalue;
+    ObjectUpvalue *pCreatedUpvalue = gc.New<ObjectUpvalue>(local);
+    if (pPrevUpvalue == NULL) {
+        openUpvalues = pCreatedUpvalue;
     } else {
-        prevUpvalue->next = createdUpvalue;
+        pPrevUpvalue->next = pCreatedUpvalue;
     }
-    return createdUpvalue;
+    return pCreatedUpvalue;
 }
 
 void VM::CloseUpvalues(Value *last)
 {
     while (openUpvalues != NULL && openUpvalues->location >= last) {
-        ObjectUpvalue *upvalue = openUpvalues;
-        upvalue->closed = *upvalue->location;
-        upvalue->location = &upvalue->closed;
-        openUpvalues = upvalue->next;
+        ObjectUpvalue *pUpvalue = openUpvalues;
+        pUpvalue->closed = *pUpvalue->location;
+        pUpvalue->location = &pUpvalue->closed;
+        openUpvalues = pUpvalue->next;
     }
 }
 
-void VM::DefineFunction(const std::string &strModule, const std::string &name, NativeFn function)
+void VM::DefineFunction(const std::string &strModule, const std::string &strName, NativeFn function)
 {
     Value oStrModuleName = NewString(strModule.c_str());
 
     // See if the module has already been loaded.
-    ObjectModule* module = GetModule(oStrModuleName);
-    if (module != NULL)
+    ObjectModule* pModule = GetModule(oStrModuleName);
+    if (pModule != NULL)
     {
-        Push(NewString(name.c_str()));
+        Push(NewString(strName.c_str()));
         Push(OBJ_VAL(gc.New<ObjectNative>(function)));
-        module->m_vVariables.Set(AS_STRING(PeekStart(0)), PeekStart(1));
+        pModule->m_vVariables.Set(AS_STRING(PeekStart(0)), PeekStart(1));
         Pop();
         Pop();
     }
@@ -221,26 +221,26 @@ void VM::DefineFunction(const std::string &strModule, const std::string &name, N
         std::cerr << "'" << strModule << "': Could not find the module." << std::endl;
 }
 
-void VM::DefineLib(const std::string &strModule, const std::string &name, NativeMethods &functions)
+void VM::DefineLib(const std::string &strModule, const std::string &strName, NativeMethods &functions)
 {
     Value oStrModuleName = NewString(strModule.c_str());
 
     // See if the module has already been loaded.
-    ObjectModule* module = GetModule(oStrModuleName);
-    if (module != NULL)
+    ObjectModule* pModule = GetModule(oStrModuleName);
+    if (pModule != NULL)
     {
-        Push(OBJ_VAL(m_oParser.CopyString(name)));
+        Push(OBJ_VAL(m_oParser.CopyString(strName)));
         Push(OBJ_VAL(gc.New<ObjectLib>(AS_STRING(PeekStart(0)))));
-        module->m_vVariables.Set(AS_STRING(PeekStart(0)), PeekStart(1));
-        ObjectLib *klass = AS_LIB(Pop());
+        pModule->m_vVariables.Set(AS_STRING(PeekStart(0)), PeekStart(1));
+        ObjectLib *pKlass = AS_LIB(Pop());
         Pop();
-        Push(OBJ_VAL(klass));
+        Push(OBJ_VAL(pKlass));
         for (auto &it : functions)
         {
             Push(OBJ_VAL(m_oParser.CopyString(it.first)));
             Push(OBJ_VAL(gc.New<ObjectNative>(it.second)));
 
-            klass->methods.Set(AS_STRING(PeekStart(1)), PeekStart(2));
+            pKlass->methods.Set(AS_STRING(PeekStart(1)), PeekStart(2));
 
             Pop();
             Pop();
@@ -254,19 +254,19 @@ void VM::DefineModule(const std::string& strName)
     Value oStrName = NewString(strName.c_str());
 
     // See if the module has already been loaded.
-    ObjectModule* module = GetModule(oStrName);
-    if (module == NULL)
+    ObjectModule* pModule = GetModule(oStrName);
+    if (pModule == NULL)
     {
-        module = gc.New<ObjectModule>(AS_STRING(oStrName));
+        pModule = gc.New<ObjectModule>(AS_STRING(oStrName));
 
         // It's possible for the wrenMapSet below to resize the modules map,
         // and trigger a GC while doing so. When this happens it will collect
         // the module we've just created. Once in the map it is safe.
-        Push(OBJ_VAL(module));
+        Push(OBJ_VAL(pModule));
 
         // Store it in the VM's module registry so we don't load the same module
         // multiple times.
-        modules.Set(AS_STRING(oStrName), OBJ_VAL(module));
+        modules.Set(AS_STRING(oStrName), OBJ_VAL(pModule));
 
         Pop();
 
@@ -279,27 +279,27 @@ void VM::DefineModule(const std::string& strName)
         std::cerr << "'" << strName << "': This module already exist !!" << std::endl;
 }
 
-void VM::DefineClass(const std::string &strModule, const std::string &name, NativeMethods &functions)
+void VM::DefineClass(const std::string &strModule, const std::string &strName, NativeMethods &functions)
 {
     Value oStrModuleName = NewString(strModule.c_str());
 
     // See if the module has already been loaded.
-    ObjectModule* module = GetModule(oStrModuleName);
-    if (module != NULL)
+    ObjectModule* pModule = GetModule(oStrModuleName);
+    if (pModule != NULL)
     {
-        Push(OBJ_VAL(m_oParser.CopyString(name)));
+        Push(OBJ_VAL(m_oParser.CopyString(strName)));
         Push(OBJ_VAL(gc.New<ObjectClass>(AS_STRING(PeekStart(0)))));
-        module->m_vVariables.Set(AS_STRING(PeekStart(0)), PeekStart(1));
-        ObjectClass *klass = AS_CLASS(Pop());
+        pModule->m_vVariables.Set(AS_STRING(PeekStart(0)), PeekStart(1));
+        ObjectClass *pKlass = AS_CLASS(Pop());
         Pop();
-        Push(OBJ_VAL(klass));
+        Push(OBJ_VAL(pKlass));
         for (auto &it : functions) {
             NativeFn func = it.second;
 
             Push(OBJ_VAL(m_oParser.CopyString(it.first)));
             Push(OBJ_VAL(gc.New<ObjectNative>(func)));
 
-            klass->methods.Set(AS_STRING(PeekStart(1)), PeekStart(2));
+            pKlass->methods.Set(AS_STRING(PeekStart(1)), PeekStart(2));
 
             Pop();
             Pop();
@@ -308,7 +308,7 @@ void VM::DefineClass(const std::string &strModule, const std::string &name, Nati
     }
 }
 
-void VM::DefineBuiltIn(Table& methods, NativeMethods &functions)
+void VM::DefineBuiltIn(Table& methods, NativeMethods& functions)
 {
     for (auto &it : functions)
     {
@@ -324,73 +324,62 @@ void VM::DefineBuiltIn(Table& methods, NativeMethods &functions)
     }
 }
 
-bool VM::InvokeFromClass(ObjectClass *klass, ObjectString *name, int argCount)
+bool VM::InvokeFromClass(ObjectClass *pKlass, ObjectString *pName, int iArgCount)
 {
-    Value method;
-    if (!klass->methods.Get(name, method))
+    Value oMethod;
+    if (!pKlass->methods.Get(pName, oMethod))
     {
-        RuntimeError("Undefined property '%s'.", name->string.c_str());
+        RuntimeError("Undefined property '%s'.", pName->string.c_str());
         return false;
     }
 
-    if (method == NIL_VAL)
+    if (oMethod == NIL_VAL)
     {
-        RuntimeError("The class '%s' doesn't implement interface members '%s'.", klass->name->string.c_str(), name->string.c_str());
+        RuntimeError("The class '%s' doesn't implement interface members '%s'.", pKlass->name->string.c_str(), pName->string.c_str());
         return false;
     }
 
-    return CallValue(method, argCount);
+    return CallValue(oMethod, iArgCount);
 }
 
-bool VM::Invoke(ObjectString *name, int argCount)
+bool VM::Invoke(ObjectString *pName, int iArgCount)
 {
-    Value receiver = Peek(argCount);
-    Value value;
+    Value oReceiver = Peek(iArgCount);
+    Value oValue;
 
-    switch (AS_OBJ(receiver)->type)
+    switch (AS_OBJ(oReceiver)->type)
     {
         case OBJ_INSTANCE:
         {
-            ObjectInstance *instance = AS_INSTANCE(receiver);
-            if (instance->fields.Get(name, value)) {
-                stackTop[-argCount - 1] = value;
-                return CallValue(value, argCount);
+            ObjectInstance *pInstance = AS_INSTANCE(oReceiver);
+            if (pInstance->fields.Get(pName, oValue)) {
+                stackTop[-iArgCount - 1] = oValue;
+                return CallValue(oValue, iArgCount);
             }
-            return InvokeFromClass(instance->klass, name, argCount);
+            return InvokeFromClass(pInstance->klass, pName, iArgCount);
         }
-
-        // case OBJ_NATIVE_INSTANCE:
-        // {
-        //     ObjectNativeInstance *instance = AS_NATIVE_INSTANCE(receiver);
-        //     if (instance->fields.Get(name, value))
-        //     {
-        //         stackTop[-argCount - 1] = value;
-        //         return CallValue(value, argCount);
-        //     }
-        //     return InvokeFromNativeClass(instance->klass, name, argCount);
-        // }
 
         case OBJ_LIB:
         {
-            ObjectLib *instance = AS_LIB(receiver);
+            ObjectLib *pInstance = AS_LIB(oReceiver);
             Value method;
-            if (!instance->methods.Get(name, method))
+            if (!pInstance->methods.Get(pName, method))
             {
-                RuntimeError("Undefined property '%s'.", name->string.c_str());
+                RuntimeError("Undefined property '%s'.", pName->string.c_str());
                 return false;
             }
-            return CallValue(method, argCount);
+            return CallValue(method, iArgCount);
         }
 
         case OBJ_ARRAY:
         {
-            Value method;
-            if (!arrayMethods.Get(name, method))
+            Value oMethod;
+            if (!arrayMethods.Get(pName, oMethod))
             {
-                RuntimeError("Undefined methods '%s'.", name->string.c_str());
+                RuntimeError("Undefined methods '%s'.", pName->string.c_str());
                 return false;
             }
-            return CallValue(method, argCount);
+            return CallValue(oMethod, iArgCount);
         }
         default:
             RuntimeError("Only instances && module have methods.");
@@ -398,51 +387,44 @@ bool VM::Invoke(ObjectString *name, int argCount)
     }
 }
 
-InterpretResult VM::Interpret(const char* module, const char* source)
+InterpretResult VM::Interpret(const char* strModule, const char* strSource)
 {
     ResetStack();
-
-    // if (!isInit)
-    // {
-    //     initString = AS_STRING(NewString("init"));
-    //     DefineCoreArray(this);
-    //     isInit = true;
-    // }
     
     result = INTERPRET_OK;
 
-    ObjectClosure* closure = CompileSource(module, source, false, true);
-    if (closure == NULL)
+    ObjectClosure* pClosure = CompileSource(strModule, strSource, false, true);
+    if (pClosure == NULL)
         return INTERPRET_COMPILE_ERROR;
     
-    Push(OBJ_VAL(closure));
+    Push(OBJ_VAL(pClosure));
     // ObjFiber* fiber = wrenNewFiber(vm, closure);
     // wrenPopRoot(vm); // closure.
     // m_pApiStack = NULL;
-    CallValue(OBJ_VAL(closure), 0);
+    CallValue(OBJ_VAL(pClosure), 0);
 
     return run();
 }
 
-ObjectClosure* VM::CompileSource(const char* module, const char* source, bool isExpression, bool printErrors)
+ObjectClosure* VM::CompileSource(const char* strModule, const char* strSource, bool bIsExpression, bool bPrintErrors)
 {
-    Value nameValue = NewString("core");
-    if (module != NULL)
+    Value oNameValue = NewString("core");
+    if (strModule != NULL)
     {
-        nameValue = NewString(module);
-        Push(nameValue);
+        oNameValue = NewString(strModule);
+        Push(oNameValue);
     }
     
-    ObjectClosure* closure = CompileInModule(nameValue, source, isExpression, printErrors);
+    ObjectClosure* pClosure = CompileInModule(oNameValue, strSource, bIsExpression, bPrintErrors);
 
-    if (module != NULL) Pop(); // nameValue.
-    return closure;
+    if (strModule != NULL) Pop(); // oNameValue.
+    return pClosure;
 }
 
 
-Value VM::NewString(const char* string)
+Value VM::NewString(const char* strString)
 {
-    return OBJ_VAL(m_oParser.TakeString(string));
+    return OBJ_VAL(m_oParser.TakeString(strString));
 }
 
 static bool ValueIsNumber(Value oNumber)
@@ -481,9 +463,9 @@ InterpretResult VM::run()
             return result;
 #ifdef DEBUG_TRACE_EXECUTION
         printf("          ");
-        for (Value *slot = stack; slot < stackTop; slot++) {
+        for (Value *pSlot = stack; pSlot < stackTop; pSlot++) {
             printf("[ ");
-            PrintValue(*slot);
+            PrintValue(*pSlot);
             printf(" ]");
         }
         printf("\n");
@@ -508,54 +490,54 @@ InterpretResult VM::run()
             break;
 
         case OP_GET_UPVALUE: {
-            uint8_t slot = READ_BYTE();
-            Push(*frame->closure->upValues[slot]->location);
+            uint8_t uSlot = READ_BYTE();
+            Push(*frame->closure->upValues[uSlot]->location);
             break;
         }
 
         case OP_SET_UPVALUE: {
-            uint8_t slot = READ_BYTE();
-            *frame->closure->upValues[slot]->location = Peek(0);
+            uint8_t uSlot = READ_BYTE();
+            *frame->closure->upValues[uSlot]->location = Peek(0);
             break;
         }
 
         case OP_GET_LOCAL: {
-            uint8_t slot = READ_BYTE();
-            Push(frame->slots[slot]);
+            uint8_t uSlot = READ_BYTE();
+            Push(frame->slots[uSlot]);
             break;
         }
 
         case OP_SET_LOCAL:
         {
-            uint8_t slot = READ_BYTE();
-            frame->slots[slot] = Peek(0);
+            uint8_t uSlot = READ_BYTE();
+            frame->slots[uSlot] = Peek(0);
             break;
         }
 
         case OP_GET_GLOBAL:
         {
-            ObjectString *name = READ_STRING();
-            Value value;
-            if (!currentModule->m_vVariables.Get(name, value)) {
-                RuntimeError("Undefined variable '%s'.", name->string.c_str());
+            ObjectString *pName = READ_STRING();
+            Value oValue;
+            if (!currentModule->m_vVariables.Get(pName, oValue)) {
+                RuntimeError("Undefined variable '%s'.", pName->string.c_str());
                 return INTERPRET_RUNTIME_ERROR;
             }
-            Push(value);
+            Push(oValue);
             break;
         }
 
         case OP_DEFINE_GLOBAL: {
-            ObjectString *name = READ_STRING();
-            currentModule->m_vVariables.Set(name, Peek(0));
+            ObjectString *pName = READ_STRING();
+            currentModule->m_vVariables.Set(pName, Peek(0));
             Pop();
             break;
         }
 
         case OP_SET_GLOBAL: {
-            ObjectString *name = READ_STRING();
-            if (currentModule->m_vVariables.Set(name, Peek(0))) {
-                currentModule->m_vVariables.Delete(name);
-                RuntimeError("Undefined variable '%s'.", name->string.c_str());
+            ObjectString *pName = READ_STRING();
+            if (currentModule->m_vVariables.Set(pName, Peek(0))) {
+                currentModule->m_vVariables.Delete(pName);
+                RuntimeError("Undefined variable '%s'.", pName->string.c_str());
                 return INTERPRET_RUNTIME_ERROR;
             }
             break;
@@ -567,17 +549,17 @@ InterpretResult VM::run()
                 return INTERPRET_RUNTIME_ERROR;
             }
 
-            ObjectInstance *instance = AS_INSTANCE(Peek(0));
-            ObjectString *name = READ_STRING();
+            ObjectInstance *pInstance = AS_INSTANCE(Peek(0));
+            ObjectString *pName = READ_STRING();
 
             Value value;
-            if (instance->fields.Get(name, value)) {
+            if (pInstance->fields.Get(pName, value)) {
                 Pop(); // Instance.
                 Push(value);
                 break;
             }
 
-            if (!BindMethod(instance->klass, name)) {
+            if (!BindMethod(pInstance->klass, pName)) {
                 return INTERPRET_RUNTIME_ERROR;
             }
             break;
@@ -590,12 +572,12 @@ InterpretResult VM::run()
                 return INTERPRET_RUNTIME_ERROR;
             }
 
-            ObjectInstance *instance = AS_INSTANCE(Peek(1));
-            instance->fields.Set(READ_STRING(), Peek(0));
+            ObjectInstance *pInstance = AS_INSTANCE(Peek(1));
+            pInstance->fields.Set(READ_STRING(), Peek(0));
 
-            Value value = Pop();
+            Value oValue = Pop();
             Pop();
-            Push(value);
+            Push(oValue);
             break;
         }
 
@@ -661,22 +643,22 @@ InterpretResult VM::run()
         }
         case OP_PRINT:
         {
-            int argCount = READ_BYTE();
-            int tempArgCount = argCount;
-            int percentCount = 0;
-            Value string = Peek(--tempArgCount);
+            int iArgCount = READ_BYTE();
+            int iTempArgCount = iArgCount;
+            int iPercentCount = 0;
+            Value string = Peek(--iTempArgCount);
             
             for (int i = 0; AS_STRING(string)->string[i]; i++)
             {
                 if (AS_STRING(string)->string[i] == '%' && AS_STRING(string)->string[i + 1] == '%')
                     i++;
                 else if (AS_STRING(string)->string[i] == '%')
-                    percentCount++;
+                    iPercentCount++;
             }
             
-            if (tempArgCount != percentCount)
+            if (iTempArgCount != iPercentCount)
             {
-                RuntimeError("Expected %d arguments but got %d in print call.", percentCount, tempArgCount);
+                RuntimeError("Expected %d arguments but got %d in print call.", iPercentCount, iTempArgCount);
                 break;
             }
             
@@ -688,9 +670,9 @@ InterpretResult VM::run()
                     printf("%%");
                     i++;
                 } else
-                    PrintValue(Peek(--tempArgCount));
+                    PrintValue(Peek(--iTempArgCount));
             }
-            stackTop -= argCount;
+            stackTop -= iArgCount;
             break;
         }
 
@@ -701,27 +683,27 @@ InterpretResult VM::run()
         }
 
         case OP_JUMP: {
-            uint16_t offset = READ_SHORT();
-            frame->ip += offset;
+            uint16_t uOffset = READ_SHORT();
+            frame->ip += uOffset;
             break;
         }
 
         case OP_JUMP_IF_FALSE: {
-            uint16_t offset = READ_SHORT();
+            uint16_t uOffset = READ_SHORT();
             if (IsFalsey(Peek(0)))
-                frame->ip += offset;
+                frame->ip += uOffset;
             break;
         }
 
         case OP_LOOP: {
-            uint16_t offset = READ_SHORT();
-            frame->ip -= offset;
+            uint16_t uOffset = READ_SHORT();
+            frame->ip -= uOffset;
             break;
         }
 
         case OP_CALL: {
-            int argCount = READ_BYTE();
-            if (!CallValue(Peek(argCount), argCount))
+            int iArgCount = READ_BYTE();
+            if (!CallValue(Peek(iArgCount), iArgCount))
                 return INTERPRET_RUNTIME_ERROR;
             frame = &frames[frameCount - 1];
             break;
@@ -731,30 +713,19 @@ InterpretResult VM::run()
             Push(OBJ_VAL(gc.New<ObjectClass>(READ_STRING())));
             break;
         
-        case OP_INTERFACE:
-            Push(OBJ_VAL(gc.New<ObjectInterface>(READ_STRING())));
-            break;
-
         case OP_INHERIT: {
-            Value superclass = Peek(1);
+            Value oSuperclass = Peek(1);
 
-            if (!IS_CLASS(superclass) && !IS_INTERFACE(superclass)) {
-                RuntimeError("Superclass must be a class or an interface");
+            if (!IS_CLASS(oSuperclass)) {
+                RuntimeError("Superclass must be a class.");
                 return INTERPRET_RUNTIME_ERROR;
             }
 
-            ObjectClass *subclass = AS_CLASS(Peek(0));
+            ObjectClass *pSubclass = AS_CLASS(Peek(0));
 
-            if (IS_CLASS(superclass))
-            {
-                subclass->methods.AddAll(AS_CLASS(superclass)->methods);
-                subclass->superClass = AS_CLASS(superclass);
-                subclass->derivedCount = AS_CLASS(superclass)->derivedCount + 1;
-            }
-            else
-            {
-                subclass->methods.AddAll(AS_INTERFACE(superclass)->methods);
-            }
+            pSubclass->methods.AddAll(AS_CLASS(oSuperclass)->methods);
+            pSubclass->superClass = AS_CLASS(oSuperclass);
+            pSubclass->derivedCount = AS_CLASS(oSuperclass)->derivedCount + 1;
             Pop(); // Subclass.
             break;
         }
@@ -762,19 +733,11 @@ InterpretResult VM::run()
         case OP_METHOD:
             DefineMethod(READ_STRING());
             break;
-        
-        case OP_INTERFACE_PROCEDURE:
-        {
-            ObjectInterface *interface = AS_INTERFACE(Peek(0));
-            interface->methods.Set(READ_STRING(), NIL_VAL);
-            // Pop();
-            break;
-        }
 
         case OP_INVOKE: {
-            ObjectString *method = READ_STRING();
-            int argCount = READ_BYTE();
-            if (!Invoke(method, argCount)) {
+            ObjectString *pMethod = READ_STRING();
+            int iArgCount = READ_BYTE();
+            if (!Invoke(pMethod, iArgCount)) {
                 return INTERPRET_RUNTIME_ERROR;
             }
             frame = &frames[frameCount - 1];
@@ -782,10 +745,10 @@ InterpretResult VM::run()
         }
 
         case OP_SUPER_INVOKE: {
-            ObjectString *method = READ_STRING();
-            int argCount = READ_BYTE();
-            ObjectClass *superclass = AS_CLASS(Pop());
-            if (!InvokeFromClass(superclass, method, argCount)) {
+            ObjectString *pMethod = READ_STRING();
+            int iArgCount = READ_BYTE();
+            ObjectClass *pSuperclass = AS_CLASS(Pop());
+            if (!InvokeFromClass(pSuperclass, pMethod, iArgCount)) {
                 return INTERPRET_RUNTIME_ERROR;
             }
             frame = &frames[frameCount - 1];
@@ -793,18 +756,17 @@ InterpretResult VM::run()
         }
 
         case OP_CLOSURE: {
-            ObjectFunction *function = AS_FUNCTION(READ_CONSTANT());
-            ObjectClosure *closure = gc.New<ObjectClosure>(this, function);
-            Push(OBJ_VAL(closure));
+            ObjectFunction *pFunction = AS_FUNCTION(READ_CONSTANT());
+            ObjectClosure *pClosure = gc.New<ObjectClosure>(this, pFunction);
+            Push(OBJ_VAL(pClosure));
 
-            for (int i = 0; i < closure->upvalueCount; i++) {
-                uint8_t isLocal = READ_BYTE();
-                uint8_t index = READ_BYTE();
-                if (isLocal) {
-                    closure->upValues[i] = CaptureUpvalue(frame->slots + index);
-                } else {
-                    closure->upValues[i] = frame->closure->upValues[index];
-                }
+            for (int i = 0; i < pClosure->upvalueCount; i++) {
+                uint8_t uIsLocal = READ_BYTE();
+                uint8_t uIndex = READ_BYTE();
+                if (uIsLocal)
+                    pClosure->upValues[i] = CaptureUpvalue(frame->slots + uIndex);
+                else
+                    pClosure->upValues[i] = frame->closure->upValues[uIndex];
             }
             break;
         }
@@ -815,9 +777,9 @@ InterpretResult VM::run()
             break;
 
         case OP_GET_SUPER: {
-            ObjectString *name = READ_STRING();
-            ObjectClass *superclass = AS_CLASS(Pop());
-            if (!BindMethod(superclass, name)) {
+            ObjectString *pName = READ_STRING();
+            ObjectClass *pSuperclass = AS_CLASS(Pop());
+            if (!BindMethod(pSuperclass, pName)) {
                 return INTERPRET_RUNTIME_ERROR;
             }
             break;
@@ -825,29 +787,8 @@ InterpretResult VM::run()
 
         case OP_IMPORT:
         {
-            // ObjectString *path = READ_STRING();
-            // std::string file = path->string + ".fox";
             Push(ImportModule(OBJ_VAL(READ_STRING())));
-            // if (!imports.Set(path, NIL_VAL) || !imports.Set(m_oParser.TakeString(file.c_str()), NIL_VAL))
-            //     break;
-            // std::vector<std::string>::iterator it = std::find(standardLib.begin(), standardLib.end(), path->string);
-            // if (it != standardLib.end())
-            // {
-            //     LoadStandard(*it);
-            //     break;
-            // }
 
-            // size_t lastindex = path->string.find_last_of("."); 
-            // std::string rawname = path->string.substr(0, lastindex); 
-
-            // if (manager.LoadLibrary(rawname))
-            // 	break;
-
-            // std::ifstream t(file);
-            // std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
-
-            // if (result == INTERPRET_RUNTIME_ERROR)
-            //     break;
             if (IS_CLOSURE(Peek(0)))
             {
                 CallFunction(AS_CLOSURE(Peek(0)), 0);
@@ -859,26 +800,25 @@ InterpretResult VM::run()
                 // variables from it if needed.
                 currentModule->m_vVariables.AddAll(AS_MODULE(Pop())->m_vVariables);
                 // currentModule = AS_MODULE(Pop());
-                // std::cerr << frameCount << " Frames::::" << std::endl;
             }
             break;
         }
 
         case OP_RETURN: {
-            Value result = Pop();
+            Value oResult = Pop();
             CloseUpvalues(frame->slots);
             frameCount--;
             if (frameCount <= 0)
             {
                 Pop();
                 frameCount = 0;
-                stack[0] = result;
+                stack[0] = oResult;
                 stackTop = stack + 1;
                 return INTERPRET_OK;
             }
 
             stackTop = frame->slots;
-            Push(result);
+            Push(oResult);
 
             frame = &frames[frameCount - 1];
             break;
@@ -896,45 +836,45 @@ InterpretResult VM::run()
 
         case OP_CONST:
         {
-            Value constant = READ_CONSTANT();
-            Push(constant);
+            Value oConstant = READ_CONSTANT();
+            Push(oConstant);
             break;
         }
 
         case OP_SUBSCRIPT:
         {
-            Value indexValue = Peek(0);
-            Value subscriptValue = Peek(1);
+            Value oIndexValue = Peek(0);
+            Value oSubscriptValue = Peek(1);
 
-            if (!IS_OBJ(subscriptValue))
+            if (!IS_OBJ(oSubscriptValue))
             {
                 frame->ip = ip;
                 RuntimeError("Can only subscript on lists, strings or dictionaries.");
                 return INTERPRET_RUNTIME_ERROR;
             }
 
-            switch (AS_OBJ(subscriptValue)->type)
+            switch (AS_OBJ(oSubscriptValue)->type)
             {
                 case OBJ_ARRAY:
                 {
-                    if (!IS_NUMBER(indexValue) && !IS_INT(indexValue))
+                    if (!IS_NUMBER(oIndexValue) && !IS_INT(oIndexValue))
                     {
                         RuntimeError("List index must be a number.");
                         return INTERPRET_RUNTIME_ERROR;
                     }
 
-                    ObjectArray *list = AS_ARRAY(subscriptValue);
-                    int index = AS_INT(indexValue);
+                    ObjectArray *pList = AS_ARRAY(oSubscriptValue);
+                    int iIndex = AS_INT(oIndexValue);
 
                     // Allow negative indexes
-                    if (index < 0)
-                        index = list->m_vValues.size() + index;
+                    if (iIndex < 0)
+                        iIndex = pList->m_vValues.size() + iIndex;
 
-                    if (index >= 0 && index < list->m_vValues.size())
+                    if (iIndex >= 0 && iIndex < pList->m_vValues.size())
                     {
                         Pop();
                         Pop();
-                        Push(list->m_vValues[index]);
+                        Push(pList->m_vValues[iIndex]);
                         break;
                     }
 
@@ -944,17 +884,17 @@ InterpretResult VM::run()
 
                 case OBJ_STRING:
                 {
-                    ObjectString *string = AS_STRING(subscriptValue);
-                    int index = AS_INT(indexValue);
+                    ObjectString *pString = AS_STRING(oSubscriptValue);
+                    int iIndex = AS_INT(oIndexValue);
 
                     // Allow negative indexes
-                    if (index < 0)
-                        index = string->string.size() + index;
+                    if (iIndex < 0)
+                        iIndex = pString->string.size() + iIndex;
 
-                    if (index >= 0 && index < string->string.size()) {
+                    if (iIndex >= 0 && iIndex < pString->string.size()) {
                         Pop();
                         Pop();
-                        Push(OBJ_VAL(m_oParser.CopyString(std::string(1, string->string[index]))));
+                        Push(OBJ_VAL(m_oParser.CopyString(std::string(1, pString->string[iIndex]))));
                         break;
                     }
 
@@ -962,25 +902,23 @@ InterpretResult VM::run()
                     return INTERPRET_RUNTIME_ERROR;
                 }
 
-                // case OBJ_DICT: {
-                //     ObjDict *dict = AS_DICT(subscriptValue);
-                //     if (!isValidKey(indexValue)) {
-                //         frame->ip = ip;
-                //         runtimeError(vm, "Dictionary key must be an immutable type.");
-                //         return INTERPRET_RUNTIME_ERROR;
-                //     }
+                case OBJ_MAP: {
+                    ObjectMap *pMap = AS_MAP(oSubscriptValue);
+                    // if (!isValidKey(oIndexValue)) {
+                    //     frame->ip = ip;
+                    //     RuntimeError("Map key must be an immutable type.");
+                    //     return INTERPRET_RUNTIME_ERROR;
+                    // }
 
-                //     Value v;
-                //     pop(vm);
-                //     pop(vm);
-                //     if (dictGet(dict, indexValue, &v)) {
-                //         push(vm, v);
-                //     } else {
-                //         push(vm, NIL_VAL);
-                //     }
-
-                //     break;
-                // }
+                    Value oValue;
+                    Pop();
+                    Pop();
+                    // if (dictGet(pMap, indexValue, &oValue))
+                    //     Push(oValue);
+                    // else
+                    //     Push(NIL_VAL);
+                    break;
+                }
 
                 default:
                 {
@@ -1003,30 +941,56 @@ InterpretResult VM::run()
 
         case OP_ARRAY:
         {
-            ObjectArray *array = gc.New<ObjectArray>();
-            Push(OBJ_VAL(array));
+            Push(OBJ_VAL(gc.New<ObjectArray>()));
+            break;
+        }
+
+        case OP_MAP:
+        {
+            Push(OBJ_VAL(gc.New<ObjectMap>()));
             break;
         }
 
         case OP_ADD_LIST:
         {
-            int argCount = READ_BYTE();
-            Value listValue = Peek(argCount);
+            int iArgCount = READ_BYTE();
+            Value oListValue = Peek(iArgCount);
 
-            ObjectArray *array = AS_ARRAY(listValue);
+            ObjectArray *pArray = AS_ARRAY(oListValue);
 
-            for (int i = argCount - 1; i >= 0; i--)
+            for (int i = iArgCount - 1; i >= 0; i--)
             {
-                array->m_vValues.push_back(Peek(i));
+                pArray->m_vValues.push_back(Peek(i));
             }
 
-            stackTop -= argCount;
+            stackTop -= iArgCount;
 
             Pop();
 
-            Push(OBJ_VAL(array));
+            Push(OBJ_VAL(pArray));
             break;
         }
+
+        case OP_ADD_MAP:
+        {
+            int iArgCount = READ_BYTE();
+            Value oMapValue = Peek(iArgCount);
+
+            ObjectMap *pMap = AS_MAP(oMapValue);
+
+            for (int i = iArgCount - 1; i >= 0; i--)
+            {
+                pMap->m_vValues.push_back(Peek(i));
+            }
+
+            stackTop -= iArgCount;
+
+            Pop();
+
+            Push(OBJ_VAL(pMap));
+            break;
+        }
+
         }
     }
 

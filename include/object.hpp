@@ -23,6 +23,7 @@ class VM;
 #define OBJ_TYPE(val)         (AS_OBJ(val)->type)
 
 
+#define IS_MAP(val)        is_obj_type(val, OBJ_MAP)
 #define IS_ARRAY(val)        is_obj_type(val, OBJ_ARRAY)
 #define IS_ABSTRACT(val)        is_obj_type(val, OBJ_ABSTRACT)
 #define IS_LIB(val)           is_obj_type(val, OBJ_LIB)
@@ -31,12 +32,12 @@ class VM;
 #define IS_LIB(val)         is_obj_type(val, OBJ_LIB)
 #define IS_CLOSURE(val)       is_obj_type(val, OBJ_CLOSURE)
 #define IS_INSTANCE(val)      is_obj_type(val, OBJ_INSTANCE)
-#define IS_INTERFACE(val)      is_obj_type(val, OBJ_INTERFACE)
 #define IS_FUNCTION(val)      is_obj_type(val, OBJ_FUNCTION)
 #define IS_NATIVE(val)        is_obj_type(val, OBJ_NATIVE)
 #define IS_STRING(val)        is_obj_type(val, OBJ_STRING)
 #define IS_MODULE(val)        is_obj_type(val, OBJ_MODULE)
 
+#define AS_MAP(val)           ((ObjectMap *)AS_OBJ(val))
 #define AS_ARRAY(val)           ((ObjectArray *)AS_OBJ(val))
 #define AS_ABSTRACT(val)        ((ObjectAbstract *)AS_OBJ(val))
 #define AS_LIB(val)           	((ObjectLib *)AS_OBJ(val))
@@ -47,26 +48,24 @@ class VM;
 #define AS_FUNCTION(val)      	((ObjectFunction *)AS_OBJ(val))
 #define AS_INSTANCE(val)        ((ObjectInstance *)AS_OBJ(val))
 #define AS_NATIVE(val)        	(((ObjectNative *)AS_OBJ(val))->function)
-#define AS_INTERFACE(val)       ((ObjectInterface *)AS_OBJ(val))
 #define AS_STRING(val)        	((ObjectString *)AS_OBJ(val))
 #define AS_CSTRING(val)       	(((ObjectString *)AS_OBJ(val))->string.c_str())
 #define AS_MODULE(val)       	((ObjectModule *)AS_OBJ(val))
 
 typedef enum {
     OBJ_ARRAY,
+    OBJ_MAP,
     OBJ_ABSTRACT,
     OBJ_BOUND_METHOD,
     OBJ_CLASS,
     OBJ_CLOSURE,
     OBJ_FUNCTION,
     OBJ_INSTANCE,
-    // OBJ_NATIVE_INSTANCE,
     OBJ_NATIVE,
     OBJ_NATIVE_CLASS,
     OBJ_LIB,
     OBJ_STRING,
     OBJ_UPVALUE,
-    OBJ_INTERFACE,
     OBJ_MODULE,
 } ObjType;
 
@@ -258,35 +257,6 @@ public:
     }
 };
 
-class ObjectInterface : public Object
-{
-public:
-    ObjectString *name;
-    Table methods;
-
-	explicit ObjectInterface(ObjectString* n)
-	{
-		type = OBJ_INTERFACE;
-		name = n;
-		methods = Table();
-	}
-
-    // bool operator==(const ObjectClass& other) const
-    // {
-    //     ObjectClass* cl = (ObjectClass*) this;
-    //     ObjectClass* end = (ObjectClass*) &other;
-    //     if (derivedCount < other.derivedCount)
-    //     {
-    //         cl = (ObjectClass*) &other;
-    //         end = (ObjectClass*) this;
-    //     }
-    //     while (cl && !(cl == end))
-    //         cl = cl->superClass;
-        
-    //     return cl != NULL;
-    // }
-};
-
 class ObjectBoundMethod : public Object
 {
 public:
@@ -345,6 +315,24 @@ public:
 	}
 
     bool operator==(const ObjectArray& other) const
+    {
+        return m_vValues == other.m_vValues;
+    }
+};
+
+class ObjectMap : public Object
+{
+public:
+    std::vector<Value> m_vValues;
+    Table methods;
+
+    explicit ObjectMap()
+	{
+		type = OBJ_ARRAY;
+        m_vValues = std::vector<Value>();
+	}
+
+    bool operator==(const ObjectMap& other) const
     {
         return m_vValues == other.m_vValues;
     }

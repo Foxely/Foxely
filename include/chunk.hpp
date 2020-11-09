@@ -45,12 +45,13 @@ typedef enum {
     OP_CLASS,
     OP_INHERIT,
     OP_METHOD,
-    OP_INTERFACE,
-    OP_INTERFACE_PROCEDURE,
 
     OP_SUBSCRIPT,
     OP_ARRAY,
     OP_ADD_LIST,
+    
+    OP_MAP,
+    OP_ADD_MAP,
 
     OP_FOREIGN,
 
