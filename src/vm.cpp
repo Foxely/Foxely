@@ -4,12 +4,10 @@
 #include <stdio.h>
 #include <fstream>
 #include <streambuf>
+#include <cstring>
 
 #include "common.h"
 #include "debug.h"
-#include "scy/pluga/pluga.h"
-#include "scy/pluga/plugin_api.h"
-#include "scy/pluga/sharedlibrary.h"
 #include "library/library.h"
 #include "library/sfml.h"
 #include "foxely.h"
@@ -1369,7 +1367,7 @@ Handle* VM::MakeCallHandle(const char* signature)
 {
     FOX_ASSERT(signature != NULL, "Signature cannot be NULL.");
     
-    int signatureLength = (int)strlen(signature);
+    int signatureLength = std::strlen(signature);
     FOX_ASSERT(signatureLength > 0, "Signature cannot be empty.");
 
     // Count the number parameters the method expects.

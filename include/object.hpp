@@ -12,6 +12,7 @@
 
 #include <iostream>
 #include <string>
+#include <functional>
 
 #include "chunk.hpp"
 #include "value.hpp"
@@ -150,7 +151,7 @@ public:
     }
 };
 
-typedef Value (*NativeFn)(VM* oVM, int arg_count, Value *args);
+using NativeFn = std::function<Value(VM*, int, Value*)>;
 
 class ObjectNative : public Object
 {
