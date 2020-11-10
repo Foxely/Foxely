@@ -983,7 +983,6 @@ InterpretResult VM::run()
             }
 
             stackTop -= iArgCount;
-            pMap->m_vValues.Print();
 
             Pop();
 
