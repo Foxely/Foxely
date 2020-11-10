@@ -1,0 +1,7 @@
+
+
+map: var = { 0 : 2, 10 : false, "test" : 10 };
+
+print "%\n", map[0];
+print "%\n", map[10];
+print "%\n", map["test"];

@@ -847,7 +847,7 @@ InterpretResult VM::run()
             if (!IS_OBJ(oSubscriptValue))
             {
                 frame->ip = ip;
-                RuntimeError("Can only subscript on lists, strings or dictionaries.");
+                RuntimeError("Can only subscript on lists, strings or maps.");
                 return INTERPRET_RUNTIME_ERROR;
             }
 
@@ -911,10 +911,10 @@ InterpretResult VM::run()
                     Value oValue;
                     Pop();
                     Pop();
-                    // if (dictGet(pMap, indexValue, &oValue))
-                    //     Push(oValue);
-                    // else
-                    //     Push(NIL_VAL);
+                    if (pMap->m_vValues.Get(oIndexValue, oValue))
+                        Push(oValue);
+                    else
+                        Push(NIL_VAL);
                     break;
                 }
 
@@ -972,16 +972,18 @@ InterpretResult VM::run()
         case OP_ADD_MAP:
         {
             int iArgCount = READ_BYTE();
+            iArgCount *= 2;
             Value oMapValue = Peek(iArgCount);
 
             ObjectMap *pMap = AS_MAP(oMapValue);
 
-            for (int i = iArgCount - 1; i >= 0; i--)
+            for (int i = iArgCount - 1; i >= 0; i -= 2)
             {
-                pMap->m_vValues.push_back(Peek(i));
+                pMap->m_vValues.Set(Peek(i), Peek(i - 1));
             }
 
             stackTop -= iArgCount;
+            pMap->m_vValues.Print();
 
             Pop();
 

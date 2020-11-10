@@ -37,8 +37,6 @@ bool CompareObject(Value a, Value b)
     {
     case OBJ_INSTANCE:
         return *AS_INSTANCE(a) == *AS_INSTANCE(b);
-    // case OBJ_NATIVE_INSTANCE:
-    //     return *AS_NATIVE_INSTANCE(a) == *AS_NATIVE_INSTANCE(b);
     case OBJ_STRING:
         return AS_STRING(a) == AS_STRING(b);
     case OBJ_ARRAY:
@@ -48,24 +46,36 @@ bool CompareObject(Value a, Value b)
     default:
         break;
     }
-    // std::cout << AS_OBJ(a)->type;
     return false;
+}
+
+// Returns true if [a] and [b] are strictly the same value. This is identity
+// for object values, and value equality for unboxed values.
+bool ValuesSame(Value a, Value b)
+{
+    if (a.type != b.type)     return false;
+    if (a.type == VAL_NIL)    return true;
+    if (a.type == VAL_NUMBER) return a.as.number == b.as.number;
+    if (a.type == VAL_INT) return a.as.integer == b.as.integer;
+    if (a.type == VAL_BOOL)   return AS_BOOL(a) == AS_BOOL(b);
+    return a.as.obj == b.as.obj;
 }
 
 bool ValuesEqual(Value a, Value b)
 {
-    if (a.type != b.type) return false;
+    if (ValuesSame(a, b)) return true;
 
-    switch (a.type)
-    {
-        case VAL_BOOL:   return AS_BOOL(a) == AS_BOOL(b);
-        case VAL_NIL:    return true;
-        case VAL_NUMBER: return AS_NUMBER(a) == AS_NUMBER(b);
-        case VAL_OBJ:
-            return CompareObject(a, b);
-        default:
-            return false; // Unreachable.
-    }
+    // If we get here, it's only possible for two heap-allocated immutable objects
+  // to be equal.
+    if (!IS_OBJ(a) || !IS_OBJ(b)) return false;
+
+    Object* aObject = AS_OBJ(a);
+    Object* bObject = AS_OBJ(b);
+
+    // Must be the same type.
+    if (aObject->type != bObject->type) return false;
+
+    return CompareObject(a, b);
 }
 
 bool Value::operator==(const Value& other) const

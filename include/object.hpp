@@ -18,6 +18,7 @@
 #include "value.hpp"
 #include "gc.hpp"
 #include "Table.hpp"
+#include "Map.hpp"
 
 class VM;
 
@@ -324,18 +325,18 @@ public:
 class ObjectMap : public Object
 {
 public:
-    std::vector<Value> m_vValues;
-    Table methods;
+    MapTable m_vValues;
+    Table m_oMethods;
 
     explicit ObjectMap()
 	{
-		type = OBJ_ARRAY;
-        m_vValues = std::vector<Value>();
+		type = OBJ_MAP;
+        m_vValues = MapTable();
 	}
 
     bool operator==(const ObjectMap& other) const
     {
-        return m_vValues == other.m_vValues;
+        return m_vValues.m_vEntries == other.m_vValues.m_vEntries;
     }
 };
 

@@ -26,12 +26,6 @@ Table::Table()
     }
 }
 
-// Table::~Table()
-// {
-//     FREE_ARRAY(vm, Entry& table->m_vEntries, m_iCapacity + 1);
-//     init_table(table);
-// }
-
 Entry& Table::FindEntry(ObjectString* pKey)
 {
     uint32_t index = pKey->hash & m_iCapacity;

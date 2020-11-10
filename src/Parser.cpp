@@ -113,7 +113,7 @@ Parser::Parser(VM* pVm)
     rules[TOKEN_LEFT_BRACKET] = { List, Subscript, PREC_CALL };
     rules[TOKEN_LEFT_PAREN] = { Grouping, CallCompiler, PREC_CALL };
     rules[TOKEN_RIGHT_PAREN] = { NULL, NULL, PREC_NONE };
-    rules[TOKEN_LEFT_BRACE] = { NULL, NULL, PREC_NONE };
+    rules[TOKEN_LEFT_BRACE] = { Map, NULL, PREC_NONE };
     rules[TOKEN_RIGHT_BRACE] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_COMMA] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_DOT] = { NULL, Dot, PREC_CALL };
