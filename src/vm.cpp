@@ -551,6 +551,14 @@ InterpretResult VM::run()
             ObjectString *pName = READ_STRING();
 
             Value value;
+            if (pInstance->cStruct != NULL)
+            {
+                Value oGetterFunc;
+                if (pInstance->getters.Get(pName, oGetterFunc)) {
+                    CallValue(oGetterFunc, 0);
+                }
+                break;
+            }
             if (pInstance->fields.Get(pName, value)) {
                 Pop(); // Instance.
                 Push(value);
@@ -571,11 +579,20 @@ InterpretResult VM::run()
             }
 
             ObjectInstance *pInstance = AS_INSTANCE(Peek(1));
-            pInstance->fields.Set(READ_STRING(), Peek(0));
-
-            Value oValue = Pop();
-            Pop();
-            Push(oValue);
+            if (pInstance->cStruct != NULL)
+            {
+                Value oSetterFunc;
+                if (pInstance->setters.Get(READ_STRING(), oSetterFunc)) {
+                    CallValue(oSetterFunc, 1);
+                }
+            }
+            else
+            {
+                pInstance->fields.Set(READ_STRING(), Peek(0));
+                Value oValue = Pop();
+                Pop();
+                Push(oValue);
+            }
             break;
         }
 

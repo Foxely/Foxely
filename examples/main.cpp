@@ -264,6 +264,34 @@ void replv3(int ac, char** av)
     }
 }
 
+struct Test
+{
+    int a;
+};
+
+NativeMethods testMethods =
+{
+	std::make_pair<std::string, NativeFn>("init", [](VM* pVM, int argc, Value* args)
+    {
+        ObjectInstance* pInstance = Fox_ValueToInstance(args[-1]);
+        pInstance->cStruct = new Test;
+        Fox_SetField(pVM, Fox_ObjectToValue(pInstance), "x", Fox_NumberToValue(0));
+        
+        Fox_Setter(pVM, pInstance, "x", [](VM* pVM, int argc, Value* args)
+        {
+            Test* pTest = (Test *) Fox_GetUserData(args[-1]);
+            pTest->a = Fox_ValueToInteger(args[0]);
+            return Fox_IntegerToValue(pTest->a);
+        });
+        Fox_Getter(pVM, pInstance, "x", [](VM* pVM, int argc, Value* args)
+        {
+            Test* pTest = (Test *) Fox_GetUserData(args[-1]);
+            return Fox_IntegerToValue(pTest->a);
+        });
+        return args[-1];
+    }),
+};
+
 void runFile(int ac, char** av, const char* path)
 {
     VM oVM;
@@ -274,7 +302,11 @@ void runFile(int ac, char** av, const char* path)
 	std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
     t.close();
 
+    Test test;
+
     oVM.DefineFunction("core", "clock", clockNative);
+    oVM.DefineModule("main");
+    oVM.DefineClass("main", "Test", testMethods);
     DefineIOModule(&oVM);
 
     InterpretResult result = INTERPRET_OK;

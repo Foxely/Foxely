@@ -20,7 +20,7 @@ Value openNative(VM* oVM, int argCount, Value* args)
     FILE* fp = fopen(Fox_ValueToCString(args[0]), Fox_ValueToCString(args[1]));
     if (fp)
     {
-        Value instance = Fox_DefineInstanceOfCStruct(oVM, "File", fp);
+        Value instance = Fox_DefineInstanceOfCStruct(oVM, "io", "File", fp);
         return instance;
     }
 	Fox_RuntimeError(oVM, "'%s' doesn't exist.", Fox_ValueToCString(args[0]));
@@ -30,7 +30,7 @@ Value openNative(VM* oVM, int argCount, Value* args)
 Value readNative(VM* oVM, int argCount, Value* args)
 {
     Fox_Arity(oVM, argCount, 0, 1);
-    FILE* fp = (FILE *) Fox_GetInstanceCStruct(args[-1]);
+    FILE* fp = (FILE *) Fox_GetUserData(args[-1]);
 
     if (argCount == 0)
     {
@@ -48,7 +48,7 @@ Value readNative(VM* oVM, int argCount, Value* args)
 
         fcontent[len] = 0;
 
-        return Fox_StringToValue(oVM, fcontent);
+        return Fox_String(oVM, fcontent);
     }
     else
     {
@@ -57,7 +57,7 @@ Value readNative(VM* oVM, int argCount, Value* args)
         char chunk[size];
 
         if (fgets(chunk, sizeof(chunk), fp) != NULL)
-            return Fox_StringToValue(oVM, chunk);
+            return Fox_String(oVM, chunk);
     }
     return NIL_VAL;
 }
@@ -65,14 +65,14 @@ Value readNative(VM* oVM, int argCount, Value* args)
 Value readLineNative(VM* oVM, int argCount, Value* args)
 {
     Fox_FixArity(oVM, argCount, 0);
-    FILE* fp = (FILE *) Fox_GetInstanceCStruct(args[-1]);
+    FILE* fp = (FILE *) Fox_GetUserData(args[-1]);
     size_t len = 0;
     char* line = NULL;
     ssize_t read;
     
     read = getline(&line, &len, fp);
     if (read != -1) {
-        Value lineValue = Fox_StringToValue(oVM, line);
+        Value lineValue = Fox_String(oVM, line);
         if (line)
             free(line);
         return lineValue;
@@ -83,7 +83,7 @@ Value readLineNative(VM* oVM, int argCount, Value* args)
 Value writeNative(VM* oVM, int argCount, Value* args)
 {
     Fox_FixArity(oVM, argCount, 1);
-    FILE* fp = (FILE *) Fox_GetInstanceCStruct(args[-1]);
+    FILE* fp = (FILE *) Fox_GetUserData(args[-1]);
 
     Fox_PanicIfNot(oVM, Fox_IsString(args[0]), "Expected string value in write function");
     fputs(Fox_ValueToCString(args[0]), fp);
@@ -93,7 +93,7 @@ Value writeNative(VM* oVM, int argCount, Value* args)
 Value closeNative(VM* oVM, int argCount, Value* args)
 {
     Fox_FixArity(oVM, argCount, 0);
-    FILE* fp = (FILE *) Fox_GetInstanceCStruct(args[-1]);
+    FILE* fp = (FILE *) Fox_GetUserData(args[-1]);
 	if (fp)
         fclose(fp);
     return NIL_VAL;

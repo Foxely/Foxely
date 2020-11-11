@@ -139,7 +139,7 @@ Value toStringNative(VM* oVM, int argCount, Value* args)
     }
     string += "]";
 
-    return Fox_StringToValue(oVM, string.c_str());
+    return Fox_String(oVM, string.c_str());
 }
 
 // Value atNative(VM* oVM, int argCount, Value* args)

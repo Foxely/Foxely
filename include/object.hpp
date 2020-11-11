@@ -235,6 +235,8 @@ class ObjectInstance : public Object
 public:
     ObjectClass *klass;
     Table fields;
+    Table getters;
+    Table setters;
 	void* cStruct;
 
 	explicit ObjectInstance(ObjectClass *k)

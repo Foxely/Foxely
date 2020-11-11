@@ -10,16 +10,16 @@ Value whichNative(VM* oVM, int argCount, Value* args)
 {
     Fox_FixArity(oVM, argCount, 0);
     #ifdef _WIN32
-        return Fox_StringToValue(oVM, "windows");
+        return Fox_String(oVM, "windows");
     #elif __linux__
-        return Fox_StringToValue(oVM, "linux");
+        return Fox_String(oVM, "linux");
     #elif __APPLE__
         #include "TargetConditionals.h"
         #if TARGET_OS_MAC
-            return Fox_StringToValue(oVM, "macOS");
+            return Fox_String(oVM, "macOS");
         #endif
     #endif
-    return Fox_StringToValue(oVM, "Unknown OS");
+    return Fox_String(oVM, "Unknown OS");
 }
 
 Value shellNative(VM* oVM, int argCount, Value* args)
@@ -33,7 +33,7 @@ Value shellNative(VM* oVM, int argCount, Value* args)
 Value getEnvNative(VM* oVM, int argCount, Value* args)
 {
     Fox_FixArity(oVM, argCount, 1);
-    return Fox_StringToValue(oVM, getenv(Fox_ValueToCString(args[0])));
+    return Fox_String(oVM, getenv(Fox_ValueToCString(args[0])));
 }
 
 Value exitNative(VM* oVM, int argCount, Value* args)
@@ -53,24 +53,16 @@ Value exitNative(VM* oVM, int argCount, Value* args)
 
 Value argsNative(VM* oVM, int argCount, Value* args)
 {
-    Fox_FixArity(oVM, argCount, 0);
-    Value instance = Fox_DefineInstanceOf(oVM, "Array");
-    Fox_SetInstanceField(oVM, instance, "m_oArray", Fox_Array(oVM));
-    if (!Fox_Is(instance, VAL_NIL))
-    {
-        Value arrayField = Fox_GetInstanceField(oVM, instance, "m_oArray");
-        ObjectArray* array = Fox_ValueToArray(arrayField);
-        std::vector<Value> values;
+        Fox_FixArity(oVM, argCount, 0);
+    Value oArray = Fox_Array(oVM);
+    ObjectArray* pArray = Fox_ValueToArray(oArray);
+    std::vector<Value> vValues;
 
-        for (int i = 1; i < oVM->argc; i++) {
-            values.push_back(Fox_StringToValue(oVM, oVM->argv[i]));
-        }
+    for (int i = 1; i < oVM->argc; i++)
+        vValues.push_back(Fox_String(oVM, oVM->argv[i]));
 
-        array->m_vValues = values;
-    }
-    else
-        Fox_RuntimeError(oVM, "Array Library was not imported.");
-    return instance;
+    pArray->m_vValues = vValues;
+    return oArray;
 }
 
 

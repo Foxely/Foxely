@@ -1,0 +1,5 @@
+
+
+test: var = Test();
+
+print "%\n", test.x = 11;
