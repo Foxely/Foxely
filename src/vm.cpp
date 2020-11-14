@@ -1041,8 +1041,11 @@ void VM::AddToRoots() {
     }
 
     for(auto& handle : m_vHandles)
+    {
         AddObjectToRoot(handle);
-
+        AddValueToRoot(handle->value);
+    }
+    
     AddTableToRoot(modules);
     AddTableToRoot(arrayMethods);
     AddCompilerToRoots();
