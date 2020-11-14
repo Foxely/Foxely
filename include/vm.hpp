@@ -185,6 +185,7 @@ public:
     {
 		constexpr const int iArity = sizeof...(Args);
 		
+		m_pVM->ResetStack();
         m_pVM->EnsureSlots(iArity + 1);
         m_pVM->SetSlotHandle(0, m_pVariable);
 

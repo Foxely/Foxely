@@ -1328,7 +1328,6 @@ Value VM::GetModuleVariable(ObjectModule* module, Value variableName)
 
 InterpretResult VM::Call(Handle* pMethod)
 {
-    ResetStack();
     FOX_ASSERT(pMethod != NULL, "Method cannot be NULL.");
     FOX_ASSERT(IS_CLOSURE(pMethod->value), "Method must be a method handle.");
     FOX_ASSERT(m_pApiStack != NULL, "Must set up arguments for call first.");
@@ -1338,7 +1337,6 @@ InterpretResult VM::Call(Handle* pMethod)
     FOX_ASSERT(stackTop - m_pApiStack >= closure->function->arity, "Stack must have enough arguments for method.");
 
     m_pApiStack = NULL;
-    // stackTop = &stack[closure->function->arity + 1];
     CallFunction(closure, closure->function->arity);
     InterpretResult result = run();
     m_pApiStack = stack;
