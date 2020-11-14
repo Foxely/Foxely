@@ -125,7 +125,15 @@ extern "C"
 		{
         	Value oKlass;
 			if (pModule->m_vVariables.Get(AS_STRING(Fox_String(pVM, strKlassName)), oKlass))
-				return OBJ_VAL(pVM->gc.New<ObjectInstance>(AS_CLASS(oKlass), cStruct));
+			{
+				ObjectInstance* pInstance = pVM->gc.New<ObjectInstance>(AS_CLASS(oKlass), cStruct);
+				pVM->Push(OBJ_VAL(pInstance));
+				Value oInitializer;
+				if (AS_CLASS(oKlass)->methods.Get(pVM->initString, oInitializer))
+					pVM->CallValue(oInitializer, 0);
+				pVM->Pop();
+				return OBJ_VAL(pInstance);
+			}
 		}
         return NIL_VAL;
 	}

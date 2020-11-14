@@ -132,15 +132,6 @@ std::string ObjectToString(Value value)
 		case OBJ_BOUND_METHOD:
 			string += FunctionToString(AS_BOUND_METHOD(value)->method->function);
 			break;
-        // case OBJ_NATIVE_CLASS:
-		// 	string += "<native class ";
-        //     string += AS_NATIVE_CLASS(value)->name->string;
-        //     string += ">";
-		// 	break;
-        // case OBJ_NATIVE_INSTANCE:
-		// 	string += AS_NATIVE_INSTANCE(value)->klass->name->string;
-        //     string += " native instance";
-		// 	break;
         case OBJ_ABSTRACT:
 			string += AS_ABSTRACT(value)->abstractType->name;
             string += " Abstract";
@@ -148,6 +139,19 @@ std::string ObjectToString(Value value)
         case OBJ_LIB:
 			string += AS_LIB(value)->name->string;
             string += " Lib";
+			break;
+        case OBJ_MODULE:
+			string += AS_MODULE(value)->m_strName->string;
+            string += " Module";
+			break;
+        case OBJ_ARRAY:
+            string += "Array";
+			break;
+        case OBJ_MAP:
+            string += "Map";
+			break;
+        case OBJ_HANDLE:
+            string += "Handle";
 			break;
     }
 

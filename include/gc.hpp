@@ -105,7 +105,6 @@ template <typename T, typename... Args>
 inline T* GC::New(Args&&... args)
 {
 	T* pObject = new T(std::forward<Args>(args)...);
-	AddObject(pObject);
 
 	bytesAllocated += sizeof(T);
 
@@ -116,13 +115,13 @@ inline T* GC::New(Args&&... args)
 		m_pVm->AddToRoots();
     	Collect();
     }
+	AddObject(pObject);
     return pObject;
 }
 
 template <class T> inline T* GC::New()
 {
     T* pObject = new T();
-	AddObject(pObject);
 
 	bytesAllocated += sizeof(T);
 
@@ -133,6 +132,7 @@ template <class T> inline T* GC::New()
 		m_pVm->AddToRoots();
     	Collect();
     }
+	AddObject(pObject);
     return pObject;
 }
 

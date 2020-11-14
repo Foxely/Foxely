@@ -74,25 +74,6 @@ Value popNative(VM* oVM, int argCount, Value* args)
     return popped;
 }
 
-Value initNative(VM* oVM, int argCount, Value* args)
-{
-    Fox_Arity(oVM, argCount, 0, 1);
-    Fox_SetInstanceField(oVM, args[-1], "m_oArray", Fox_Array(oVM));
-
-    if (argCount == 1)
-    {
-        if (Fox_Is(args[0], VAL_NUMBER))
-        {
-            int size = AS_NUMBER(args[0]);
-            ObjectArray* array = Fox_ValueToArray(args[-1]);
-            array->m_vValues.reserve(size);
-        }
-        else
-            Fox_RuntimeError(oVM, "Expected number.");
-    }
-    return NIL_VAL;
-}
-
 Value sizeNative(VM* oVM, int argCount, Value* args)
 {
     Fox_FixArity(oVM, argCount, 0);

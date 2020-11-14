@@ -33,6 +33,11 @@ struct CallFrame
 class Handle : public Object
 {
 public:
+	explicit Handle()
+	{
+		type = OBJ_HANDLE;
+	}
+	
   	Value value;
 };
 

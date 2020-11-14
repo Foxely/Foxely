@@ -55,6 +55,7 @@ class VM;
 #define AS_MODULE(val)       	((ObjectModule *)AS_OBJ(val))
 
 typedef enum {
+    OBJ_UNKNOWN,
     OBJ_ARRAY,
     OBJ_MAP,
     OBJ_ABSTRACT,
@@ -64,11 +65,11 @@ typedef enum {
     OBJ_FUNCTION,
     OBJ_INSTANCE,
     OBJ_NATIVE,
-    OBJ_NATIVE_CLASS,
     OBJ_LIB,
     OBJ_STRING,
     OBJ_UPVALUE,
     OBJ_MODULE,
+    OBJ_HANDLE,
 } ObjType;
 
 
@@ -310,10 +311,13 @@ class ObjectArray : public Object
 {
 public:
     std::vector<Value> m_vValues;
-    Table methods;
 
     explicit ObjectArray()
 	{
+        printf("---------------------------------------------------------------------------------------------------------------\n");
+        printf("---------------------------------------------------------------------------------------------------------------\n");
+        printf("---------------------------------------------------------------------------------------------------------------\n");
+        printf("---------------------------------------------------------------------------------------------------------------\n");
 		type = OBJ_ARRAY;
         m_vValues = std::vector<Value>();
 	}

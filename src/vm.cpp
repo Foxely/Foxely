@@ -1041,8 +1041,6 @@ void VM::AddToRoots()
     for (auto& handle : m_vHandles)
     {
         AddObjectToRoot(handle);
-        AddValueToRoot(handle->value);
-        PrintValue(handle->value);
     }
     
     AddTableToRoot(modules);
@@ -1052,9 +1050,8 @@ void VM::AddToRoots()
 }
 
 void VM::AddTableToRoot(Table &table) {
-    for (int i = 0; i < table.m_iCapacity; i++) {
-        Entry &entry = table.m_vEntries[i];
-        AddObjectToRoot((Object *)entry.m_pKey);
+    for (auto& entry : table.m_vEntries) {
+        AddObjectToRoot(entry.m_pKey);
         AddValueToRoot(entry.m_oValue);
     }
 }
@@ -1079,7 +1076,8 @@ void VM::AddObjectToRoot(Object *object) {
     strings.RemoveWhite();
 }
 
-void VM::AddCompilerToRoots() {
+void VM::AddCompilerToRoots()
+{
     Compiler *compiler = m_oParser.currentCompiler;
     while (compiler != NULL) {
         AddObjectToRoot((Object *)compiler->function);
@@ -1087,23 +1085,27 @@ void VM::AddCompilerToRoots() {
     }
 }
 
-void VM::AddArrayToRoot(ValueArray *array) {
-    for (int i = 0; i < array->m_vValues.size(); i++) {
+void VM::AddArrayToRoot(ValueArray *array)
+{
+    for (int i = 0; i < array->m_vValues.size(); i++)
         AddValueToRoot(array->m_vValues[i]);
-    }
 }
 
-void VM::BlackenObject(Object *object) {
+void VM::BlackenObject(Object *object)
+{
 #ifdef DEBUG_LOG_GC
     printf("%p blacken ", (void *)object);
     PrintValue(OBJ_VAL(object));
     printf("\n");
 #endif
     switch (object->type) {
-    case OBJ_INSTANCE: {
+    case OBJ_INSTANCE:
+    {
         ObjectInstance *instance = (ObjectInstance *)object;
         AddObjectToRoot((Object *)instance->klass);
         AddTableToRoot(instance->fields);
+        AddTableToRoot(instance->setters);
+        AddTableToRoot(instance->getters);
         break;
     }
     case OBJ_BOUND_METHOD: {
@@ -1135,6 +1137,38 @@ void VM::BlackenObject(Object *object) {
     case OBJ_UPVALUE:
         AddValueToRoot(((ObjectUpvalue *)object)->closed);
         break;
+    case OBJ_ARRAY:
+    {
+        ObjectArray* pArray = (ObjectArray *) object;
+        for (auto& oValue : pArray->m_vValues)
+            AddValueToRoot(oValue);
+        break;
+    }
+
+    case OBJ_MAP:
+    {
+        ObjectMap* pMap = (ObjectMap *) object;
+        for (auto& oValue : pMap->m_vValues.m_vEntries)
+        {
+            AddValueToRoot(oValue.m_oKey);
+            AddValueToRoot(oValue.m_oValue);
+        }
+        break;
+    }
+    case OBJ_MODULE:
+    {
+        ObjectModule* pModule = (ObjectModule *) object;
+        AddObjectToRoot(pModule->m_strName);
+        AddTableToRoot(pModule->m_vVariables);
+        break;
+    }
+
+    case OBJ_HANDLE:
+    {
+        Handle* pHandle = (Handle *) object;
+        AddValueToRoot(pHandle->value);
+        break;
+    }
     case OBJ_NATIVE:
     case OBJ_STRING:
         break;
@@ -1163,7 +1197,6 @@ bool VM::BindMethod(ObjectClass *klass, ObjectString *name)
     return true;
 }
 
-// USER!!
 Value VM::FindVariable(ObjectModule* module, const char* name)
 {
     Value oValue;
