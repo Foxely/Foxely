@@ -110,7 +110,6 @@ inline T* GC::New(Args&&... args)
 
 	if (bytesAllocated > nextGC)
     {
-        std::cerr << "Collect Garbage" << std::endl;
 		ClearRoots();
 		m_pVm->AddToRoots();
     	Collect();
@@ -127,7 +126,6 @@ template <class T> inline T* GC::New()
 
 	if (bytesAllocated > nextGC)
     {
-        std::cerr << "Collect Garbage" << std::endl;
 		ClearRoots();
 		m_pVm->AddToRoots();
     	Collect();
