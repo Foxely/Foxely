@@ -58,10 +58,7 @@ public:
     Value* m_pApiStack;
     Parser m_oParser;
 	Table strings;
-	// Table globals;
-	// Table imports;
 	Table modules;
-	// Table m_oUserModules;
 	ObjectUpvalue* openUpvalues;
 	ObjectString* initString;
 	GC gc;

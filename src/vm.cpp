@@ -1036,13 +1036,15 @@ void VM::AddToRoots() {
         AddObjectToRoot((Object *)frames[i].closure);
     }
 
-    for (ObjectUpvalue *upvalue = openUpvalues; upvalue != NULL;
-         upvalue = upvalue->next) {
+    for (ObjectUpvalue *upvalue = openUpvalues; upvalue != NULL; upvalue = upvalue->next) {
         AddObjectToRoot((Object *)upvalue);
     }
 
-    // AddTableToRoot(globals);
+    for(auto& handle : m_vHandles)
+        AddObjectToRoot(handle);
+
     AddTableToRoot(modules);
+    AddTableToRoot(arrayMethods);
     AddCompilerToRoots();
     AddObjectToRoot((Object *)initString);
 }
@@ -1158,7 +1160,6 @@ bool VM::BindMethod(ObjectClass *klass, ObjectString *name)
     Push(OBJ_VAL(bound));
     return true;
 }
-
 
 // USER!!
 Value VM::FindVariable(ObjectModule* module, const char* name)
@@ -1369,7 +1370,7 @@ Handle* VM::MakeHandle(Value value)
     if (IS_OBJ(value)) Push(value);
     
     // Make a handle for it.
-    Handle* handle = new Handle;
+    Handle* handle = gc.New<Handle>();
     handle->value = value;
 
     if (IS_OBJ(value)) Pop();
