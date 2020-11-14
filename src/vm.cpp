@@ -1027,29 +1027,28 @@ void VM::Concatenate() {
     Push(OBJ_VAL(result));
 }
 
-void VM::AddToRoots() {
-    for (Value *slot = stack; slot < stackTop; slot++) {
+void VM::AddToRoots()
+{
+    for (Value *slot = stack; slot < stackTop; slot++)
         AddValueToRoot(*slot);
-    }
 
-    for (int i = 0; i < frameCount; i++) {
-        AddObjectToRoot((Object *)frames[i].closure);
-    }
+    for (int i = 0; i < frameCount; i++)
+        AddObjectToRoot(frames[i].closure);
 
-    for (ObjectUpvalue *upvalue = openUpvalues; upvalue != NULL; upvalue = upvalue->next) {
-        AddObjectToRoot((Object *)upvalue);
-    }
+    for (ObjectUpvalue *upvalue = openUpvalues; upvalue != NULL; upvalue = upvalue->next)
+        AddObjectToRoot(upvalue);
 
-    for(auto& handle : m_vHandles)
+    for (auto& handle : m_vHandles)
     {
         AddObjectToRoot(handle);
         AddValueToRoot(handle->value);
+        PrintValue(handle->value);
     }
     
     AddTableToRoot(modules);
     AddTableToRoot(arrayMethods);
     AddCompilerToRoots();
-    AddObjectToRoot((Object *)initString);
+    AddObjectToRoot(initString);
 }
 
 void VM::AddTableToRoot(Table &table) {
