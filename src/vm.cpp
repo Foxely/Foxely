@@ -1169,6 +1169,13 @@ void VM::BlackenObject(Object *object)
         AddValueToRoot(pHandle->value);
         break;
     }
+    case OBJ_LIB:
+    {
+        ObjectLib* pLib = (ObjectLib *) object;
+        AddTableToRoot(pLib->methods);
+        AddObjectToRoot(pLib->name);
+        break;
+    }
     case OBJ_NATIVE:
     case OBJ_STRING:
         break;
