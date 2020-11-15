@@ -26,14 +26,14 @@ Value shellNative(VM* oVM, int argCount, Value* args)
 {
     Fox_FixArity(oVM, argCount, 1);
     if (argCount == 1)
-        system(Fox_ValueToCString(args[0]));
-    return NIL_VAL;
+        system(Fox_AsCString(args[0]));
+    return Fox_Nil;
 }
 
 Value getEnvNative(VM* oVM, int argCount, Value* args)
 {
     Fox_FixArity(oVM, argCount, 1);
-    return Fox_String(oVM, getenv(Fox_ValueToCString(args[0])));
+    return Fox_String(oVM, getenv(Fox_AsCString(args[0])));
 }
 
 Value exitNative(VM* oVM, int argCount, Value* args)
@@ -41,21 +41,21 @@ Value exitNative(VM* oVM, int argCount, Value* args)
     Fox_Arity(oVM, argCount, 0, 1);
     if (argCount == 1)
     {
-        if (Fox_Is(args[0], VAL_NUMBER))
-            exit(Fox_ValueToNumber(args[0]));
+        if (Fox_IsInt(args[0]))
+            exit(Fox_AsInt(args[0]));
         else
             Fox_RuntimeError(oVM, "Expected number");
     }
     else
         exit(0);
-    return NIL_VAL;
+    return Fox_Nil;
 }
 
 Value argsNative(VM* oVM, int argCount, Value* args)
 {
         Fox_FixArity(oVM, argCount, 0);
     Value oArray = Fox_Array(oVM);
-    ObjectArray* pArray = Fox_ValueToArray(oArray);
+    ObjectArray* pArray = Fox_AsArray(oArray);
     std::vector<Value> vValues;
 
     for (int i = 1; i < oVM->argc; i++)

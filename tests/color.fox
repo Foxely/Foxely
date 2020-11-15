@@ -81,5 +81,5 @@ Value writeNative(int argCount, Value* args)
 
     Fox_PanicIfNot(Fox_IsString(args[0]), "Expected string value in write function");
     fputs(Fox_ValueToCString(args[0]), fp);
-    return NIL_VAL;
+    return Fox_Nil;
 }

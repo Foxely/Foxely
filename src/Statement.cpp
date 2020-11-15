@@ -83,7 +83,7 @@ void ImportStatement(Parser& parser)
 {
     parser.Consume(TOKEN_STRING, "Expect string after import.");
 
-    int import_constant = parser.MakeConstant(OBJ_VAL(parser.CopyString(parser.PreviousToken().GetText())));
+    int import_constant = parser.MakeConstant(Fox_Object(parser.CopyString(parser.PreviousToken().GetText())));
 
     parser.Consume(TOKEN_SEMICOLON, "Expect ';' after import.");
     parser.EmitBytes(OP_IMPORT, import_constant);
@@ -92,7 +92,7 @@ void ImportStatement(Parser& parser)
 void PrintStatement(Parser& parser)
 {
 	parser.Consume(TOKEN_STRING, "Expect string type for the print function.");
-    parser.EmitConstant(OBJ_VAL(parser.CopyString(parser.PreviousToken().GetText())));
+    parser.EmitConstant(Fox_Object(parser.CopyString(parser.PreviousToken().GetText())));
     int argCount = 1;
     while (parser.Match(TOKEN_COMMA))
     {

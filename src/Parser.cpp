@@ -343,13 +343,13 @@ void ParsePrecedence(Parser& parser, Precedence preced)
 void Number(Parser& parser, bool can_assign)
 {
 	double value = strtod(parser.PreviousToken().GetText().c_str(), NULL);
-	parser.EmitConstant(NUMBER_VAL(value));
+	parser.EmitConstant(Fox_Double(value));
 }
 
 void IntNumber(Parser& parser, bool can_assign)
 {
 	int value = std::stoi(parser.PreviousToken().GetText().c_str(), NULL);
-	parser.EmitConstant(INT_VAL(value));
+	parser.EmitConstant(Fox_Int(value));
 }
 
 void Grouping(Parser& parser, bool can_assign)
@@ -542,7 +542,7 @@ void Variable(Parser& parser, bool can_assign)
 
 void String(Parser& parser, bool can_assign)
 {
-    parser.EmitConstant(OBJ_VAL(parser.CopyString(parser.PreviousToken().GetText())));
+    parser.EmitConstant(Fox_Object(parser.CopyString(parser.PreviousToken().GetText())));
 }
 
 uint8_t ArgumentList(Parser& parser)
@@ -835,7 +835,7 @@ void Function(Parser& parser, FunctionType type, const Token& name)
 
 	// Create the function object.
 	ObjectFunction* function = parser.EndCompiler();
-	parser.EmitBytes(OP_CLOSURE, parser.MakeConstant(OBJ_VAL(function)));
+	parser.EmitBytes(OP_CLOSURE, parser.MakeConstant(Fox_Object(function)));
 	for (int i = 0; i < function->upValueCount; i++)
 	{
 	    parser.EmitByte(compiler.upvalues[i].isLocal ? 1 : 0);
@@ -1036,8 +1036,8 @@ ObjectString* Parser::AllocateString(const std::string& str, uint32_t hash)
 	string->type = OBJ_STRING;
 	string->hash = hash;
 
-	m_pVm->Push(OBJ_VAL(string));
-	m_pVm->strings.Set(string, NIL_VAL);
+	m_pVm->Push(Fox_Object(string));
+	m_pVm->strings.Set(string, Fox_Nil);
 	m_pVm->Pop();
 	return string;
 }
@@ -1084,7 +1084,7 @@ ObjectString* Parser::TakeString(const std::string& value)
 */
 uint8_t Parser::IdentifierConstant(const Token& name)
 {
-  	return MakeConstant(OBJ_VAL(CopyString(name.GetText())));
+  	return MakeConstant(Fox_Object(CopyString(name.GetText())));
 }
 
 /*

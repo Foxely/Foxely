@@ -356,57 +356,57 @@ public:
     void WriteValueArray(Value value);
 };
 
-#define IS_BOOL(val)    ((val).type == VAL_BOOL)
-#define IS_NIL(val)     ((val).type == VAL_NIL)
-#define IS_NUMBER(val)  ((val).type == VAL_NUMBER)
-#define IS_INT(val)     ((val).type == VAL_INT)
-#define IS_OBJ(val)     ((val).type == VAL_OBJ)
+#define Fox_IsBool(val)    ((val).type == VAL_BOOL)
+#define Fox_IsNil(val)     ((val).type == VAL_NIL)
+#define Fox_IsDouble(val)  ((val).type == VAL_NUMBER)
+#define Fox_IsInt(val)     ((val).type == VAL_INT)
+#define Fox_IsObject(val)     ((val).type == VAL_OBJ)
 
-#define AS_OBJ(val)     ((val).as.obj)
-#define AS_BOOL(val)    ((val).as.boolean)
-#define AS_NUMBER(val)  ((val).as.number)
-#define AS_INT(val)  ((val).as.integer)
+#define Fox_AsObject(val)     ((val).as.obj)
+#define Fox_AsBool(val)    ((val).as.boolean)
+#define Fox_AsDouble(val)  ((val).as.number)
+#define Fox_AsInt(val)  ((val).as.integer)
 
-#define BOOL_VAL(val)   ((Value){ VAL_BOOL, { .boolean = val } })
-#define NIL_VAL           ((Value){ VAL_NIL, { .number = 0 } })
-#define NUMBER_VAL(val) ((Value){ VAL_NUMBER, { .number = val } })
-#define INT_VAL(val) ((Value){ VAL_INT, { .integer = val } })
-#define OBJ_VAL(object)   ((Value){ VAL_OBJ, { .obj = (Object *)object } })
-
-
-#define OBJ_TYPE(val)         (AS_OBJ(val)->type)
+#define Fox_Bool(val)   ((Value){ VAL_BOOL, { .boolean = val } })
+#define Fox_Nil           ((Value){ VAL_NIL, { .number = 0 } })
+#define Fox_Double(val) ((Value){ VAL_NUMBER, { .number = val } })
+#define Fox_Int(val) ((Value){ VAL_INT, { .integer = val } })
+#define Fox_Object(object)   ((Value){ VAL_OBJ, { .obj = (Object *)object } })
 
 
-#define IS_ARRAY(val)        is_obj_type(val, OBJ_ARRAY)
-#define IS_ABSTRACT(val)        is_obj_type(val, OBJ_ABSTRACT)
-#define IS_LIB(val)           is_obj_type(val, OBJ_LIB)
-#define IS_BOUND_METHOD(val)  is_obj_type(val, OBJ_BOUND_METHOD)
-#define IS_CLASS(val)         is_obj_type(val, OBJ_CLASS)
+#define Fox_ObjectType(val)         (Fox_AsObject(val)->type)
+
+
+#define Fox_IsArray(val)        is_obj_type(val, OBJ_ARRAY)
+#define Fox_IsAbstract(val)        is_obj_type(val, OBJ_ABSTRACT)
+#define Fox_IsLib(val)           is_obj_type(val, OBJ_LIB)
+#define Fox_IsBoundMethod(val)  is_obj_type(val, OBJ_BOUND_METHOD)
+#define Fox_IsClass(val)         is_obj_type(val, OBJ_CLASS)
 #define IS_NATIVE_CLASS(val)         is_obj_type(val, OBJ_NATIVE_CLASS)
-#define IS_LIB(val)         is_obj_type(val, OBJ_LIB)
-#define IS_CLOSURE(val)       is_obj_type(val, OBJ_CLOSURE)
-#define IS_INSTANCE(val)      is_obj_type(val, OBJ_INSTANCE)
+#define Fox_IsLib(val)         is_obj_type(val, OBJ_LIB)
+#define Fox_IsClosure(val)       is_obj_type(val, OBJ_CLOSURE)
+#define Fox_IsInstance(val)      is_obj_type(val, OBJ_INSTANCE)
 #define IS_NATIVE_INSTANCE(val)      is_obj_type(val, OBJ_NATIVE_INSTANCE)
 #define IS_INTERFACE(val)      is_obj_type(val, OBJ_INTERFACE)
-#define IS_FUNCTION(val)      is_obj_type(val, OBJ_FUNCTION)
-#define IS_NATIVE(val)        is_obj_type(val, OBJ_NATIVE)
-#define IS_STRING(val)        is_obj_type(val, OBJ_STRING)
+#define Fox_IsFunction(val)      is_obj_type(val, OBJ_FUNCTION)
+#define Fox_IsNative(val)        is_obj_type(val, OBJ_NATIVE)
+#define Fox_IsString(val)        is_obj_type(val, OBJ_STRING)
 
-#define AS_ARRAY(val)           ((ObjectArray *)AS_OBJ(val))
-#define AS_ABSTRACT(val)        ((ObjectAbstract *)AS_OBJ(val))
-#define AS_LIB(val)           	((ObjectLib *)AS_OBJ(val))
-#define AS_BOUND_METHOD(val)  	((ObjectBoundMethod *)AS_OBJ(val))
-#define AS_CLASS(val)         	((ObjectClass *)AS_OBJ(val))
-// #define AS_NATIVE_CLASS(val)	((ObjectNativeClass *)AS_OBJ(val))
-#define AS_LIB(val)         	((ObjectLib *)AS_OBJ(val))
-#define AS_CLOSURE(val)       	((ObjectClosure *)AS_OBJ(val))
-#define AS_FUNCTION(val)      	((ObjectFunction *)AS_OBJ(val))
-#define AS_INSTANCE(val)        ((ObjectInstance *)AS_OBJ(val))
-#define AS_NATIVE_INSTANCE(val) ((ObjectNativeInstance *)AS_OBJ(val))
-#define AS_NATIVE(val)        	(((ObjectNative *)AS_OBJ(val))->function)
-#define AS_INTERFACE(val)       ((ObjectInterface *)AS_OBJ(val))
-#define AS_STRING(val)        	((ObjectString *)AS_OBJ(val))
-#define AS_CSTRING(val)       	(((ObjectString *)AS_OBJ(val))->string.c_str())
+#define Fox_AsArray(val)           ((ObjectArray *)Fox_AsObject(val))
+#define Fox_AsAbstract(val)        ((ObjectAbstract *)Fox_AsObject(val))
+#define Fox_AsLib(val)           	((ObjectLib *)Fox_AsObject(val))
+#define Fox_AsBoundMethod(val)  	((ObjectBoundMethod *)Fox_AsObject(val))
+#define Fox_AsClass(val)         	((ObjectClass *)Fox_AsObject(val))
+// #define AS_NATIVE_CLASS(val)	((ObjectNativeClass *)Fox_AsObject(val))
+#define Fox_AsLib(val)         	((ObjectLib *)Fox_AsObject(val))
+#define Fox_AsClosure(val)       	((ObjectClosure *)Fox_AsObject(val))
+#define Fox_AsFunction(val)      	((ObjectFunction *)Fox_AsObject(val))
+#define Fox_AsInstance(val)        ((ObjectInstance *)Fox_AsObject(val))
+#define AS_NATIVE_INSTANCE(val) ((ObjectNativeInstance *)Fox_AsObject(val))
+#define Fox_AsNative(val)        	(((ObjectNative *)Fox_AsObject(val))->function)
+#define AS_INTERFACE(val)       ((ObjectInterface *)Fox_AsObject(val))
+#define Fox_AsString(val)        	((ObjectString *)Fox_AsObject(val))
+#define Fox_AsCString(val)       	(((ObjectString *)Fox_AsObject(val))->string.c_str())
 
 typedef enum {
     OBJ_ARRAY,
@@ -476,7 +476,7 @@ public:
         type = OBJ_UPVALUE;
         location = slot;
         next = NULL;
-        closed = NIL_VAL;
+        closed = Fox_Nil;
     }
 };
 
@@ -714,7 +714,7 @@ public:
 
 static inline bool is_obj_type(Value val, ObjType type)
 {
-    return IS_OBJ(val) && AS_OBJ(val)->type == type;
+    return Fox_IsObject(val) && Fox_AsObject(val)->type == type;
 }
 
 // ---------------------------
@@ -1130,7 +1130,7 @@ private:
 
 static Value clockNative(VM* oVM, int argCount, Value* args)
 {
-	return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
+	return Fox_Double((double)clock() / CLOCKS_PER_SEC);
 }
 
 
@@ -1205,47 +1205,47 @@ extern "C"
 
 #define Fox_ApiError(oVM, msg, ...) { fprintf(stderr, msg, ##__VA_ARGS__); oVM->result = INTERPTRE_RUNTIME_ERROR; }
 #define Fox_RuntimeError(oVM, msg, ...) oVM->RuntimeError(msg, ##__VA_ARGS__)
-#define Fox_PanicIfNot(oVM, cond, msg, ...) if (!(cond)) { Fox_RuntimeError(oVM, msg, ##__VA_ARGS__); return NIL_VAL; }
+#define Fox_PanicIfNot(oVM, cond, msg, ...) if (!(cond)) { Fox_RuntimeError(oVM, msg, ##__VA_ARGS__); return Fox_Nil; }
 
 	static inline Value Fox_StringToValue(VM* oVM, const char* str)
 	{
-		return OBJ_VAL(oVM->m_oParser.TakeString(str));
+		return Fox_Object(oVM->m_oParser.TakeString(str));
 	}
 
     static const char* Fox_ValueToCString(Value val)
     {
-        return AS_CSTRING(val);
+        return Fox_AsCString(val);
     }
 
     static double Fox_ValueToNumber(Value val)
     {
-        return AS_NUMBER(val);
+        return Fox_AsDouble(val);
     }
 
     static inline ObjectAbstract* Fox_ValueToAbstract(Value value)
 	{
-		return AS_ABSTRACT(value);
+		return Fox_AsAbstract(value);
 	}
 
     static inline ObjectArray* Fox_ValueToArray(Value value)
 	{
-		return AS_ARRAY(value);
+		return Fox_AsArray(value);
 	}
 
 	static inline bool Fox_ValueToBool(Value value)
 	{
-		return AS_BOOL(value);
+		return Fox_AsBool(value);
 	}
 
 
     static inline Value Fox_Abstract(VM* oVM, void* data, ObjectAbstractType* type)
 	{
-		return OBJ_VAL(oVM->gc.New<ObjectAbstract>(data, type));
+		return Fox_Object(oVM->gc.New<ObjectAbstract>(data, type));
 	}
 
     static inline Value Fox_AbstractToValue(ObjectAbstract* abstract)
 	{
-		return OBJ_VAL(abstract);
+		return Fox_Object(abstract);
 	}
 
     static inline void* Fox_AbstractGetData(ObjectAbstract* abstract)
@@ -1256,54 +1256,54 @@ extern "C"
     static inline Value Fox_DefineClass(VM* oVM, const char* klassName, NativeMethods methods)
 	{
         oVM->DefineNativeClass(klassName, methods);
-        return NIL_VAL;
+        return Fox_Nil;
 	}
 
     static inline Value Fox_DefineInstanceOf(VM* oVM, const char* klassName)
 	{
         Value klass;
         Value name = Fox_StringToValue(oVM, klassName);
-        if (!oVM->globals.Get(AS_STRING(name), klass))
-            return NIL_VAL;
+        if (!oVM->globals.Get(Fox_AsString(name), klass))
+            return Fox_Nil;
 
-		return OBJ_VAL(oVM->gc.New<ObjectNativeInstance>(AS_NATIVE_CLASS(klass)));
+		return Fox_Object(oVM->gc.New<ObjectNativeInstance>(AS_NATIVE_CLASS(klass)));
 	}
 
 	static inline Value Fox_DefineInstanceOfCStruct(VM* oVM, const char* klassName, void* cStruct)
 	{
         Value klass;
         Value name = Fox_StringToValue(oVM, klassName);
-        if (!oVM->globals.Get(AS_STRING(name), klass))
-            return NIL_VAL;
+        if (!oVM->globals.Get(Fox_AsString(name), klass))
+            return Fox_Nil;
 
-		return OBJ_VAL(oVM->gc.New<ObjectNativeInstance>(AS_NATIVE_CLASS(klass), cStruct));
+		return Fox_Object(oVM->gc.New<ObjectNativeInstance>(AS_NATIVE_CLASS(klass), cStruct));
 	}
 
     static inline void Fox_CallMethod(VM* oVM, Value instance, const char* methodName, int argCount, Value* params)
 	{
         Value method;
         Value methodNameValue = Fox_StringToValue(oVM, methodName);
-        if (AS_NATIVE_INSTANCE(instance)->klass->methods.Get(AS_STRING(methodNameValue), method))
+        if (AS_NATIVE_INSTANCE(instance)->klass->methods.Get(Fox_AsString(methodNameValue), method))
         {
-            AS_NATIVE(method)(oVM, argCount, params);
+            Fox_AsNative(method)(oVM, argCount, params);
         }
 	}
 
     static inline Value Fox_SetInstanceField(VM* oVM, Value instance, const char* fieldName, Value value)
 	{
         Value name = Fox_StringToValue(oVM, fieldName);
-        AS_NATIVE_INSTANCE(instance)->fields.Set(AS_STRING(name), value);
+        AS_NATIVE_INSTANCE(instance)->fields.Set(Fox_AsString(name), value);
 
-		return NIL_VAL;
+		return Fox_Nil;
 	}
 
     static inline Value Fox_GetInstanceField(VM* oVM, Value instance, const char* fieldName)
 	{
         Value value;
         Value name = Fox_StringToValue(oVM, fieldName);
-        if (!AS_NATIVE_INSTANCE(instance)->fields.Get(AS_STRING(name), value))
+        if (!AS_NATIVE_INSTANCE(instance)->fields.Get(Fox_AsString(name), value))
         {
-            return NIL_VAL;
+            return Fox_Nil;
         }
 		return value;
 	}
@@ -1338,12 +1338,12 @@ extern "C"
 
     static inline bool Fox_IsObject(Value value)
 	{
-        return IS_OBJ(value);
+        return Fox_IsObject(value);
 	}
 
     static inline bool Fox_IsString(Value value)
 	{
-        return IS_STRING(value);
+        return Fox_IsString(value);
 	}
 
     static inline bool Fox_IsNativeInstance(Value value)
@@ -1353,16 +1353,16 @@ extern "C"
 
     static inline bool Fox_IsNumber(Value value)
 	{
-        return IS_NUMBER(value);
+        return Fox_IsDouble(value);
 	}
 
 	static inline bool Fox_IsBool(Value value)
 	{
-        return IS_BOOL(value);
+        return Fox_IsBool(value);
 	}
 
     static inline Value Fox_Array(VM* oVM)
 	{
-		return OBJ_VAL(oVM->gc.New<ObjectArray>());
+		return Fox_Object(oVM->gc.New<ObjectArray>());
 	}
 }

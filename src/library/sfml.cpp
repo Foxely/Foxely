@@ -22,7 +22,7 @@
 //     sf::RenderWindow* window = new sf::RenderWindow(mode, Fox_ValueToCString(args[0]));
 
 //     Fox_SetInstanceField(args[-1], "m_oWindow", Fox_Abstract(window, &foxely_sfml_window_type));
-//     return NIL_VAL;
+//     return Fox_Nil;
 // }
 
 
@@ -33,7 +33,7 @@
 
 //     sf::RenderWindow* window = (sf::RenderWindow *) Fox_AbstractGetData(Fox_ValueToAbstract(windowField));
 
-//     return BOOL_VAL(window->isOpen());
+//     return Fox_Bool(window->isOpen());
 // }
 
 // Value windowClearNative(int argCount, Value* args)
@@ -44,7 +44,7 @@
 //     sf::RenderWindow* window = (sf::RenderWindow *) Fox_AbstractGetData(Fox_ValueToAbstract(windowField));
 
 //     window->clear();
-//     return NIL_VAL;
+//     return Fox_Nil;
 // }
 
 // Value windowDisplayNative(int argCount, Value* args)
@@ -55,7 +55,7 @@
 //     sf::RenderWindow* window = (sf::RenderWindow *) Fox_AbstractGetData(Fox_ValueToAbstract(windowField));
 
 //     window->display();
-//     return NIL_VAL;
+//     return Fox_Nil;
 // }
 
 // Value windowPollNative(int argCount, Value* args)
@@ -66,7 +66,7 @@
 //     sf::RenderWindow* window = (sf::RenderWindow *) Fox_AbstractGetData(Fox_ValueToAbstract(windowField));
 
 //     window->pollEvent();
-//     return NIL_VAL;
+//     return Fox_Nil;
 // }
 
 // SFMLPlugin::SFMLPlugin()

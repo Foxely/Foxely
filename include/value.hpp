@@ -54,21 +54,21 @@ public:
     void WriteValueArray(Value value);
 };
 
-#define IS_BOOL(val)    ((val).type == VAL_BOOL)
-#define IS_NIL(val)     ((val).type == VAL_NIL)
-#define IS_NUMBER(val)  ((val).type == VAL_NUMBER)
-#define IS_INT(val)     ((val).type == VAL_INT)
-#define IS_OBJ(val)     ((val).type == VAL_OBJ)
+#define Fox_IsBool(val)    ((val).type == VAL_BOOL)
+#define Fox_IsNil(val)     ((val).type == VAL_NIL)
+#define Fox_IsDouble(val)  ((val).type == VAL_NUMBER)
+#define Fox_IsInt(val)     ((val).type == VAL_INT)
+#define Fox_IsObject(val)     ((val).type == VAL_OBJ)
 
-#define AS_OBJ(val)     ((val).as.obj)
-#define AS_BOOL(val)    ((val).as.boolean)
-#define AS_NUMBER(val)  ((val).as.number)
-#define AS_INT(val)  ((val).as.integer)
+#define Fox_AsObject(val)     ((val).as.obj)
+#define Fox_AsBool(val)    ((val).as.boolean)
+#define Fox_AsDouble(val)  ((val).as.number)
+#define Fox_AsInt(val)  ((val).as.integer)
 
-#define BOOL_VAL(val)   ((Value){ VAL_BOOL, { .boolean = val } })
-#define NIL_VAL           ((Value){ VAL_NIL, { .number = 0 } })
-#define NUMBER_VAL(val) ((Value){ VAL_NUMBER, { .number = val } })
-#define INT_VAL(val) ((Value){ VAL_INT, { .integer = val } })
-#define OBJ_VAL(object)   ((Value){ VAL_OBJ, { .obj = (Object *)object } })
+#define Fox_Bool(val)   ((Value){ VAL_BOOL, { .boolean = val } })
+#define Fox_Nil           ((Value){ VAL_NIL, { .number = 0 } })
+#define Fox_Double(val) ((Value){ VAL_NUMBER, { .number = val } })
+#define Fox_Int(val) ((Value){ VAL_INT, { .integer = val } })
+#define Fox_Object(object)   ((Value){ VAL_OBJ, { .obj = (Object *)object } })
 
 #endif

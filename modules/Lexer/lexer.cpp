@@ -29,7 +29,7 @@ Value DefineNative(int argCount, Value* args)
 				lexer->Define(Fox_ValueToNumber(args[0]), Fox_ValueToCString(args[1]), Fox_ValueToBool(args[2]));
 		}
 	}
-	return NIL_VAL;
+	return Fox_Nil;
 }
 
 Value DefineAreaNative(int argCount, Value* args)
@@ -44,11 +44,11 @@ Value DefineAreaNative(int argCount, Value* args)
 	if (!lexer)
 	{
 		std::cout << "Lexer is null..\n";
-		return NIL_VAL;
+		return Fox_Nil;
 	}
 	
 	lexer->DefineArea(Fox_ValueToCString(args[0]), Fox_ValueToCString(args[1])[0], Fox_ValueToCString(args[2])[0]);
-    return NIL_VAL;
+    return Fox_Nil;
 }
 
 Value ProcessNative(int argCount, Value* args)
@@ -59,10 +59,10 @@ Value ProcessNative(int argCount, Value* args)
 	if (!lexer)
 	{
 		std::cout << "Lexer is null..\n";
-		return BOOL_VAL(false);
+		return Fox_Bool(false);
 	}
 
-    return BOOL_VAL(lexer->Process(Fox_ValueToCString(args[0])));
+    return Fox_Bool(lexer->Process(Fox_ValueToCString(args[0])));
 }
 
 Value DumpNative(int argCount, Value* args)
@@ -72,11 +72,11 @@ Value DumpNative(int argCount, Value* args)
 	if (!lexer)
 	{
 		std::cout << "Lexer is null..\n";
-		return NIL_VAL;
+		return Fox_Nil;
 	}
 
 	helper::Dump(*lexer);
-    return NIL_VAL;
+    return Fox_Nil;
 }
 
 Value TokenMatchNative(int argCount, Value* args)
@@ -86,7 +86,7 @@ Value TokenMatchNative(int argCount, Value* args)
 	Token* token = (Token *) Fox_GetInstanceCStruct(args[0]);
 	Fox_PanicIfNot(Fox_IsString(args[1]), "Expected string value");
 
-	return BOOL_VAL(lexer->TokenMatch(*token, Fox_ValueToCString(args[1])));
+	return Fox_Bool(lexer->TokenMatch(*token, Fox_ValueToCString(args[1])));
 }
 
 Value BeginNative(int argCount, Value* args)
@@ -95,7 +95,7 @@ Value BeginNative(int argCount, Value* args)
 	Lexer* lexer = (Lexer *) Fox_GetInstanceCStruct(args[-1]);
 
 	lexer->Begin();
-	return NIL_VAL;
+	return Fox_Nil;
 }
 
 Value IsEndNative(int argCount, Value* args)
@@ -103,7 +103,7 @@ Value IsEndNative(int argCount, Value* args)
 	Fox_FixArity(argCount, 0);
 	Lexer* lexer = (Lexer *) Fox_GetInstanceCStruct(args[-1]);
 
-	return BOOL_VAL(lexer->oTokenIterator == lexer->oTokenList.end());
+	return Fox_Bool(lexer->oTokenIterator == lexer->oTokenList.end());
 }
 
 Value NextTokenNative(int argCount, Value* args)
@@ -123,7 +123,7 @@ Value lexerInitNative(int argCount, Value* args)
 	{
 		std::cout << "Lexer is null..\n";
 	}
-    return NIL_VAL;
+    return Fox_Nil;
 }
 
 Value lexerDeinitNative(int argCount, Value* args)
@@ -135,7 +135,7 @@ Value lexerDeinitNative(int argCount, Value* args)
 	{
 		delete lexer;
 	}
-    return NIL_VAL;
+    return Fox_Nil;
 }
 
 
@@ -146,7 +146,7 @@ Value tokenInitNative(int argCount, Value* args)
     Fox_FixArity(argCount, 0);
 	Fox_SetInstanceCStruct(args[-1], nullptr);
 
-    return NIL_VAL;
+    return Fox_Nil;
 }
 
 Value tokenDeinitNative(int argCount, Value* args)
@@ -157,7 +157,7 @@ Value tokenDeinitNative(int argCount, Value* args)
 	{
 		delete token;
 	}
-    return NIL_VAL;
+    return Fox_Nil;
 }
 
 Value tokenGetTypeNative(int argCount, Value* args)
@@ -165,7 +165,7 @@ Value tokenGetTypeNative(int argCount, Value* args)
     Fox_FixArity(argCount, 0);
 	Token* token = (Token *) Fox_GetInstanceCStruct(args[-1]);
 
-    return NUMBER_VAL(token->m_oType.m_id);
+    return Fox_Double(token->m_oType.m_id);
 }
 
 Value tokenGetLineNative(int argCount, Value* args)
@@ -173,7 +173,7 @@ Value tokenGetLineNative(int argCount, Value* args)
     Fox_FixArity(argCount, 0);
 	Token* token = (Token *) Fox_GetInstanceCStruct(args[-1]);
 
-    return NUMBER_VAL(token->m_iLinesTraversed);
+    return Fox_Double(token->m_iLinesTraversed);
 }
 
 Value tokenGetTextNative(int argCount, Value* args)

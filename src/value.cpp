@@ -30,19 +30,19 @@ void ValueArray::WriteValueArray(Value value)
 
 bool CompareObject(Value a, Value b)
 {
-    if (AS_OBJ(a)->type != AS_OBJ(b)->type)
+    if (Fox_AsObject(a)->type != Fox_AsObject(b)->type)
         return false;
     
-    switch (AS_OBJ(a)->type)
+    switch (Fox_AsObject(a)->type)
     {
     case OBJ_INSTANCE:
-        return *AS_INSTANCE(a) == *AS_INSTANCE(b);
+        return *Fox_AsInstance(a) == *Fox_AsInstance(b);
     case OBJ_STRING:
-        return AS_STRING(a) == AS_STRING(b);
+        return Fox_AsString(a) == Fox_AsString(b);
     case OBJ_ARRAY:
-        return *AS_ARRAY(a) == *AS_ARRAY(b);
+        return *Fox_AsArray(a) == *Fox_AsArray(b);
     case OBJ_ABSTRACT:
-        return *AS_ABSTRACT(a) == *AS_ABSTRACT(b);
+        return *Fox_AsAbstract(a) == *Fox_AsAbstract(b);
     default:
         break;
     }
@@ -57,7 +57,7 @@ bool ValuesSame(Value a, Value b)
     if (a.type == VAL_NIL)    return true;
     if (a.type == VAL_NUMBER) return a.as.number == b.as.number;
     if (a.type == VAL_INT) return a.as.integer == b.as.integer;
-    if (a.type == VAL_BOOL)   return AS_BOOL(a) == AS_BOOL(b);
+    if (a.type == VAL_BOOL)   return Fox_AsBool(a) == Fox_AsBool(b);
     return a.as.obj == b.as.obj;
 }
 
@@ -67,10 +67,10 @@ bool ValuesEqual(Value a, Value b)
 
     // If we get here, it's only possible for two heap-allocated immutable objects
   // to be equal.
-    if (!IS_OBJ(a) || !IS_OBJ(b)) return false;
+    if (!Fox_IsObject(a) || !Fox_IsObject(b)) return false;
 
-    Object* aObject = AS_OBJ(a);
-    Object* bObject = AS_OBJ(b);
+    Object* aObject = Fox_AsObject(a);
+    Object* bObject = Fox_AsObject(b);
 
     // Must be the same type.
     if (aObject->type != bObject->type) return false;
@@ -103,45 +103,45 @@ std::string FunctionToString(ObjectFunction* function)
 std::string ObjectToString(Value value)
 {
     std::string string = "";
-    switch (OBJ_TYPE(value))
+    switch (Fox_ObjectType(value))
     {
         case OBJ_STRING:
-            string += (AS_STRING(value))->string;
+            string += (Fox_AsString(value))->string;
         	break;
 		case OBJ_FUNCTION:
-			string += FunctionToString(AS_FUNCTION(value));
+			string += FunctionToString(Fox_AsFunction(value));
 			break;
 		case OBJ_NATIVE:
             string += "<native fn>";
 			break;
         case OBJ_CLOSURE:
-            string += FunctionToString(AS_CLOSURE(value)->function);
+            string += FunctionToString(Fox_AsClosure(value)->function);
             break;
         case OBJ_UPVALUE:
             string += "upvalue";
             break;
 		case OBJ_CLASS:
 			string += "<class ";
-            string += AS_CLASS(value)->name->string;
+            string += Fox_AsClass(value)->name->string;
             string += ">";
 			break;
 		case OBJ_INSTANCE:
-			string += AS_INSTANCE(value)->klass->name->string;
+			string += Fox_AsInstance(value)->klass->name->string;
             string += " instance";
 			break;
 		case OBJ_BOUND_METHOD:
-			string += FunctionToString(AS_BOUND_METHOD(value)->method->function);
+			string += FunctionToString(Fox_AsBoundMethod(value)->method->function);
 			break;
         case OBJ_ABSTRACT:
-			string += AS_ABSTRACT(value)->abstractType->name;
+			string += Fox_AsAbstract(value)->abstractType->name;
             string += " Abstract";
 			break;
         case OBJ_LIB:
-			string += AS_LIB(value)->name->string;
+			string += Fox_AsLib(value)->name->string;
             string += " Lib";
 			break;
         case OBJ_MODULE:
-			string += AS_MODULE(value)->m_strName->string;
+			string += Fox_AsModule(value)->m_strName->string;
             string += " Module";
 			break;
         case OBJ_ARRAY:
@@ -163,10 +163,10 @@ std::string ValueToString(Value value)
     std::string string = "";
     switch (value.type)
     {
-        case VAL_BOOL: string += (AS_BOOL(value) ? "true" : "false"); break;
+        case VAL_BOOL: string += (Fox_AsBool(value) ? "true" : "false"); break;
         case VAL_NIL:    string +=  "nil"; break;
-        case VAL_NUMBER: string +=  std::to_string(AS_NUMBER(value)); break;
-        case VAL_INT: string +=  std::to_string(AS_INT(value)); break;
+        case VAL_NUMBER: string +=  std::to_string(Fox_AsDouble(value)); break;
+        case VAL_INT: string +=  std::to_string(Fox_AsInt(value)); break;
         case VAL_OBJ: string += ObjectToString(value); break;
     }
     return string;

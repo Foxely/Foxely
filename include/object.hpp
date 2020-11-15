@@ -22,37 +22,35 @@
 
 class VM;
 
-#define OBJ_TYPE(val)         (AS_OBJ(val)->type)
+#define Fox_ObjectType(val)         (Fox_AsObject(val)->type)
 
 
-#define IS_MAP(val)        is_obj_type(val, OBJ_MAP)
-#define IS_ARRAY(val)        is_obj_type(val, OBJ_ARRAY)
-#define IS_ABSTRACT(val)        is_obj_type(val, OBJ_ABSTRACT)
-#define IS_LIB(val)           is_obj_type(val, OBJ_LIB)
-#define IS_BOUND_METHOD(val)  is_obj_type(val, OBJ_BOUND_METHOD)
-#define IS_CLASS(val)         is_obj_type(val, OBJ_CLASS)
-#define IS_LIB(val)         is_obj_type(val, OBJ_LIB)
-#define IS_CLOSURE(val)       is_obj_type(val, OBJ_CLOSURE)
-#define IS_INSTANCE(val)      is_obj_type(val, OBJ_INSTANCE)
-#define IS_FUNCTION(val)      is_obj_type(val, OBJ_FUNCTION)
-#define IS_NATIVE(val)        is_obj_type(val, OBJ_NATIVE)
-#define IS_STRING(val)        is_obj_type(val, OBJ_STRING)
-#define IS_MODULE(val)        is_obj_type(val, OBJ_MODULE)
+#define Fox_IsMap(val)        is_obj_type(val, OBJ_MAP)
+#define Fox_IsArray(val)        is_obj_type(val, OBJ_ARRAY)
+#define Fox_IsAbstract(val)        is_obj_type(val, OBJ_ABSTRACT)
+#define Fox_IsLib(val)           is_obj_type(val, OBJ_LIB)
+#define Fox_IsBoundMethod(val)  is_obj_type(val, OBJ_BOUND_METHOD)
+#define Fox_IsClass(val)         is_obj_type(val, OBJ_CLASS)
+#define Fox_IsClosure(val)       is_obj_type(val, OBJ_CLOSURE)
+#define Fox_IsInstance(val)      is_obj_type(val, OBJ_INSTANCE)
+#define Fox_IsFunction(val)      is_obj_type(val, OBJ_FUNCTION)
+#define Fox_IsNative(val)        is_obj_type(val, OBJ_NATIVE)
+#define Fox_IsString(val)        is_obj_type(val, OBJ_STRING)
+#define Fox_IsModule(val)        is_obj_type(val, OBJ_MODULE)
 
-#define AS_MAP(val)           ((ObjectMap *)AS_OBJ(val))
-#define AS_ARRAY(val)           ((ObjectArray *)AS_OBJ(val))
-#define AS_ABSTRACT(val)        ((ObjectAbstract *)AS_OBJ(val))
-#define AS_LIB(val)           	((ObjectLib *)AS_OBJ(val))
-#define AS_BOUND_METHOD(val)  	((ObjectBoundMethod *)AS_OBJ(val))
-#define AS_CLASS(val)         	((ObjectClass *)AS_OBJ(val))
-#define AS_LIB(val)         	((ObjectLib *)AS_OBJ(val))
-#define AS_CLOSURE(val)       	((ObjectClosure *)AS_OBJ(val))
-#define AS_FUNCTION(val)      	((ObjectFunction *)AS_OBJ(val))
-#define AS_INSTANCE(val)        ((ObjectInstance *)AS_OBJ(val))
-#define AS_NATIVE(val)        	(((ObjectNative *)AS_OBJ(val))->function)
-#define AS_STRING(val)        	((ObjectString *)AS_OBJ(val))
-#define AS_CSTRING(val)       	(((ObjectString *)AS_OBJ(val))->string.c_str())
-#define AS_MODULE(val)       	((ObjectModule *)AS_OBJ(val))
+#define Fox_AsMap(val)           ((ObjectMap *)Fox_AsObject(val))
+#define Fox_AsArray(val)           ((ObjectArray *)Fox_AsObject(val))
+#define Fox_AsAbstract(val)        ((ObjectAbstract *)Fox_AsObject(val))
+#define Fox_AsLib(val)           	((ObjectLib *)Fox_AsObject(val))
+#define Fox_AsBoundMethod(val)  	((ObjectBoundMethod *)Fox_AsObject(val))
+#define Fox_AsClass(val)         	((ObjectClass *)Fox_AsObject(val))
+#define Fox_AsClosure(val)       	((ObjectClosure *)Fox_AsObject(val))
+#define Fox_AsFunction(val)      	((ObjectFunction *)Fox_AsObject(val))
+#define Fox_AsInstance(val)        ((ObjectInstance *)Fox_AsObject(val))
+#define Fox_AsNative(val)        	(((ObjectNative *)Fox_AsObject(val))->function)
+#define Fox_AsString(val)        	((ObjectString *)Fox_AsObject(val))
+#define Fox_AsCString(val)       	(((ObjectString *)Fox_AsObject(val))->string.c_str())
+#define Fox_AsModule(val)       	((ObjectModule *)Fox_AsObject(val))
 
 typedef enum {
     OBJ_UNKNOWN,
@@ -149,7 +147,7 @@ public:
         type = OBJ_UPVALUE;
         location = slot;
         next = NULL;
-        closed = NIL_VAL;
+        closed = Fox_Nil;
     }
 };
 
@@ -348,7 +346,7 @@ public:
 
 static inline bool is_obj_type(Value val, ObjType type)
 {
-    return IS_OBJ(val) && AS_OBJ(val)->type == type;
+    return Fox_IsObject(val) && Fox_AsObject(val)->type == type;
 }
 
 #endif

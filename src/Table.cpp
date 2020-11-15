@@ -21,7 +21,7 @@ Table::Table()
 	for (int i = 0; i <= m_iCapacity; i++) {
 		Entry ent;
 		ent.m_pKey = NULL;
-		ent.m_oValue = NIL_VAL;
+		ent.m_oValue = Fox_Nil;
 		m_vEntries.push_back(ent);
     }
 }
@@ -35,7 +35,7 @@ Entry& Table::FindEntry(ObjectString* pKey)
         Entry& entry = m_vEntries[index];
 
         if (entry.m_pKey == NULL) {
-            if (IS_NIL(entry.m_oValue))
+            if (Fox_IsNil(entry.m_oValue))
                 return tombstone != NULL ? *tombstone : entry;
             else
                 if (tombstone == NULL) tombstone = &entry;
@@ -53,7 +53,7 @@ void Table::AdjustCapacity(int capacity)
     for (int i = 0; i <= capacity; i++) {
 		Entry ent;
 		ent.m_pKey = NULL;
-		ent.m_oValue = NIL_VAL;
+		ent.m_oValue = Fox_Nil;
 		oTemp.m_vEntries.push_back(ent);
     }
     
@@ -81,7 +81,7 @@ bool Table::Set(ObjectString *key, Value value)
 
     Entry& entry = FindEntry(key);
     bool is_new_key = entry.m_pKey == NULL;
-    if (is_new_key && IS_NIL(entry.m_oValue))
+    if (is_new_key && Fox_IsNil(entry.m_oValue))
         m_iCount++;
 
     entry.m_pKey = key;
@@ -132,7 +132,7 @@ bool Table::Delete(ObjectString *key)
     if (entry.m_pKey == NULL)
         return false;
     entry.m_pKey = NULL;
-    entry.m_oValue = BOOL_VAL(true);
+    entry.m_oValue = Fox_Bool(true);
     return true;
 }
 
@@ -146,7 +146,7 @@ ObjectString *Table::FindString(const char *chars, int length, uint32_t hash)
         Entry& entry = m_vEntries[index];
 
         if (entry.m_pKey == NULL) {
-            if (IS_NIL(entry.m_oValue))
+            if (Fox_IsNil(entry.m_oValue))
                 return NULL;
         } else if (entry.m_pKey->string == std::string(chars, length) && entry.m_pKey->hash == hash) {
             return entry.m_pKey;
@@ -165,7 +165,7 @@ ObjectString *Table::FindString(const std::string& string, uint32_t hash)
         Entry& entry = m_vEntries[index];
 
         if (entry.m_pKey == NULL) {
-            if (IS_NIL(entry.m_oValue))
+            if (Fox_IsNil(entry.m_oValue))
                 return NULL;
         } else if (entry.m_pKey->string == string && entry.m_pKey->hash == hash) {
             return entry.m_pKey;

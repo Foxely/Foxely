@@ -17,14 +17,14 @@ Value openNative(VM* oVM, int argCount, Value* args)
 	Fox_PanicIfNot(oVM, Fox_IsString(args[0]), "Expected string value");
 	Fox_PanicIfNot(oVM, Fox_IsString(args[1]), "Expected string value");
 	
-    FILE* fp = fopen(Fox_ValueToCString(args[0]), Fox_ValueToCString(args[1]));
+    FILE* fp = fopen(Fox_AsCString(args[0]), Fox_AsCString(args[1]));
     if (fp)
     {
         Value instance = Fox_DefineInstanceOfCStruct(oVM, "io", "File", fp);
         return instance;
     }
-	Fox_RuntimeError(oVM, "'%s' doesn't exist.", Fox_ValueToCString(args[0]));
-    return NIL_VAL;
+	Fox_RuntimeError(oVM, "'%s' doesn't exist.", Fox_AsCString(args[0]));
+    return Fox_Nil;
 }
 
 Value readNative(VM* oVM, int argCount, Value* args)
@@ -44,7 +44,7 @@ Value readNative(VM* oVM, int argCount, Value* args)
         size_t lBytes = fread(fcontent, 1, len, fp);
 
         if (lBytes < 0)
-            return NIL_VAL;
+            return Fox_Nil;
 
         fcontent[len] = 0;
 
@@ -52,14 +52,14 @@ Value readNative(VM* oVM, int argCount, Value* args)
     }
     else
     {
-        Fox_PanicIfNot(oVM, Fox_IsNumber(args[0]), "Invalid type, expected number type");
-        int size = Fox_ValueToNumber(args[0]);
+        Fox_PanicIfNot(oVM, Fox_IsInt(args[0]), "Invalid type, expected number type");
+        int size = Fox_AsInt(args[0]);
         char chunk[size];
 
         if (fgets(chunk, sizeof(chunk), fp) != NULL)
             return Fox_String(oVM, chunk);
     }
-    return NIL_VAL;
+    return Fox_Nil;
 }
 
 Value readLineNative(VM* oVM, int argCount, Value* args)
@@ -77,7 +77,7 @@ Value readLineNative(VM* oVM, int argCount, Value* args)
             free(line);
         return lineValue;
     }
-    return NIL_VAL;
+    return Fox_Nil;
 }
 
 Value writeNative(VM* oVM, int argCount, Value* args)
@@ -86,8 +86,8 @@ Value writeNative(VM* oVM, int argCount, Value* args)
     FILE* fp = (FILE *) Fox_GetUserData(args[-1]);
 
     Fox_PanicIfNot(oVM, Fox_IsString(args[0]), "Expected string value in write function");
-    fputs(Fox_ValueToCString(args[0]), fp);
-    return NIL_VAL;
+    fputs(Fox_AsCString(args[0]), fp);
+    return Fox_Nil;
 }
 
 Value closeNative(VM* oVM, int argCount, Value* args)
@@ -96,7 +96,7 @@ Value closeNative(VM* oVM, int argCount, Value* args)
     FILE* fp = (FILE *) Fox_GetUserData(args[-1]);
 	if (fp)
         fclose(fp);
-    return NIL_VAL;
+    return Fox_Nil;
 }
 
 NativeMethods methods =

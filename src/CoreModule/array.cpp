@@ -9,13 +9,13 @@
 
 bool ValidArgs(VM* oVM, int argCount, Value* args)
 {
-    if (!Fox_Is(args[0], VAL_NUMBER))
+    if (!Fox_IsInt(args[0]))
     {
         Fox_RuntimeError(oVM, "Expected index number");
         return false;
     }
 
-    int index = AS_INT(args[0]);
+    int index = Fox_AsInt(args[0]);
     if (index < 0)
     {
         Fox_RuntimeError(oVM, "Expected positive index");
@@ -28,47 +28,47 @@ bool ValidArgs(VM* oVM, int argCount, Value* args)
 Value getNative(VM* oVM, int argCount, Value* args)
 {
     Fox_FixArity(oVM, argCount, 1);
-    Fox_PanicIfNot(oVM, !(Fox_Is(args[0], VAL_NUMBER) && Fox_Is(args[0], VAL_INT)), "Expected index number");
+    Fox_PanicIfNot(oVM, Fox_IsInt(args[0]), "Expected index number");
 
-    int index = AS_INT(args[0]);
+    int index = Fox_AsInt(args[0]);
     Fox_PanicIfNot(oVM, index >= 0, "Expected positive index");
-    ObjectArray* array = Fox_ValueToArray(args[-1]);
+    ObjectArray* array = Fox_AsArray(args[-1]);
     if (array->m_vValues.empty()) {
         Fox_RuntimeError(oVM, "Cannot access at index %d because the array is empty", index);
     } else if (index >= 0 && index < array->m_vValues.size()) {
         return array->m_vValues[index];
     } else
         Fox_RuntimeError(oVM, "Array index out of bounds.");
-    return NIL_VAL;
+    return Fox_Nil;
 }
 
 Value setNative(VM* oVM, int argCount, Value* args)
 {
     Fox_FixArity(oVM, argCount, 2);
-    if (Fox_Is(args[0], VAL_NUMBER))
+    if (Fox_IsInt(args[0]))
     {
-        int index = AS_NUMBER(args[0]);
-        ObjectArray* array = Fox_ValueToArray(args[-1]);
+        int index = Fox_AsDouble(args[0]);
+        ObjectArray* array = Fox_AsArray(args[-1]);
         array->m_vValues[index] = args[1];
     }
     else
         Fox_RuntimeError(oVM, "Expected index number");
     
-    return NIL_VAL;
+    return Fox_Nil;
 }
 
 Value pushNative(VM* oVM, int argCount, Value* args)
 {
     Fox_FixArity(oVM, argCount, 1);
-    ObjectArray* array = Fox_ValueToArray(args[-1]);
+    ObjectArray* array = Fox_AsArray(args[-1]);
     array->m_vValues.push_back(args[0]);
-    return NIL_VAL;
+    return Fox_Nil;
 }
 
 Value popNative(VM* oVM, int argCount, Value* args)
 {
     Fox_FixArity(oVM, argCount, 0);
-    ObjectArray* array = Fox_ValueToArray(args[-1]);
+    ObjectArray* array = Fox_AsArray(args[-1]);
 	Value popped = array->m_vValues.back();
     array->m_vValues.pop_back();
     return popped;
@@ -77,35 +77,35 @@ Value popNative(VM* oVM, int argCount, Value* args)
 Value sizeNative(VM* oVM, int argCount, Value* args)
 {
     Fox_FixArity(oVM, argCount, 0);
-    ObjectArray* array = Fox_ValueToArray(args[-1]);
-    return INT_VAL((int) array->m_vValues.size());
+    ObjectArray* array = Fox_AsArray(args[-1]);
+    return Fox_Int((int) array->m_vValues.size());
 }
 
 Value containNative(VM* oVM, int argCount, Value* args)
 {
     Fox_FixArity(oVM, argCount, 1);
-    ObjectArray* array = Fox_ValueToArray(args[-1]);
+    ObjectArray* array = Fox_AsArray(args[-1]);
     Value search = args[0];
     std::vector<Value>::iterator it = std::find(array->m_vValues.begin(), array->m_vValues.end(), search);
 
-    return BOOL_VAL(it != array->m_vValues.end());
+    return Fox_Bool(it != array->m_vValues.end());
 }
 
 Value findNative(VM* oVM, int argCount, Value* args)
 {
     Fox_FixArity(oVM, argCount, 1);
-    ObjectArray* array = Fox_ValueToArray(args[-1]);
+    ObjectArray* array = Fox_AsArray(args[-1]);
     Value search = args[0];
     std::vector<Value>::iterator it = std::find(array->m_vValues.begin(), array->m_vValues.end(), search);
     int index = distance(array->m_vValues.begin(), it);
 
-    return INT_VAL(index);
+    return Fox_Int(index);
 }
 
 Value toStringNative(VM* oVM, int argCount, Value* args)
 {
     Fox_FixArity(oVM, argCount, 0);
-    ObjectArray* array = Fox_ValueToArray(args[-1]);
+    ObjectArray* array = Fox_AsArray(args[-1]);
 
     std::string string;
 
@@ -128,13 +128,13 @@ Value toStringNative(VM* oVM, int argCount, Value* args)
 //     Fox_FixArity(oVM, argCount, 0);
 //     Value fpField = Fox_GetInstanceField(args[-1], "m_oFile");
 
-//     if (!ValuesEqual(fpField, NIL_VAL))
+//     if (!ValuesEqual(fpField, Fox_Nil))
 //     {
 //         FILE* fp = (FILE *) Fox_AbstractGetData(Fox_ValueToAbstract(fpField));
 //         fclose(fp);
 //     }
     
-//     return NIL_VAL;
+//     return Fox_Nil;
 // }
 
 void DefineCoreArray(VM* oVM)

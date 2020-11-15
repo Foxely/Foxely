@@ -197,12 +197,12 @@ public:
         auto result = m_pVM->Call(m_pMethod);
 		if (result == INTERPRET_OK)
 			return m_pVM->GetSlot(0);
-		return NIL_VAL;
+		return Fox_Nil;
     }
 
     bool IsValid()
     {
-		return IS_CLOSURE(m_pVariable->value);
+		return Fox_IsClosure(m_pVariable->value);
     }
 
     void Release()
@@ -245,7 +245,7 @@ public:
 
 inline Value clockNative(VM* oVM, int argCount, Value* args)
 {
-	return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
+	return Fox_Double((double)clock() / CLOCKS_PER_SEC);
 }
 
 #endif
