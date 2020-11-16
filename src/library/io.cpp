@@ -48,7 +48,7 @@ Value readNative(VM* oVM, int argCount, Value* args)
 
         fcontent[len] = 0;
 
-        return Fox_String(oVM, fcontent);
+        return Fox_NewString(oVM, fcontent);
     }
     else
     {
@@ -57,7 +57,7 @@ Value readNative(VM* oVM, int argCount, Value* args)
         char chunk[size];
 
         if (fgets(chunk, sizeof(chunk), fp) != NULL)
-            return Fox_String(oVM, chunk);
+            return Fox_NewString(oVM, chunk);
     }
     return Fox_Nil;
 }
@@ -72,7 +72,7 @@ Value readLineNative(VM* oVM, int argCount, Value* args)
     
     read = getline(&line, &len, fp);
     if (read != -1) {
-        Value lineValue = Fox_String(oVM, line);
+        Value lineValue = Fox_NewString(oVM, line);
         if (line)
             free(line);
         return lineValue;

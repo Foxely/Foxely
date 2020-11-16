@@ -273,20 +273,20 @@ NativeMethods testMethods =
 {
 	std::make_pair<std::string, NativeFn>("init", [](VM* pVM, int argc, Value* args)
     {
-        ObjectInstance* pInstance = Fox_ValueToInstance(args[-1]);
+        ObjectInstance* pInstance = Fox_AsInstance(args[-1]);
         pInstance->cStruct = new Test;
-        Fox_SetField(pVM, Fox_ObjectToValue(pInstance), "x", Fox_NumberToValue(0));
+        Fox_SetField(pVM, Fox_Object(pInstance), "x", Fox_Double(0));
         
         Fox_Setter(pVM, pInstance, "x", [](VM* pVM, int argc, Value* args)
         {
             Test* pTest = (Test *) Fox_GetUserData(args[-1]);
-            pTest->a = Fox_ValueToInteger(args[0]);
-            return Fox_IntegerToValue(pTest->a);
+            pTest->a = Fox_AsInt(args[0]);
+            return Fox_Int(pTest->a);
         });
         Fox_Getter(pVM, pInstance, "x", [](VM* pVM, int argc, Value* args)
         {
             Test* pTest = (Test *) Fox_GetUserData(args[-1]);
-            return Fox_IntegerToValue(pTest->a);
+            return Fox_Int(pTest->a);
         });
         return args[-1];
     }),

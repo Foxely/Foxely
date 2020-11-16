@@ -71,6 +71,7 @@ public:
 	std::vector<Handle*> m_vHandles;
 
     Table arrayMethods;
+    Table stringMethods;
 
 	int argc;
 	char** argv;

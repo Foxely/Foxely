@@ -25,7 +25,7 @@ VM::VM() : gc(this), m_oParser(this), modules()
     DefineModule("core");
     initString = Fox_AsString(NewString("init"));
     DefineCoreArray(this);
-    // ResetStack();
+    DefineCoreString(this);
     // ModulePlugin module(this);
     // DefineLib(module.GetClassName(), module.m_oMethods);
     // DefineNative("clock", clockNative);
@@ -373,6 +373,17 @@ bool VM::Invoke(ObjectString *pName, int iArgCount)
         {
             Value oMethod;
             if (!arrayMethods.Get(pName, oMethod))
+            {
+                RuntimeError("Undefined methods '%s'.", pName->string.c_str());
+                return false;
+            }
+            return CallValue(oMethod, iArgCount);
+        }
+
+        case OBJ_STRING:
+        {
+            Value oMethod;
+            if (!stringMethods.Get(pName, oMethod))
             {
                 RuntimeError("Undefined methods '%s'.", pName->string.c_str());
                 return false;

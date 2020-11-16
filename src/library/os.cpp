@@ -10,16 +10,16 @@ Value whichNative(VM* oVM, int argCount, Value* args)
 {
     Fox_FixArity(oVM, argCount, 0);
     #ifdef _WIN32
-        return Fox_String(oVM, "windows");
+        return Fox_NewString(oVM, "windows");
     #elif __linux__
-        return Fox_String(oVM, "linux");
+        return Fox_NewString(oVM, "linux");
     #elif __APPLE__
         #include "TargetConditionals.h"
         #if TARGET_OS_MAC
-            return Fox_String(oVM, "macOS");
+            return Fox_NewString(oVM, "macOS");
         #endif
     #endif
-    return Fox_String(oVM, "Unknown OS");
+    return Fox_NewString(oVM, "Unknown OS");
 }
 
 Value shellNative(VM* oVM, int argCount, Value* args)
@@ -33,7 +33,7 @@ Value shellNative(VM* oVM, int argCount, Value* args)
 Value getEnvNative(VM* oVM, int argCount, Value* args)
 {
     Fox_FixArity(oVM, argCount, 1);
-    return Fox_String(oVM, getenv(Fox_AsCString(args[0])));
+    return Fox_NewString(oVM, getenv(Fox_AsCString(args[0])));
 }
 
 Value exitNative(VM* oVM, int argCount, Value* args)
@@ -54,12 +54,12 @@ Value exitNative(VM* oVM, int argCount, Value* args)
 Value argsNative(VM* oVM, int argCount, Value* args)
 {
         Fox_FixArity(oVM, argCount, 0);
-    Value oArray = Fox_Array(oVM);
+    Value oArray = Fox_NewArray(oVM);
     ObjectArray* pArray = Fox_AsArray(oArray);
     std::vector<Value> vValues;
 
     for (int i = 1; i < oVM->argc; i++)
-        vValues.push_back(Fox_String(oVM, oVM->argv[i]));
+        vValues.push_back(Fox_NewString(oVM, oVM->argv[i]));
 
     pArray->m_vValues = vValues;
     return oArray;

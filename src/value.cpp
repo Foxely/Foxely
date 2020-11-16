@@ -145,8 +145,20 @@ std::string ObjectToString(Value value)
             string += " Module";
 			break;
         case OBJ_ARRAY:
-            string += "Array";
+        {
+            ObjectArray* pArray = Fox_AsArray(value);
+            string += "[";
+            int size = pArray->m_vValues.size();
+            for (auto& it : pArray->m_vValues)
+            {
+                size--;
+                string += ValueToString(it);
+                if (size > 0)
+                    string += ", ";
+            }
+            string += "]";
 			break;
+        }
         case OBJ_MAP:
             string += "Map";
 			break;

@@ -10,5 +10,6 @@ void DefineOSModule(VM* oVM);
 
 
 void DefineCoreArray(VM* oVM);
+void DefineCoreString(VM* oVM);
 
 #endif

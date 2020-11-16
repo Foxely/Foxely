@@ -18,7 +18,7 @@ extern "C"
 #define Fox_PanicIfNot(pVM, cond, msg, ...) if (!(cond)) { Fox_RuntimeError(pVM, msg, ##__VA_ARGS__); return Fox_Nil; }
 #define Fox_ApiPanicIfNot(pVM, cond, msg, ...) if (!(cond)) { Fox_ApiError(pVM, msg, ##__VA_ARGS__); exit(84); }
 
-	static inline Value Fox_String(VM* pVM, const char* str)
+	static inline Value Fox_NewString(VM* pVM, const char* str)
 	{
 		return Fox_Object(pVM->m_oParser.TakeString(str));
 	}
@@ -47,13 +47,13 @@ extern "C"
     static inline Value Fox_DefineInstanceOf(VM* pVM, const char* strModuleName, const char* strKlassName)
 	{
 		// See if the module has already been loaded.
-		ObjectModule* pModule = pVM->GetModule(Fox_String(pVM, strModuleName));
+		ObjectModule* pModule = pVM->GetModule(Fox_NewString(pVM, strModuleName));
 		FOX_ASSERT(pModule != NULL, "Module not found.");
 
 		if (pModule != NULL)
 		{
         	Value oKlass;
-			if (pModule->m_vVariables.Get(Fox_AsString(Fox_String(pVM, strKlassName)), oKlass))
+			if (pModule->m_vVariables.Get(Fox_AsString(Fox_NewString(pVM, strKlassName)), oKlass))
 			{
 				return Fox_Object(pVM->gc.New<ObjectInstance>(Fox_AsClass(oKlass)));
 			}
@@ -64,11 +64,11 @@ extern "C"
 	static inline Value Fox_DefineInstanceOfCStruct(VM* pVM, const char* strModuleName, const char* strKlassName, void* cStruct)
 	{
         // See if the module has already been loaded.
-		ObjectModule* pModule = pVM->GetModule(Fox_String(pVM, strModuleName));
+		ObjectModule* pModule = pVM->GetModule(Fox_NewString(pVM, strModuleName));
 		if (pModule != NULL)
 		{
         	Value oKlass;
-			if (pModule->m_vVariables.Get(Fox_AsString(Fox_String(pVM, strKlassName)), oKlass))
+			if (pModule->m_vVariables.Get(Fox_AsString(Fox_NewString(pVM, strKlassName)), oKlass))
 			{
 				ObjectInstance* pInstance = pVM->gc.New<ObjectInstance>(Fox_AsClass(oKlass), cStruct);
 				pVM->Push(Fox_Object(pInstance));
@@ -87,7 +87,7 @@ extern "C"
         // See if the module has already been loaded.
 		if (pInstance != NULL)
 		{
-        	pInstance->setters.Set(Fox_AsString(Fox_String(pVM, strFieldName)), Fox_Object(pVM->gc.New<ObjectNative>(oSetter)));
+        	pInstance->setters.Set(Fox_AsString(Fox_NewString(pVM, strFieldName)), Fox_Object(pVM->gc.New<ObjectNative>(oSetter)));
 		}
         return Fox_Nil;
 	}
@@ -97,14 +97,14 @@ extern "C"
         // See if the module has already been loaded.
 		if (pInstance != NULL)
 		{
-        	pInstance->getters.Set(Fox_AsString(Fox_String(pVM, strFieldName)), Fox_Object(pVM->gc.New<ObjectNative>(oSetter)));
+        	pInstance->getters.Set(Fox_AsString(Fox_NewString(pVM, strFieldName)), Fox_Object(pVM->gc.New<ObjectNative>(oSetter)));
 		}
         return Fox_Nil;
 	}
 
     static inline Value Fox_SetField(VM* pVM, Value oInstance, const char* fieldName, Value value)
 	{
-        Value name = Fox_String(pVM, fieldName);
+        Value name = Fox_NewString(pVM, fieldName);
         Fox_AsInstance(oInstance)->fields.Set(Fox_AsString(name), value);
 
 		return Fox_Nil;
@@ -113,7 +113,7 @@ extern "C"
     static inline Value Fox_GetField(VM* pVM, Value oInstance, const char* fieldName)
 	{
         Value value;
-        Value name = Fox_String(pVM, fieldName);
+        Value name = Fox_NewString(pVM, fieldName);
         if (!Fox_AsInstance(oInstance)->fields.Get(Fox_AsString(name), value))
         {
             return Fox_Nil;
@@ -144,7 +144,7 @@ extern "C"
             Fox_RuntimeError(pVM, "Expected %d arguments but got %d.", min, argCount);
 	}
 
-    static inline Value Fox_Array(VM* pVM)
+    static inline Value Fox_NewArray(VM* pVM)
 	{
 		return Fox_Object(pVM->gc.New<ObjectArray>());
 	}

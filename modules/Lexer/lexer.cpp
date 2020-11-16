@@ -181,7 +181,7 @@ Value tokenGetTextNative(int argCount, Value* args)
     Fox_FixArity(argCount, 0);
 	Token* token = (Token *) Fox_GetInstanceCStruct(args[-1]);
 
-    return Fox_StringToValue(token->GetText().c_str());
+    return Fox_NewStringToValue(token->GetText().c_str());
 }
 
 LexerPlugin::LexerPlugin()

@@ -1207,7 +1207,7 @@ extern "C"
 #define Fox_RuntimeError(oVM, msg, ...) oVM->RuntimeError(msg, ##__VA_ARGS__)
 #define Fox_PanicIfNot(oVM, cond, msg, ...) if (!(cond)) { Fox_RuntimeError(oVM, msg, ##__VA_ARGS__); return Fox_Nil; }
 
-	static inline Value Fox_StringToValue(VM* oVM, const char* str)
+	static inline Value Fox_NewStringToValue(VM* oVM, const char* str)
 	{
 		return Fox_Object(oVM->m_oParser.TakeString(str));
 	}
@@ -1262,7 +1262,7 @@ extern "C"
     static inline Value Fox_DefineInstanceOf(VM* oVM, const char* klassName)
 	{
         Value klass;
-        Value name = Fox_StringToValue(oVM, klassName);
+        Value name = Fox_NewStringToValue(oVM, klassName);
         if (!oVM->globals.Get(Fox_AsString(name), klass))
             return Fox_Nil;
 
@@ -1272,7 +1272,7 @@ extern "C"
 	static inline Value Fox_DefineInstanceOfCStruct(VM* oVM, const char* klassName, void* cStruct)
 	{
         Value klass;
-        Value name = Fox_StringToValue(oVM, klassName);
+        Value name = Fox_NewStringToValue(oVM, klassName);
         if (!oVM->globals.Get(Fox_AsString(name), klass))
             return Fox_Nil;
 
@@ -1282,7 +1282,7 @@ extern "C"
     static inline void Fox_CallMethod(VM* oVM, Value instance, const char* methodName, int argCount, Value* params)
 	{
         Value method;
-        Value methodNameValue = Fox_StringToValue(oVM, methodName);
+        Value methodNameValue = Fox_NewStringToValue(oVM, methodName);
         if (AS_NATIVE_INSTANCE(instance)->klass->methods.Get(Fox_AsString(methodNameValue), method))
         {
             Fox_AsNative(method)(oVM, argCount, params);
@@ -1291,7 +1291,7 @@ extern "C"
 
     static inline Value Fox_SetInstanceField(VM* oVM, Value instance, const char* fieldName, Value value)
 	{
-        Value name = Fox_StringToValue(oVM, fieldName);
+        Value name = Fox_NewStringToValue(oVM, fieldName);
         AS_NATIVE_INSTANCE(instance)->fields.Set(Fox_AsString(name), value);
 
 		return Fox_Nil;
@@ -1300,7 +1300,7 @@ extern "C"
     static inline Value Fox_GetInstanceField(VM* oVM, Value instance, const char* fieldName)
 	{
         Value value;
-        Value name = Fox_StringToValue(oVM, fieldName);
+        Value name = Fox_NewStringToValue(oVM, fieldName);
         if (!AS_NATIVE_INSTANCE(instance)->fields.Get(Fox_AsString(name), value))
         {
             return Fox_Nil;
@@ -1361,7 +1361,7 @@ extern "C"
         return Fox_IsBool(value);
 	}
 
-    static inline Value Fox_Array(VM* oVM)
+    static inline Value Fox_NewArray(VM* oVM)
 	{
 		return Fox_Object(oVM->gc.New<ObjectArray>());
 	}
