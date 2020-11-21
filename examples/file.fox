@@ -1,8 +1,6 @@
   
 import "io";
 
-start: var = clock();
-
 file: var = io.open("history.txt", "r");
 
 print "File Parsed:\n{\n";
@@ -10,5 +8,3 @@ print "%\n", file.read();
 print "}\n";
 
 file.close();
-
-print "Time: %\n", clock() - start;

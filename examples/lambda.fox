@@ -1,0 +1,16 @@
+
+myCustom :: func(value)
+{
+    print "value = %\n", value;
+}
+
+callable :: func(custom)
+{
+    custom(10);
+}
+
+callable(myCustom);
+callable(func(value)
+{
+    print "value = %\n", value;
+});
