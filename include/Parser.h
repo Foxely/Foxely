@@ -18,7 +18,7 @@ typedef enum {
     TOKEN_LEFT_PAREN, TOKEN_RIGHT_PAREN,
     TOKEN_LEFT_BRACE, TOKEN_RIGHT_BRACE,
     TOKEN_LEFT_BRACKET, TOKEN_RIGHT_BRACKET,
-    TOKEN_COMMA, TOKEN_DOT, TOKEN_MINUS, TOKEN_PLUS,
+    TOKEN_COMMA, TOKEN_DOT, TOKEN_MINUS, TOKEN_MINUS_MINUS, TOKEN_PLUS, TOKEN_PLUS_PLUS,
     TOKEN_SEMICOLON, TOKEN_SLASH, TOKEN_STAR,
 
     // One or two character tokens.
@@ -38,7 +38,6 @@ typedef enum {
     TOKEN_FOR, TOKEN_FUN, TOKEN_IF, TOKEN_NIL, TOKEN_OR,
     TOKEN_PRINT, TOKEN_RETURN, TOKEN_SUPER, TOKEN_THIS,
     TOKEN_TRUE, TOKEN_VAR, TOKEN_WHILE, TOKEN_IMPORT,
-    TOKEN_FOREIGN,
 
     TOKEN_SINGLE_COMMENT,
     TOKEN_MULTI_COMMENT,
@@ -185,14 +184,15 @@ void CallCompiler(Parser& parser, bool can_assign = false);
 void Subscript(Parser& parser, bool canAssign = false);
 void List(Parser& parser, bool canAssign = false);
 void Map(Parser& parser, bool canAssign = false);
-void Foreign(Parser& parser, bool can_assign);
+
+void Increment(Parser& parser, bool can_assign);
 
 void Block(Parser& parser);
 void Declaration(Parser& parser);
 void Synchronize(Parser& parser);
 void VarDeclaration(Parser& parser, Token name);
 // void VarDeclaration(Parser& parser);
-void NamedVariable(Parser& parser, Token name, bool can_assign);
+int NamedVariable(Parser& parser, Token name, bool can_assign, uint8_t* pGetOp = NULL, uint8_t* pSetOp = NULL);
 void AddLocal(Parser& parser, Token name);
 bool IdentifiersEqual(Token& a, Token& b);
 int ResolveLocal(Parser& parser, Compiler *comp, Token& name);

@@ -7,13 +7,14 @@
 #include <cstring>
 
 #include "common.h"
+#include "gc.hpp"
 #include "debug.h"
 #include "library/library.h"
-#include "library/sfml.h"
 #include "foxely.h"
 #include "Parser.h"
 #include "vm.hpp"
 #include "object.hpp"
+#include "Table.hpp"
 
 VM::VM() : gc(this), m_oParser(this), modules()
 {
@@ -620,7 +621,9 @@ InterpretResult VM::run()
         case OP_LESS:
             BINARY_OP(Bool, double, <);
             break;
-        case OP_ADD: {
+        
+        case OP_ADD:
+        {
             if (Fox_IsString(Peek(0)) && Fox_IsString(Peek(1))) {
                 Concatenate();
             } else if (Fox_IsDouble(Peek(0)) && Fox_IsDouble(Peek(1))) {
@@ -952,15 +955,6 @@ InterpretResult VM::run()
                     RuntimeError("Can only subscript on lists, strings or dictionaries.");
                     return INTERPRET_RUNTIME_ERROR;
                 }
-            }
-            break;
-        }
-
-        case OP_FOREIGN:
-        {
-            if (Fox_IsObject(Peek(0)))
-            {
-                Fox_AsObject(Peek(0))->bIsForeign = true;
             }
             break;
         }

@@ -161,7 +161,6 @@ void for_increment(Parser& parser, int *loop_start)
 void ForStatement(Parser& parser)
 {
     parser.BeginScope();
-    // parser.BeginScope(parser->currentCompiler);
     parser.Consume(TOKEN_LEFT_PAREN, "Expect '(' after 'for'.");
     if (parser.Match(TOKEN_SEMICOLON)) {
     } else if (parser.Match(TOKEN_IDENTIFIER)) {

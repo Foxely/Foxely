@@ -11,12 +11,12 @@
 
 #include "chunk.hpp"
 #include "value.hpp"
-#include "Table.hpp"
 #include "object.hpp"
-#include "gc.hpp"
 
 class Parser;
 class Callable;
+class GC;
+class Table;
 
 #define UINT8_COUNT (UINT8_MAX + 1)
 #define FRAMES_MAX 64

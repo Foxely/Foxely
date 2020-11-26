@@ -4,12 +4,15 @@ import "io";
 list: var = [2];
 string: var = "salut";
 
+i: var = 0;
+
 
 print "%\n", list[0];
 print "%\n", string[1];
 
 list.push(3);
 print "%\n", list[1];
+print "%\n", list[i++];
 
 list[1] = 0;
 print "%\n", list[1];

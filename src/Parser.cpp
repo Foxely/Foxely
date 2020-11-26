@@ -1,4 +1,5 @@
 
+#include <cstdint>
 #include <cstring>
 #include "Lexer.h"
 #include "Token.h"
@@ -55,7 +56,9 @@ Parser::Parser(VM* pVm)
     oLexer.Define(TOKEN_INT,"[0-9]+");
     oLexer.DefineArea(TOKEN_STRING,'"', '"');
 	oLexer.Define(TOKEN_PLUS, "\\+");
+    oLexer.Define(TOKEN_PLUS_PLUS, "\\+\\+");
 	oLexer.Define(TOKEN_MINUS, "-");
+    oLexer.Define(TOKEN_MINUS_MINUS, "--");
     oLexer.Define(TOKEN_DOUBLE_COLON,"::");
     oLexer.Define(TOKEN_COLON,":");
     oLexer.Define(TOKEN_LEFT_PAREN,"\\(");
@@ -92,7 +95,6 @@ Parser::Parser(VM* pVm)
     oLexer.Define(TOKEN_BANG_EQUAL, "!=");
     oLexer.Define(TOKEN_CLASS, "class");
     oLexer.Define(TOKEN_ELSE, "else");
-    oLexer.Define(TOKEN_FOREIGN, "foreign");
     oLexer.Define(TOKEN_EQUAL, "=");
     oLexer.Define(TOKEN_EQUAL_EQUAL, "==");
     oLexer.Define(TOKEN_SHEBANG,"#[^\n\r]*", true);
@@ -119,6 +121,8 @@ Parser::Parser(VM* pVm)
     rules[TOKEN_DOT] = { NULL, Dot, PREC_CALL };
     rules[TOKEN_MINUS] = { Unary, Binary, PREC_TERM };
     rules[TOKEN_PLUS] = { NULL, Binary, PREC_TERM };
+    rules[TOKEN_PLUS_PLUS] = { Increment, NULL, PREC_TERM };
+    rules[TOKEN_MINUS_MINUS] = { Increment, NULL, PREC_TERM };
     rules[TOKEN_SEMICOLON] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_SLASH] = { NULL, Binary, PREC_FACTOR };
     rules[TOKEN_STAR] = { NULL, Binary, PREC_FACTOR };
@@ -152,7 +156,6 @@ Parser::Parser(VM* pVm)
     rules[TOKEN_WHILE] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_COLON] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_DOUBLE_COLON] = { NULL, NULL, PREC_NONE };
-    rules[TOKEN_FOREIGN] = { Foreign, NULL, PREC_NONE };
     // rules[TOKEN_ERROR] = { NULL, NULL, PREC_NONE };
     // rules[TOKEN_EOF] = { NULL, NULL, PREC_NONE };
 }
@@ -201,9 +204,8 @@ void Expression(Parser& parser)
 
 void Parser::Consume(int oType, const char* message)
 {
-	if (!IsToken(oType)) {
+	if (!IsToken(oType))
 		ErrorAtCurrent(message);
-	}
 }
 
 void Parser::EmitByte(uint8_t byte)
@@ -370,10 +372,46 @@ void Unary(Parser& parser, bool can_assign)
             parser.EmitByte(OP_NEGATE);
             break;
         default:
-        return;
+            return;
     }
 }
 
+void Increment(Parser& parser, bool can_assign)
+{
+    int operatorType = parser.PreviousToken().m_oType.m_id;
+    int arg = -1;
+    uint8_t get_op = -1;
+    uint8_t set_op = -1;
+
+    bool isBefore = parser.PeekTokenIsType(TOKEN_IDENTIFIER);
+
+    // Si '++'/'--' est avant la variable alors GET la variable avec le bon SET et GET
+    if (isBefore)
+    {
+        arg = NamedVariable(parser, parser.CurrentToken(), can_assign, &get_op, &set_op);
+        parser.NextToken();
+        // Expression(parser);
+    }
+
+	parser.EmitConstant(Fox_Int(1));
+
+    switch (operatorType) {
+        case TOKEN_PLUS_PLUS:
+            parser.EmitByte(OP_ADD);
+            break;
+        case TOKEN_MINUS_MINUS:
+            parser.EmitByte(OP_SUB);
+            break;
+        default:
+            return;
+    }
+
+    // Si '++'/'--' est avant la variable alors SET la variable avec le bon SET qu'on a récupérer juste avant
+    if (isBefore)
+    {
+		parser.EmitBytes(set_op, (uint8_t) arg);
+    }
+}
 
 void Binary(Parser& parser, bool can_assign)
 {
@@ -540,6 +578,13 @@ void Variable(Parser& parser, bool can_assign)
     	NamedVariable(parser, name, can_assign);
 }
 
+void Lambda(Parser& parser, bool can_assign)
+{
+    Token name = Token(StringID(TOKEN_IDENTIFIER), "lambda", 6);
+	FuncDeclaration(parser, name);
+    NamedVariable(parser, name, can_assign);
+}
+
 void String(Parser& parser, bool can_assign)
 {
     parser.EmitConstant(Fox_Object(parser.CopyString(parser.PreviousToken().GetText())));
@@ -644,12 +689,6 @@ void Subscript(Parser& parser, bool canAssign)
         parser.EmitByte(OP_SUBSCRIPT);
 }
 
-void Foreign(Parser& parser, bool can_assign)
-{
-    Expression(parser);
-    parser.EmitByte(OP_FOREIGN);
-}
-
 void Declaration(Parser& parser)
 {
 	Statement(parser);
@@ -702,7 +741,7 @@ void Synchronize(Parser& parser)
 //		Variable				   		   -
 // -----------------------------------------
 
-void NamedVariable(Parser& parser, Token name, bool can_assign)
+int NamedVariable(Parser& parser, Token name, bool can_assign, uint8_t* pGetOp, uint8_t* pSetOp)
 {
 	uint8_t get_op, set_op;
 	int arg;
@@ -718,11 +757,25 @@ void NamedVariable(Parser& parser, Token name, bool can_assign)
 		get_op = OP_GET_GLOBAL;
 		set_op = OP_SET_GLOBAL;
 	}
-	if (can_assign && parser.Match(TOKEN_EQUAL)) {
+
+    if (can_assign && parser.Match(TOKEN_EQUAL)) {
 		Expression(parser);
 		parser.EmitBytes(set_op, (uint8_t) arg);
+	}
+    else if (can_assign && (parser.PeekTokenIsType(TOKEN_PLUS_PLUS) || parser.PeekTokenIsType(TOKEN_MINUS_MINUS))) {
+		parser.EmitBytes(get_op, (uint8_t) arg);
+		parser.EmitBytes(get_op, (uint8_t) arg);
+		Expression(parser);
+		parser.EmitBytes(set_op, (uint8_t) arg);
+		parser.EmitByte(OP_POP);
 	} else
 		parser.EmitBytes(get_op, (uint8_t) arg);
+    
+    if (pGetOp)
+        *pGetOp = get_op;
+    if (pSetOp)
+        *pSetOp = set_op;
+    return arg;
 }
 
 void DeclareVariable(Parser& parser, Token name)
