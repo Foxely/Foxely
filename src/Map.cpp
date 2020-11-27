@@ -85,7 +85,7 @@ static uint32_t hashValue(Value value)
 MapTable::MapTable()
 {
     m_iCount = 0;
-    m_iCapacity = 3;
+    m_iCapacity = 0;
 
 	for (int i = 0; i <= m_iCapacity; i++) {
 		MapEntry ent;
@@ -141,6 +141,17 @@ void MapTable::AdjustCapacity(int capacity)
         dest.m_oValue = entry.m_oValue;
         m_iCount++;
     }
+
+    for (int i = 0; i <= m_iCapacity; i++) {
+		MapEntry& entry = m_vEntries[i];
+        if (Fox_IsNil(entry.m_oKey))
+            continue;
+        MapEntry& dest = oTemp.FindEntry(entry.m_oKey);
+        dest.m_oKey = entry.m_oKey;
+        dest.m_oValue = entry.m_oValue;
+        m_iCount++;
+    }
+
 	m_vEntries.clear();
     m_vEntries = oTemp.m_vEntries;
     m_iCapacity = capacity;
@@ -212,6 +223,7 @@ bool MapTable::Delete(Value key)
         return false;
     entry.m_oKey = Fox_Nil;
     entry.m_oValue = Fox_Bool(true);
+    m_iCount--;
     return true;
 }
 
@@ -234,4 +246,9 @@ void MapTable::RemoveWhite()
             Delete(entry.m_oKey);
         }
     }
+}
+
+int MapTable::Size()
+{
+    return m_iCount;
 }

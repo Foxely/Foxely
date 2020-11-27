@@ -41,4 +41,5 @@ public:
 	void MarkMap();
 	void RemoveWhite();
 	void Print();
+    int Size();
 };

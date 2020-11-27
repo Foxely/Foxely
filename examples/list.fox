@@ -1,18 +1,40 @@
 
-import "io";
-
 list: var = [2];
 string: var = "salut";
 
-i: var = 0;
-
-
-print "%\n", list[0];
-print "%\n", string[1];
+print "list[0] = %\n", list[0];
+print "string[1] = '%'\n", string[1];
 
 list.push(3);
-print "%\n", list[1];
-print "%\n", list[i++];
+list.push(4);
+print "list.get(1) = %\n", list.get(1);
 
+print "Before pop = %\n", list;
+list.pop();
+print "After pop = %\n", list;
+
+list.set(1, 5);
+print "list[1] = %\n", list[1];
+
+print "Size = %\n", list.size();
+
+if (list.contain(5))
+    print "Contain value 5\n";
+else
+    print "Not Contain value 5\n";
+
+if (list.contain(14))
+    print "Contain value 14\n";
+else
+    print "Not Contain value 14\n";
+
+list.push(14);
+
+print "Index of 14 is %\n", list.find(14);
+
+print "%\n", list.toString();
+
+/*
 list[1] = 0;
 print "%\n", list[1];
+*/

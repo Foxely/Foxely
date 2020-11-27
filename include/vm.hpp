@@ -72,6 +72,7 @@ public:
 
     Table arrayMethods;
     Table stringMethods;
+    Table mapMethods;
 
 	int argc;
 	char** argv;

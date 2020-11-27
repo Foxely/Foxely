@@ -27,6 +27,7 @@ VM::VM() : gc(this), m_oParser(this), modules()
     initString = Fox_AsString(NewString("init"));
     DefineCoreArray(this);
     DefineCoreString(this);
+    DefineCoreMap(this);
     // ModulePlugin module(this);
     // DefineLib(module.GetClassName(), module.m_oMethods);
     // DefineNative("clock", clockNative);
@@ -391,6 +392,18 @@ bool VM::Invoke(ObjectString *pName, int iArgCount)
             }
             return CallValue(oMethod, iArgCount);
         }
+
+        case OBJ_MAP:
+        {
+            Value oMethod;
+            if (!mapMethods.Get(pName, oMethod))
+            {
+                RuntimeError("Undefined methods '%s'.", pName->string.c_str());
+                return false;
+            }
+            return CallValue(oMethod, iArgCount);
+        }
+
         default:
             RuntimeError("Only instances && module have methods.");
             return false;

@@ -2,9 +2,34 @@
 
 map: var = { 0 : 2, 10 : false, "test" : 10 };
 
-print "%\n", map[0];
-print "%\n", map[10];
-print "%\n", map["test"];
+print "map[0] = %\n", map[0];
+print "map.get(10) = %\n", map.get(10);
+print "map['test'] = %\n", map["test"];
+
+map.push("number", 14);
+print "map['number'] = %\n", map["number"];
 
 // A non declare key, will return automatically nil
-print "%\n", map["undefined"];
+print "map['undefined'] = %\n", map["undefined"];
+
+print "Before pop = %\n", map;
+
+if (map.contain(0))
+    print "Contain key: 0\n";
+else
+    print "Not Contain key: 0\n";
+
+map.pop();
+print "After pop = %\n", map;
+
+if (map.contain(0))
+    print "Contain key: 0\n";
+else
+    print "Not Contain key: 0\n";
+
+map.set(10, true);
+print "map[10] = %\n", map[10];
+
+print "Size = %\n", map.size();
+
+print "%\n", map.toString();
