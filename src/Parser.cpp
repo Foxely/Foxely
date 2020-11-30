@@ -655,30 +655,29 @@ void Map(Parser& parser, bool canAssign)
 void Subscript(Parser& parser, bool canAssign)
 {
     // slice with no initial index [1, 2, 3][:100]
-    // if (parser.Match(TOKEN_COLON))
-    // {
-    //     // parser.EmitByte(OP_EMPTY);
-    //     // Expression(parser);
-    //     // parser.EmitByte(OP_SLICE);
-    //     // parser.Consume(TOKEN_RIGHT_BRACKET, "Expected closing ']'");
-    //     // return;
-    // }
+    if (parser.Match(TOKEN_COLON))
+    {
+        parser.EmitByte(OP_NIL);
+        Expression(parser);
+        parser.EmitByte(OP_SLICE);
+        parser.Consume(TOKEN_RIGHT_BRACKET, "Expected closing ']'");
+        return;
+    }
 
     Expression(parser);
 
-    // if (parser.Match(TOKEN_COLON)) {
-    //     // If we slice with no "ending" push EMPTY so we know
-    //     // To go to the end of the iterable
-    //     // i.e [1, 2, 3][1:]
-    //     if (check(compiler, TOKEN_RIGHT_BRACKET)) {
-    //         emitByte(compiler, OP_EMPTY);
-    //     } else {
-    //         expression(compiler);
-    //     }
-    //     emitByte(compiler, OP_SLICE);
-    //     consume(compiler, TOKEN_RIGHT_BRACKET, "Expected closing ']'");
-    //     return;
-    // }
+    if (parser.Match(TOKEN_COLON)) {
+        // If we slice with no "ending" push EMPTY so we know
+        // To go to the end of the iterable
+        // i.e [1, 2, 3][1:]
+        if (parser.IsToken(TOKEN_RIGHT_BRACKET, false))
+            parser.EmitByte(OP_NIL);
+        else
+            Expression(parser);
+        parser.EmitByte(OP_SLICE);
+        parser.Consume(TOKEN_RIGHT_BRACKET, "Expected closing ']'");
+        return;
+    }
 
     parser.Consume(TOKEN_RIGHT_BRACKET, "Expected closing ']'");
 

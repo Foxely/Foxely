@@ -28,9 +28,6 @@ VM::VM() : gc(this), m_oParser(this), modules()
     DefineCoreArray(this);
     DefineCoreString(this);
     DefineCoreMap(this);
-    // ModulePlugin module(this);
-    // DefineLib(module.GetClassName(), module.m_oMethods);
-    // DefineNative("clock", clockNative);
 }
 
 VM::~VM()
@@ -891,7 +888,7 @@ InterpretResult VM::run()
             if (!Fox_IsObject(oSubscriptValue))
             {
                 frame->ip = ip;
-                RuntimeError("Can only subscript on lists, strings or maps.");
+                RuntimeError("Can only subscript on pArrays, strings or maps.");
                 return INTERPRET_RUNTIME_ERROR;
             }
 
@@ -901,26 +898,26 @@ InterpretResult VM::run()
                 {
                     if (!Fox_IsDouble(oIndexValue) && !Fox_IsInt(oIndexValue))
                     {
-                        RuntimeError("List index must be a number.");
+                        RuntimeError("pArray index must be a number.");
                         return INTERPRET_RUNTIME_ERROR;
                     }
 
-                    ObjectArray *pList = Fox_AsArray(oSubscriptValue);
+                    ObjectArray *ppArray = Fox_AsArray(oSubscriptValue);
                     int iIndex = Fox_AsInt(oIndexValue);
 
                     // Allow negative indexes
                     if (iIndex < 0)
-                        iIndex = pList->m_vValues.size() + iIndex;
+                        iIndex = ppArray->m_vValues.size() + iIndex;
 
-                    if (iIndex >= 0 && iIndex < pList->m_vValues.size())
+                    if (iIndex >= 0 && iIndex < ppArray->m_vValues.size())
                     {
                         Pop();
                         Pop();
-                        Push(pList->m_vValues[iIndex]);
+                        Push(ppArray->m_vValues[iIndex]);
                         break;
                     }
 
-                    RuntimeError("List index out of bounds.");
+                    RuntimeError("pArray index out of bounds.");
                     return INTERPRET_RUNTIME_ERROR;
                 }
 
@@ -965,10 +962,102 @@ InterpretResult VM::run()
                 default:
                 {
                     frame->ip = ip;
-                    RuntimeError("Can only subscript on lists, strings or dictionaries.");
+                    RuntimeError("Can only subscript on pArrays, strings or dictionaries.");
                     return INTERPRET_RUNTIME_ERROR;
                 }
             }
+            break;
+        }
+
+        case OP_SLICE:
+        {
+            Value sliceEndIndex = Peek(0);
+            Value sliceStartIndex = Peek(1);
+            Value objectValue = Peek(2);
+
+            if (!Fox_IsObject(objectValue)) {
+                RuntimeError("Can only slice on pArrays and strings.");
+            }
+
+            if ((!Fox_IsInt(sliceStartIndex) && !Fox_IsNil(sliceStartIndex)) || (!Fox_IsInt(sliceEndIndex) && !Fox_IsNil(sliceEndIndex))) {
+                RuntimeError("Slice index must be a number.");
+            }
+
+            int indexStart;
+            int indexEnd;
+            Value returnVal;
+
+            if (Fox_IsNil(sliceStartIndex)) {
+                indexStart = 0;
+            } else {
+                indexStart = Fox_AsInt(sliceStartIndex);
+
+                if (indexStart < 0) {
+                    indexStart = 0;
+                }
+            }
+
+            switch (Fox_ObjectType(objectValue))
+            {
+                case OBJ_ARRAY:
+                {
+                    ObjectArray *pNewArray = gc.New<ObjectArray>();
+                    Push(Fox_Object(pNewArray));
+                    ObjectArray *pArray = Fox_AsArray(objectValue);
+
+                    if (Fox_IsNil(sliceEndIndex)) {
+                        indexEnd = pArray->m_vValues.size();
+                    } else {
+                        indexEnd = Fox_AsInt(sliceEndIndex);
+
+                        if (indexEnd > pArray->m_vValues.size()) {
+                            indexEnd = pArray->m_vValues.size();
+                        }
+                    }
+
+                    for (int i = indexStart; i < indexEnd; i++) {
+                        pNewArray->m_vValues.push_back(pArray->m_vValues[i]);
+                    }
+
+                    Pop();
+                    returnVal = Fox_Object(pNewArray);
+
+                    break;
+                }
+
+                case OBJ_STRING:
+                {
+                    ObjectString *pString = Fox_AsString(objectValue);
+
+                    if (Fox_IsNil(sliceEndIndex)) {
+                        indexEnd = pString->string.size();
+                    } else {
+                        indexEnd = Fox_AsInt(sliceEndIndex);
+
+                        if (indexEnd > pString->string.size()) {
+                            indexEnd = pString->string.size();
+                        }
+                    }
+
+                    // Ensure the start index is below the end index
+                    if (indexStart > indexEnd) {
+                        returnVal = Fox_Object(m_oParser.CopyString(""));
+                    } else {
+                        returnVal = Fox_Object(m_oParser.CopyString(pString->string.substr(indexStart, indexEnd - indexStart)));
+                    }
+                    break;
+                }
+
+                default: {
+                    RuntimeError("Can only slice on pArrays and strings.");
+                }
+            }
+
+            Pop();
+            Pop();
+            Pop();
+
+            Push(returnVal);
             break;
         }
 
@@ -987,9 +1076,9 @@ InterpretResult VM::run()
         case OP_ADD_LIST:
         {
             int iArgCount = READ_BYTE();
-            Value oListValue = Peek(iArgCount);
+            Value opArrayValue = Peek(iArgCount);
 
-            ObjectArray *pArray = Fox_AsArray(oListValue);
+            ObjectArray *pArray = Fox_AsArray(opArrayValue);
 
             for (int i = iArgCount - 1; i >= 0; i--)
             {
@@ -1435,7 +1524,7 @@ Handle* VM::MakeHandle(Value value)
 
     if (Fox_IsObject(value)) Pop();
 
-    // Add it to the front of the linked list of handles.
+    // Add it to the front of the linked pArray of handles.
     m_vHandles.push_back(handle);
     
     return handle;
@@ -1510,88 +1599,88 @@ void VM::EnsureSlots(int numSlots)
 }
 
 // Ensures that [slot] is a valid index into the API's stack of slots.
-void VM::ValidateApiSlot(int slot)
+void VM::ValidateApiSlot(int iSlot)
 {
-    FOX_ASSERT(slot >= 0, "Slot cannot be negative.");
-    FOX_ASSERT(slot < GetSlotCount(), "Not that many slots.");
+    FOX_ASSERT(iSlot >= 0, "Slot cannot be negative.");
+    FOX_ASSERT(iSlot < GetSlotCount(), "Not that many slots.");
 }
 
 
 // Gets the type of the object in [slot].
-ValueType VM::GetSlotType(int slot)
+ValueType VM::GetSlotType(int iSlot)
 {
-    ValidateApiSlot(slot);
-    if (Fox_IsBool(m_pApiStack[slot])) return VAL_BOOL;
-    if (Fox_IsDouble(m_pApiStack[slot])) return VAL_NUMBER;
-//   if (IS_LIST(m_pApiStack[slot])) return WREN_TYPE_LIST;
+    ValidateApiSlot(iSlot);
+    if (Fox_IsBool(m_pApiStack[iSlot])) return VAL_BOOL;
+    if (Fox_IsDouble(m_pApiStack[iSlot])) return VAL_NUMBER;
+//   if (IS_pArray(m_pApiStack[slot])) return WREN_TYPE_pArray;
 //   if (Fox_IsMap(m_pApiStack[slot])) return WREN_TYPE_MAP;
-    if (Fox_IsNil(m_pApiStack[slot])) return VAL_NIL;
+    if (Fox_IsNil(m_pApiStack[iSlot])) return VAL_NIL;
 //   if (Fox_IsString(m_pApiStack[slot])) return WREN_TYPE_STRING;
     return VAL_NIL;
 }
 
-Value VM::GetSlot(int slot)
+Value VM::GetSlot(int iSlot)
 {
-    ValidateApiSlot(slot);
+    ValidateApiSlot(iSlot);
 
-    return m_pApiStack[slot];
+    return m_pApiStack[iSlot];
 }
 
-bool VM::GetSlotBool(int slot)
+bool VM::GetSlotBool(int iSlot)
 {
-    ValidateApiSlot(slot);
-    FOX_ASSERT(Fox_IsBool(m_pApiStack[slot]), "Slot must hold a bool.");
+    ValidateApiSlot(iSlot);
+    FOX_ASSERT(Fox_IsBool(m_pApiStack[iSlot]), "Slot must hold a bool.");
 
-    return Fox_AsBool(m_pApiStack[slot]);
+    return Fox_AsBool(m_pApiStack[iSlot]);
 }
 
-double VM::GetSlotDouble(int slot)
+double VM::GetSlotDouble(int iSlot)
 {
-    ValidateApiSlot(slot);
-    FOX_ASSERT(Fox_IsDouble(m_pApiStack[slot]), "Slot must hold a number.");
+    ValidateApiSlot(iSlot);
+    FOX_ASSERT(Fox_IsDouble(m_pApiStack[iSlot]), "Slot must hold a number.");
 
-    return Fox_AsDouble(m_pApiStack[slot]);
+    return Fox_AsDouble(m_pApiStack[iSlot]);
 }
 
-const char* VM::GetSlotString(int slot)
+const char* VM::GetSlotString(int iSlot)
 {
-    ValidateApiSlot(slot);
-    FOX_ASSERT(Fox_IsString(m_pApiStack[slot]), "Slot must hold a string.");
+    ValidateApiSlot(iSlot);
+    FOX_ASSERT(Fox_IsString(m_pApiStack[iSlot]), "Slot must hold a string.");
 
-    return Fox_AsCString(m_pApiStack[slot]);
+    return Fox_AsCString(m_pApiStack[iSlot]);
 }
 
-Handle* VM::GetSlotHandle(int slot)
+Handle* VM::GetSlotHandle(int iSlot)
 {
-    ValidateApiSlot(slot);
-    return MakeHandle(m_pApiStack[slot]);
+    ValidateApiSlot(iSlot);
+    return MakeHandle(m_pApiStack[iSlot]);
 }
 
 // Stores [value] in [slot] in the foreign call stack.
-void VM::SetSlot(int slot, Value value)
+void VM::SetSlot(int iSlot, Value value)
 {
-    ValidateApiSlot(slot);
-    m_pApiStack[slot] = value;
+    ValidateApiSlot(iSlot);
+    m_pApiStack[iSlot] = value;
 }
 
-void VM::SetSlotBool(int slot, bool value)
+void VM::SetSlotBool(int iSlot, bool value)
 {
-    SetSlot(slot, Fox_Bool(value));
+    SetSlot(iSlot, Fox_Bool(value));
 }
 
-void VM::SetSlotDouble(int slot, double value)
+void VM::SetSlotDouble(int iSlot, double value)
 {
-    SetSlot(slot, Fox_Double(value));
+    SetSlot(iSlot, Fox_Double(value));
 }
 
-void VM::SetSlotInteger(int slot, int value)
+void VM::SetSlotInteger(int iSlot, int value)
 {
-    SetSlot(slot, Fox_Int(value));
+    SetSlot(iSlot, Fox_Int(value));
 }
 
-void VM::SetSlotNewList(int slot)
+void VM::SetSlotNewList(int iSlot)
 {
-    SetSlot(slot, Fox_Object(gc.New<ObjectArray>()));
+    SetSlot(iSlot, Fox_Object(gc.New<ObjectArray>()));
 }
 
 // void wrenSetSlotNewMap(int slot)
@@ -1599,55 +1688,55 @@ void VM::SetSlotNewList(int slot)
 //   setSlot(vm, slot, Fox_Object(wrenNewMap(vm)));
 // }
 
-void VM::SetSlotNull(int slot)
+void VM::SetSlotNull(int iSlot)
 {
-    SetSlot(slot, Fox_Nil);
+    SetSlot(iSlot, Fox_Nil);
 }
 
-void VM::SetSlotString(int slot, const char* text)
+void VM::SetSlotString(int iSlot, const char* text)
 {
     FOX_ASSERT(text != NULL, "String cannot be NULL.\n");
     
-    SetSlot(slot, NewString(text));
+    SetSlot(iSlot, NewString(text));
 }
 
-void VM::SetSlotHandle(int slot, Handle* handle)
+void VM::SetSlotHandle(int iSlot, Handle* handle)
 {
     FOX_ASSERT(handle != NULL, "Handle cannot be NULL.");
 
-    SetSlot(slot, handle->value);
+    SetSlot(iSlot, handle->value);
 }
 
-int VM::GetListCount(int slot)
+int VM::GetListCount(int iSlot)
 {
-    ValidateApiSlot(slot);
-    FOX_ASSERT(Fox_IsArray(m_pApiStack[slot]), "Slot must hold a list.\n");
+    ValidateApiSlot(iSlot);
+    FOX_ASSERT(Fox_IsArray(m_pApiStack[iSlot]), "Slot must hold a pArray.\n");
 
-    return Fox_AsArray(m_pApiStack[slot])->m_vValues.size();
+    return Fox_AsArray(m_pApiStack[iSlot])->m_vValues.size();
 }
 
-void VM::GetListElement(int listSlot, int index, int elementSlot)
+void VM::GetListElement(int iSlot, int index, int elementSlot)
 {
-    ValidateApiSlot(listSlot);
+    ValidateApiSlot(iSlot);
     ValidateApiSlot(elementSlot);
-    FOX_ASSERT(Fox_IsArray(m_pApiStack[listSlot]), "Slot must hold a list.\n");
+    FOX_ASSERT(Fox_IsArray(m_pApiStack[iSlot]), "Slot must hold a pArray.\n");
     
-    m_pApiStack[elementSlot] = Fox_AsArray(m_pApiStack[listSlot])->m_vValues[index];
+    m_pApiStack[elementSlot] = Fox_AsArray(m_pApiStack[iSlot])->m_vValues[index];
 }
 
-void VM::SetListElement(int listSlot, int index, int elementSlot)
+void VM::SetListElement(int iSlot, int index, int elementSlot)
 {
-    ValidateApiSlot(listSlot);
+    ValidateApiSlot(iSlot);
     ValidateApiSlot(elementSlot);
-    FOX_ASSERT(Fox_IsArray(m_pApiStack[listSlot]), "Must insert into a list.\n");
+    FOX_ASSERT(Fox_IsArray(m_pApiStack[iSlot]), "Must insert into a pArray.\n");
     
-    ObjectArray* array = Fox_AsArray(m_pApiStack[listSlot]);
+    ObjectArray* pArray = Fox_AsArray(m_pApiStack[iSlot]);
     
     // Negative indices count from the end.
     if (index < 0)
-        index = array->m_vValues.size() + 1 + index;
+        index = pArray->m_vValues.size() + 1 + index;
     
-    FOX_ASSERT(index <= array->m_vValues.size(), "Index out of bounds.\n");
+    FOX_ASSERT(index <= pArray->m_vValues.size(), "Index out of bounds.\n");
 
-    array->m_vValues[index] = m_pApiStack[elementSlot];
+    pArray->m_vValues[index] = m_pApiStack[elementSlot];
 }

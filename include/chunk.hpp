@@ -50,6 +50,7 @@ typedef enum
     OP_SUBSCRIPT,
     OP_ARRAY,
     OP_ADD_LIST,
+    OP_SLICE,
     
     OP_MAP,
     OP_ADD_MAP,
