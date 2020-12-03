@@ -18,16 +18,12 @@ class Callable;
 class GC;
 class Table;
 
-#define UINT8_COUNT (UINT8_MAX + 1)
-#define FRAMES_MAX 64
-#define STACK_MAX (FRAMES_MAX * UINT8_COUNT)
-
-struct CallFrame
-{
-	ObjectClosure* closure;
-	std::vector<uint8_t>::iterator ip;
-	Value* slots;
-};
+// struct CallFrame
+// {
+// 	ObjectClosure* closure;
+// 	std::vector<uint8_t>::iterator ip;
+// 	Value* slots;
+// };
 
 // A handle to a value, basically just a linked list of extra GC roots.
 class Handle : public Object
@@ -53,18 +49,18 @@ using NativeMethods = std::map<std::string, NativeFn>;
 class VM
 {
 public:
-	CallFrame frames[FRAMES_MAX];
-  	int frameCount;
+	// CallFrame frames[FRAMES_MAX];
+  	// int frameCount;
 
     Chunk m_oChunk;
-    std::vector<uint8_t>::iterator ip;
-    Value stack[STACK_MAX];
-    Value* stackTop;
+    ObjectFiber* m_pCurrentFiber;
+    // Value stack[STACK_MAX];
+    // Value* stackTop;
+	// ObjectUpvalue* openUpvalues;
     Value* m_pApiStack;
     Parser m_oParser;
 	Table strings;
 	Table modules;
-	ObjectUpvalue* openUpvalues;
 	ObjectString* initString;
 	GC gc;
 	ObjectModule* currentModule;
@@ -73,6 +69,7 @@ public:
     Table arrayMethods;
     Table stringMethods;
     Table mapMethods;
+    Table fiberMethods;
 
 	int argc;
 	char** argv;
@@ -160,9 +157,10 @@ public:
 	int GetListCount(int slot);
 	void GetListElement(int listSlot, int index, int elementSlot);
 	void SetListElement(int listSlot, int index, int elementSlot);
+    
+    InterpretResult run(ObjectFiber* pFiber);
 
 private:
-    InterpretResult run();
 	static VM m_oInstance;
 
 	InterpretResult result;

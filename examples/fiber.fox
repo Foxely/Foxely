@@ -1,0 +1,12 @@
+
+import "core";
+
+call :: func()
+{
+    print "Called!!\n";
+}
+
+fiber: var = Fiber(call);
+
+fiber.call();
+print "Calledd!!\n";

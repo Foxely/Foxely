@@ -18,16 +18,18 @@
 
 VM::VM() : gc(this), m_oParser(this), modules()
 {
-    ResetStack();
+    // ResetStack();
+    m_pCurrentFiber = nullptr;
     isInit = false;
-    currentModule = NULL;
-    m_pApiStack = NULL;
-    openUpvalues = NULL;
+    currentModule = nullptr;
+    m_pApiStack = nullptr;
+    m_pCurrentFiber = gc.New<ObjectFiber>(nullptr);
     DefineModule("core");
     initString = Fox_AsString(NewString("init"));
     DefineCoreArray(this);
     DefineCoreString(this);
     DefineCoreMap(this);
+    DefineCoreFiber(this);
 }
 
 VM::~VM()
@@ -37,32 +39,33 @@ VM::~VM()
 
 void VM::ResetStack()
 {
-    stackTop = stack;
-    frameCount = 0;
+    m_pCurrentFiber->m_pStackTop = m_pCurrentFiber->m_vStack;
+    m_pCurrentFiber->m_iFrameCount = 0;
 }
 
 void VM::Push(Value oValue)
 {
-    *stackTop = oValue;
-    stackTop++;
+    *m_pCurrentFiber->m_pStackTop = oValue;
+    m_pCurrentFiber->m_pStackTop++;
 }
 
 Value VM::Pop()
 {
-    FOX_ASSERT(stackTop != NULL, "No temporary roots to release.");
-    stackTop--;
-    return *stackTop;
+    FOX_ASSERT(m_pCurrentFiber->m_pStackTop != NULL, "No temporary roots to release.");
+    m_pCurrentFiber->m_pStackTop--;
+    return *m_pCurrentFiber->m_pStackTop;
 }
 
-Value VM::Peek(int iDistance) {
-    return stackTop[-1 - iDistance];
+Value VM::Peek(int iDistance)
+{
+    return m_pCurrentFiber->m_pStackTop[-1 - iDistance];
 }
 
 Value VM::PeekStart(int iDistance)
 {
     if (!isInit)
-        return stack[iDistance];
-    return stack[iDistance + 1];
+        return m_pCurrentFiber->m_vStack[iDistance];
+    return m_pCurrentFiber->m_vStack[iDistance + 1];
 }
 
 bool IsFalsey(Value oValue) {
@@ -77,9 +80,9 @@ void VM::RuntimeError(const char *format, ...)
     va_end(args);
     fputs("\n", stderr);
 
-    for (int i = frameCount - 1; i >= 0; i--)
+    for (int i = m_pCurrentFiber->m_iFrameCount - 1; i >= 0; i--)
     {
-        CallFrame *frame = &frames[i];
+        CallFrame *frame = &m_pCurrentFiber->m_vFrames[i];
         ObjectFunction *function = frame->closure->function;
 
         // -1 because the IP is sitting on the next instruction to be executed.
@@ -106,16 +109,16 @@ bool VM::CallFunction(ObjectClosure *pClosure, int iArgCount)
         return false;
     }
 
-    if (frameCount == FRAMES_MAX) {
+    if (m_pCurrentFiber->m_iFrameCount == FRAMES_MAX) {
         RuntimeError("Stack overflow.");
         return false;
     }
 
-    CallFrame *pFrame = &frames[frameCount++];
+    CallFrame *pFrame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount++];
     pFrame->closure = pClosure;
     pFrame->ip = pClosure->function->chunk.m_vCode.begin();
 
-    pFrame->slots = stackTop - iArgCount - 1;
+    pFrame->slots = m_pCurrentFiber->m_pStackTop - iArgCount - 1;
     return true;
 }
 
@@ -128,8 +131,8 @@ bool VM::CallValue(Value oCallee, int iArgCount)
         case OBJ_NATIVE:
         {
             NativeFn native = Fox_AsNative(oCallee);
-            Value oResult = native(this, iArgCount, stackTop - iArgCount);
-            stackTop -= iArgCount + 1;
+            Value oResult = native(this, iArgCount, m_pCurrentFiber->m_pStackTop - iArgCount);
+            m_pCurrentFiber->m_pStackTop -= iArgCount + 1;
             Push(oResult);
             return true;
         }
@@ -137,14 +140,14 @@ bool VM::CallValue(Value oCallee, int iArgCount)
         case OBJ_BOUND_METHOD:
         {
             ObjectBoundMethod *pBound = Fox_AsBoundMethod(oCallee);
-            stackTop[-iArgCount - 1] = pBound->receiver;
+            m_pCurrentFiber->m_pStackTop[-iArgCount - 1] = pBound->receiver;
             return CallFunction(pBound->method, iArgCount);
         }
 
         case OBJ_CLASS:
         {
             ObjectClass *pKlass = Fox_AsClass(oCallee);
-            stackTop[-iArgCount - 1] = Fox_Object(gc.New<ObjectInstance>(pKlass));
+            m_pCurrentFiber->m_pStackTop[-iArgCount - 1] = Fox_Object(gc.New<ObjectInstance>(pKlass));
             Value oInitializer;
             if (pKlass->methods.Get(initString, oInitializer))
                 return CallValue(oInitializer, iArgCount);
@@ -161,6 +164,7 @@ bool VM::CallValue(Value oCallee, int iArgCount)
 
         default:
             // Non-callable object type.
+            PrintValue(oCallee);
             break;
         }
     }
@@ -172,7 +176,7 @@ bool VM::CallValue(Value oCallee, int iArgCount)
 ObjectUpvalue *VM::CaptureUpvalue(Value *local)
 {
     ObjectUpvalue *pPrevUpvalue = NULL;
-    ObjectUpvalue *pUpvalue = openUpvalues;
+    ObjectUpvalue *pUpvalue = m_pCurrentFiber->m_vOpenUpvalues;
 
     while (pUpvalue != NULL && pUpvalue->location > local) {
         pPrevUpvalue = pUpvalue;
@@ -183,7 +187,7 @@ ObjectUpvalue *VM::CaptureUpvalue(Value *local)
         return pUpvalue;
     ObjectUpvalue *pCreatedUpvalue = gc.New<ObjectUpvalue>(local);
     if (pPrevUpvalue == NULL) {
-        openUpvalues = pCreatedUpvalue;
+        m_pCurrentFiber->m_vOpenUpvalues = pCreatedUpvalue;
     } else {
         pPrevUpvalue->next = pCreatedUpvalue;
     }
@@ -192,11 +196,11 @@ ObjectUpvalue *VM::CaptureUpvalue(Value *local)
 
 void VM::CloseUpvalues(Value *last)
 {
-    while (openUpvalues != NULL && openUpvalues->location >= last) {
-        ObjectUpvalue *pUpvalue = openUpvalues;
+    while (m_pCurrentFiber->m_vOpenUpvalues != NULL && m_pCurrentFiber->m_vOpenUpvalues->location >= last) {
+        ObjectUpvalue *pUpvalue = m_pCurrentFiber->m_vOpenUpvalues;
         pUpvalue->closed = *pUpvalue->location;
         pUpvalue->location = &pUpvalue->closed;
-        openUpvalues = pUpvalue->next;
+        m_pCurrentFiber->m_vOpenUpvalues = pUpvalue->next;
     }
 }
 
@@ -350,7 +354,7 @@ bool VM::Invoke(ObjectString *pName, int iArgCount)
         {
             ObjectInstance *pInstance = Fox_AsInstance(oReceiver);
             if (pInstance->fields.Get(pName, oValue)) {
-                stackTop[-iArgCount - 1] = oValue;
+                m_pCurrentFiber->m_pStackTop[-iArgCount - 1] = oValue;
                 return CallValue(oValue, iArgCount);
             }
             return InvokeFromClass(pInstance->klass, pName, iArgCount);
@@ -401,6 +405,17 @@ bool VM::Invoke(ObjectString *pName, int iArgCount)
             return CallValue(oMethod, iArgCount);
         }
 
+        case OBJ_FIBER:
+        {
+            Value oMethod;
+            if (!fiberMethods.Get(pName, oMethod))
+            {
+                RuntimeError("Undefined methods '%s'.", pName->string.c_str());
+                return false;
+            }
+            return CallValue(oMethod, iArgCount);
+        }
+
         default:
             RuntimeError("Only instances && module have methods.");
             return false;
@@ -409,7 +424,7 @@ bool VM::Invoke(ObjectString *pName, int iArgCount)
 
 InterpretResult VM::Interpret(const char* strModule, const char* strSource)
 {
-    ResetStack();
+    // ResetStack();
     
     result = INTERPRET_OK;
 
@@ -418,12 +433,20 @@ InterpretResult VM::Interpret(const char* strModule, const char* strSource)
         return INTERPRET_COMPILE_ERROR;
     
     Push(Fox_Object(pClosure));
-    // ObjFiber* fiber = wrenNewFiber(vm, closure);
-    // wrenPopRoot(vm); // closure.
+    // Initialize the first call frame.
+    CallFrame *pFrame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount++];
+    pFrame->closure = pClosure;
+    pFrame->ip = pClosure->function->chunk.m_vCode.begin();
+    
+    // The first slot always holds the closure.
+    m_pCurrentFiber->m_pStackTop[0] = Fox_Object(pClosure);
+    m_pCurrentFiber->m_pStackTop++;
+    pFrame->slots = m_pCurrentFiber->m_pStackTop - 1;
+    Pop(); // closure.
     // m_pApiStack = NULL;
-    CallValue(Fox_Object(pClosure), 0);
+    // CallValue(Fox_Object(pClosure), 0);
 
-    return run();
+    return run(m_pCurrentFiber);
 }
 
 ObjectClosure* VM::CompileSource(const char* strModule, const char* strSource, bool bIsExpression, bool bPrintErrors)
@@ -456,9 +479,10 @@ static bool ValueIsNumber(Value oNumber)
     return false;
 }
 
-InterpretResult VM::run()
+InterpretResult VM::run(ObjectFiber* pFiber)
 {
-    CallFrame *frame = &frames[frameCount - 1];
+    m_pCurrentFiber = pFiber;
+    CallFrame *frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
 
 #define READ_BYTE() (*frame->ip++)
 #define READ_CONSTANT()                                                        \
@@ -483,7 +507,7 @@ InterpretResult VM::run()
             return result;
 #ifdef DEBUG_TRACE_EXECUTION
         printf("          ");
-        for (Value *pSlot = stack; pSlot < stackTop; pSlot++) {
+        for (Value *pSlot = m_pCurrentFiber->m_vStack; pSlot < m_pCurrentFiber->m_pStackTop; pSlot++) {
             printf("[ ");
             PrintValue(*pSlot);
             printf(" ]");
@@ -711,7 +735,7 @@ InterpretResult VM::run()
                 } else
                     PrintValue(Peek(--iTempArgCount));
             }
-            stackTop -= iArgCount;
+            m_pCurrentFiber->m_pStackTop -= iArgCount;
             break;
         }
 
@@ -744,7 +768,7 @@ InterpretResult VM::run()
             int iArgCount = READ_BYTE();
             if (!CallValue(Peek(iArgCount), iArgCount))
                 return INTERPRET_RUNTIME_ERROR;
-            frame = &frames[frameCount - 1];
+            frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
             break;
         }
 
@@ -779,7 +803,7 @@ InterpretResult VM::run()
             if (!Invoke(pMethod, iArgCount)) {
                 return INTERPRET_RUNTIME_ERROR;
             }
-            frame = &frames[frameCount - 1];
+            frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
             break;
         }
 
@@ -790,7 +814,7 @@ InterpretResult VM::run()
             if (!InvokeFromClass(pSuperclass, pMethod, iArgCount)) {
                 return INTERPRET_RUNTIME_ERROR;
             }
-            frame = &frames[frameCount - 1];
+            frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
             break;
         }
 
@@ -811,7 +835,7 @@ InterpretResult VM::run()
         }
 
         case OP_CLOSE_UPVALUE:
-            CloseUpvalues(stackTop - 1);
+            CloseUpvalues(m_pCurrentFiber->m_pStackTop - 1);
             Pop();
             break;
 
@@ -831,7 +855,7 @@ InterpretResult VM::run()
             if (Fox_IsClosure(Peek(0)))
             {
                 CallFunction(Fox_AsClosure(Peek(0)), 0);
-                frame = &frames[frameCount - 1];
+                frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
             }
             else
             {
@@ -845,21 +869,52 @@ InterpretResult VM::run()
 
         case OP_RETURN: {
             Value oResult = Pop();
+            // Close any upvalues still in scope.
             CloseUpvalues(frame->slots);
-            frameCount--;
-            if (frameCount <= 0)
+            m_pCurrentFiber->m_iFrameCount--;
+            // If the fiber is complete, end it.
+            if (m_pCurrentFiber->m_iFrameCount <= 0)
+            {
+                if (m_pCurrentFiber->m_pCaller == nullptr)
+                {
+            std::cout << "Caller0!!" << std::endl;
+                    // Store the final result value at the beginning of the stack so the
+                    // C API can get it.
+                    Pop();
+                    m_pCurrentFiber->m_iFrameCount = 0;
+                    m_pCurrentFiber->m_vStack[0] = oResult;
+                    m_pCurrentFiber->m_pStackTop = m_pCurrentFiber->m_vStack + 1;
+                    return INTERPRET_OK;
+                }
+            std::cout << "Caller1!!" << std::endl;
+                Pop();
+
+                ObjectFiber* pResumingFiber = m_pCurrentFiber->m_pCaller;
+                m_pCurrentFiber->m_pCaller = nullptr;
+                pFiber = pResumingFiber;
+                m_pCurrentFiber = pResumingFiber;
+            
+                // Store the result in the resuming fiber.
+                m_pCurrentFiber->m_pStackTop[-1] = oResult;
+
+                // m_pCurrentFiber->m_pStackTop = frame->slots;
+                // Push(oResult);
+            }
+            else
             {
                 Pop();
-                frameCount = 0;
-                stack[0] = oResult;
-                stackTop = stack + 1;
-                return INTERPRET_OK;
+                std::cout << "Caller2!!" << std::endl;
+                // Store the result of the block in the first slot, which is where the
+                // caller expects it.
+                m_pCurrentFiber->m_vStack[0] = oResult;
+
+                // Discard the stack slots for the call frame (leaving one slot for the
+                // result).
+                m_pCurrentFiber->m_pStackTop = m_pCurrentFiber->m_vStack + 1;
             }
 
-            stackTop = frame->slots;
-            Push(oResult);
-
-            frame = &frames[frameCount - 1];
+            frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
+            std::cout << "Caller3!!" << std::endl;
             break;
         }
 
@@ -869,7 +924,7 @@ InterpretResult VM::run()
         }
 
         case OP_END_MODULE:
-            currentModule = frames[frameCount - 1].closure->function->module;
+            currentModule = m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1].closure->function->module;
             // Push(Fox_Nil);
             break;
 
@@ -887,7 +942,6 @@ InterpretResult VM::run()
 
             if (!Fox_IsObject(oSubscriptValue))
             {
-                frame->ip = ip;
                 RuntimeError("Can only subscript on pArrays, strings or maps.");
                 return INTERPRET_RUNTIME_ERROR;
             }
@@ -961,7 +1015,6 @@ InterpretResult VM::run()
 
                 default:
                 {
-                    frame->ip = ip;
                     RuntimeError("Can only subscript on pArrays, strings or dictionaries.");
                     return INTERPRET_RUNTIME_ERROR;
                 }
@@ -1085,7 +1138,7 @@ InterpretResult VM::run()
                 pArray->m_vValues.push_back(Peek(i));
             }
 
-            stackTop -= iArgCount;
+            m_pCurrentFiber->m_pStackTop -= iArgCount;
 
             Pop();
 
@@ -1106,7 +1159,7 @@ InterpretResult VM::run()
                 pMap->m_vValues.Set(Peek(i), Peek(i - 1));
             }
 
-            stackTop -= iArgCount;
+            m_pCurrentFiber->m_pStackTop -= iArgCount;
 
             Pop();
 
@@ -1136,13 +1189,13 @@ void VM::Concatenate() {
 
 void VM::AddToRoots()
 {
-    for (Value *slot = stack; slot < stackTop; slot++)
+    for (Value *slot = m_pCurrentFiber->m_vStack; slot < m_pCurrentFiber->m_pStackTop; slot++)
         AddValueToRoot(*slot);
 
-    for (int i = 0; i < frameCount; i++)
-        AddObjectToRoot(frames[i].closure);
+    for (int i = 0; i < m_pCurrentFiber->m_iFrameCount; i++)
+        AddObjectToRoot(m_pCurrentFiber->m_vFrames[i].closure);
 
-    for (ObjectUpvalue *upvalue = openUpvalues; upvalue != NULL; upvalue = upvalue->next)
+    for (ObjectUpvalue *upvalue = m_pCurrentFiber->m_vOpenUpvalues; upvalue != NULL; upvalue = upvalue->next)
         AddObjectToRoot(upvalue);
 
     for (auto& handle : m_vHandles)
@@ -1481,15 +1534,16 @@ InterpretResult VM::Call(Handle* pMethod)
     FOX_ASSERT(pMethod != NULL, "Method cannot be NULL.");
     FOX_ASSERT(Fox_IsClosure(pMethod->value), "Method must be a method handle.");
     FOX_ASSERT(m_pApiStack != NULL, "Must set up arguments for call first.");
+    FOX_ASSERT(m_pCurrentFiber != NULL, "Must set up arguments for call first.");
     
     ObjectClosure* closure = Fox_AsClosure(pMethod->value);
 
-    FOX_ASSERT(stackTop - m_pApiStack >= closure->function->arity, "Stack must have enough arguments for method.");
+    FOX_ASSERT(m_pCurrentFiber->m_pStackTop - m_pApiStack >= closure->function->arity, "Stack must have enough arguments for method.");
 
     m_pApiStack = NULL;
     CallFunction(closure, closure->function->arity);
-    InterpretResult result = run();
-    m_pApiStack = stack;
+    InterpretResult result = run(m_pCurrentFiber);
+    m_pApiStack = m_pCurrentFiber->m_vStack;
     return result;
 }
 
@@ -1587,7 +1641,7 @@ void VM::ReleaseHandle(Handle* handle)
 int VM::GetSlotCount()
 {
     if (m_pApiStack == NULL) return 0;
-    return (int)(stackTop - m_pApiStack);
+    return (int)(m_pCurrentFiber->m_pStackTop - m_pApiStack);
 }
 
 void VM::EnsureSlots(int numSlots)
@@ -1595,7 +1649,7 @@ void VM::EnsureSlots(int numSlots)
     for (int i = 0; i < numSlots; i++)
         Push(Fox_Nil);
 
-    m_pApiStack = stackTop - numSlots;
+    m_pApiStack = m_pCurrentFiber->m_pStackTop - numSlots;
 }
 
 // Ensures that [slot] is a valid index into the API's stack of slots.

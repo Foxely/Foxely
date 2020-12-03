@@ -91,6 +91,7 @@ Parser::Parser(VM* pVm)
     oLexer.Define(TOKEN_RETURN, "return");
     oLexer.Define(TOKEN_VAR, "var");
     oLexer.Define(TOKEN_WHILE, "while");
+    oLexer.Define(TOKEN_SWITCH, "switch");
     oLexer.Define(TOKEN_BANG, "!");
     oLexer.Define(TOKEN_BANG_EQUAL, "!=");
     oLexer.Define(TOKEN_CLASS, "class");
@@ -154,6 +155,7 @@ Parser::Parser(VM* pVm)
     rules[TOKEN_TRUE] = { Literal, NULL, PREC_NONE };
     rules[TOKEN_VAR] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_WHILE] = { NULL, NULL, PREC_NONE };
+    rules[TOKEN_SWITCH] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_COLON] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_DOUBLE_COLON] = { NULL, NULL, PREC_NONE };
     // rules[TOKEN_ERROR] = { NULL, NULL, PREC_NONE };

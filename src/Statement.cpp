@@ -5,6 +5,32 @@
 #include "gc.hpp"
 #include "statement.hpp"
 
+void Statement(Parser& parser)
+{
+	if (parser.Match(TOKEN_PRINT))
+		PrintStatement(parser);
+	else if (parser.Match(TOKEN_FOR))
+		ForStatement(parser);
+	else if (parser.Match(TOKEN_IF))
+		IfStatement(parser);
+	else if (parser.Match(TOKEN_RETURN))
+		ReturnStatement(parser);
+	else if (parser.Match(TOKEN_IMPORT))
+        ImportStatement(parser);
+	else if (parser.Match(TOKEN_WHILE))
+		WhileStatement(parser);
+	else if (parser.Match(TOKEN_SWITCH))
+		SwitchStatement(parser);
+	else if (parser.Match(TOKEN_LEFT_BRACE))
+	{
+		parser.BeginScope();
+		Block(parser);
+		parser.EndScope();
+	}
+	else
+		ExpressionStatement(parser);
+}
+
 void ReturnStatement(Parser& parser)
 {
     if (parser.currentCompiler->type == TYPE_SCRIPT)
@@ -39,44 +65,6 @@ void IfStatement(Parser& parser)
         Statement(parser);
 
     parser.PatchJump(else_jump);
-}
-
-void Statement(Parser& parser)
-{
-	if (parser.Match(TOKEN_PRINT))
-	{
-		PrintStatement(parser);
-	}
-	else if (parser.Match(TOKEN_FOR))
-	{
-		ForStatement(parser);
-	}
-	else if (parser.Match(TOKEN_IF))
-	{
-		IfStatement(parser);
-	}
-	else if (parser.Match(TOKEN_RETURN))
-	{
-		ReturnStatement(parser);
-	}
-	else if (parser.Match(TOKEN_IMPORT))
-	{
-        ImportStatement(parser);
-	}
-	else if (parser.Match(TOKEN_WHILE))
-	{
-		WhileStatement(parser);
-	}
-	else if (parser.Match(TOKEN_LEFT_BRACE))
-	{
-		parser.BeginScope();
-		Block(parser);
-		parser.EndScope();
-	}
-	else
-	{
-		ExpressionStatement(parser);
-	}
 }
 
 void ImportStatement(Parser& parser)
@@ -182,4 +170,27 @@ void ForStatement(Parser& parser)
         parser.EmitByte(OP_POP);
     }
     parser.EndScope();
+}
+
+void SwitchStatement(Parser& parser)
+{
+    int loop_start = parser.GetCurrentChunk()->m_iCount;
+    parser.Consume(TOKEN_LEFT_PAREN, "Expect '(' after 'switch'.");
+    Expression(parser);
+    parser.Consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+
+    int exit_jump = parser.EmitJump(OP_JUMP);
+    parser.EmitByte(OP_POP);
+    parser.Consume(TOKEN_LEFT_BRACE, "Expect '{' after condition.");
+    if (parser.Match(TOKEN_CASE))
+    {
+        Expression(parser);
+        parser.Consume(TOKEN_COLON, "Expect ':' after case.");
+    }
+    // Statement(parser);
+    parser.EmitLoop(loop_start);
+    parser.PatchJump(exit_jump);
+    parser.EmitByte(OP_POP);
+
+    parser.Consume(TOKEN_LEFT_BRACE, "Expect '}' after switch block.");
 }

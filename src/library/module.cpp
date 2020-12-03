@@ -16,16 +16,16 @@ Value importNative(VM* oVM, int argCount, Value* args)
 	std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
     t.close();
 
-    Chunk oChunk;
-	ObjectFunction *function = Compile(oVM->m_oParser, str.c_str(), &oChunk);
-    if (function == NULL)
-        return Fox_Nil;
-    oVM->Push(Fox_Object(function));
-    ObjectClosure *closure = oVM->gc.New<ObjectClosure>(oVM, function);
-    oVM->Pop();
-    oVM->CallFunction(closure, 0);
-    CallFrame *frame = &oVM->frames[oVM->frameCount - 1];
-    frame = &oVM->frames[oVM->frameCount - 1];
+    // Chunk oChunk;
+	// ObjectFunction *function = Compile(oVM->m_oParser, str.c_str(), &oChunk);
+    // if (function == NULL)
+    //     return Fox_Nil;
+    // oVM->Push(Fox_Object(function));
+    // ObjectClosure *closure = oVM->gc.New<ObjectClosure>(oVM, function);
+    // oVM->Pop();
+    // oVM->CallFunction(closure, 0);
+    // CallFrame *frame = &oVM->frames[oVM->frameCount - 1];
+    // frame = &oVM->frames[oVM->frameCount - 1];
     return Fox_Nil;
 }
 
