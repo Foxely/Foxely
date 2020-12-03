@@ -109,16 +109,16 @@ Value toStringNative(VM* pVM, int argCount, Value* args)
 
     std::string string;
 
-    string += "[";
+    // string += "[";
     int size = pArray->m_vValues.size();
     for (auto& it : pArray->m_vValues)
     {
         size--;
         string += ValueToString(it);
         if (size > 0)
-            string += ", ";
+            string += ",";
     }
-    string += "]";
+    // string += "]";
 
     return Fox_NewString(pVM, string.c_str());
 }

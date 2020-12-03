@@ -53,7 +53,7 @@ Value exitNative(VM* oVM, int argCount, Value* args)
 
 Value argsNative(VM* oVM, int argCount, Value* args)
 {
-        Fox_FixArity(oVM, argCount, 0);
+    Fox_FixArity(oVM, argCount, 0);
     Value oArray = Fox_NewArray(oVM);
     ObjectArray* pArray = Fox_AsArray(oArray);
     std::vector<Value> vValues;
@@ -78,5 +78,5 @@ void DefineOSModule(VM* oVM)
 	};
 
     oVM->DefineModule("os");
-    oVM->DefineClass("os", "os", methods);
+    oVM->DefineLib("os", "os", methods);
 }

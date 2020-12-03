@@ -127,6 +127,10 @@ void runFile(int ac, char** av, const char* path)
     oVM.DefineModule("main");
     oVM.DefineClass("main", "Test", testMethods);
     DefineIOModule(&oVM);
+    DefineOSModule(&oVM);
+    DefineMathModule(&oVM);
+    DefineModuleModule(&oVM);
+    DefinePathModule(&oVM);
 
     InterpretResult result = INTERPRET_OK;
     result = oVM.Interpret("main", str.c_str());

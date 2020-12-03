@@ -7,6 +7,7 @@ void DefineIOModule(VM* oVM);
 void DefineMathModule(VM* oVM);
 void DefineModuleModule(VM* oVM);
 void DefineOSModule(VM* oVM);
+void DefinePathModule(VM* oVM);
 
 
 void DefineCoreArray(VM* oVM);

@@ -26,8 +26,6 @@ VM::VM() : gc(this), m_oParser(this), modules()
     initString = Fox_AsString(NewString("init"));
     DefineCoreArray(this);
     DefineCoreString(this);
-    // ModulePlugin module(this);
-    // DefineLib(module.GetClassName(), module.m_oMethods);
     // DefineNative("clock", clockNative);
 }
 
