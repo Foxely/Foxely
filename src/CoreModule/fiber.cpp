@@ -18,6 +18,7 @@ Value callNative(VM* pVM, int argCount, Value* args)
 
     ObjectFiber* pFiber = Fox_AsFiber(args[-1]);
 
+    std::cerr << "Call1" << std::endl;
 
     // if (wrenHasError(fiber))
     //     RETURN_ERROR_FMT("Cannot $ an aborted fiber.", verb);
@@ -28,7 +29,8 @@ Value callNative(VM* pVM, int argCount, Value* args)
         // which is why this check is gated on `isCall`. This way, after resuming a
         // suspended fiber, it will run and then return to the fiber that called it
         // and so on.
-        // if (pFiber->m_pCaller != NULL) RETURN_ERROR("Fiber has already been called.");
+        if (pFiber->m_pCaller != nullptr) //RETURN_ERROR("Fiber has already been called.");
+            return Fox_Nil;
 
         // if (pFiber->state == FIBER_ROOT) RETURN_ERROR("Cannot call root fiber.");
         
@@ -36,10 +38,9 @@ Value callNative(VM* pVM, int argCount, Value* args)
         pFiber->m_pCaller = pVM->m_pCurrentFiber;
     // }
 
-    // if (pFiber->m_iFrameCount == 0)
-    // {
-    //     RETURN_ERROR_FMT("Cannot $ a finished fiber.", verb);
-    // }
+    if (pFiber->m_iFrameCount == 0)
+        return Fox_Nil;
+        // RETURN_ERROR_FMT("Cannot $ a finished fiber.", verb);
 
     // When the calling fiber resumes, we'll store the result of the call in its
     // stack. If the call has two arguments (the fiber and the value), we only
@@ -65,8 +66,9 @@ Value callNative(VM* pVM, int argCount, Value* args)
         // pFiber->m_pStackTop[-1] = hasValue ? args[1] : Fox_Nil;
     }
 
-    // pVM->m_pCurrentFiber = pFiber;
-    pVM->run(pFiber);
+    pVM->m_pCurrentFiber = pFiber;
+    // pVM->run(pFiber);
+    std::cerr << "Call End" << std::endl;
     return Fox_Nil;
 }
 

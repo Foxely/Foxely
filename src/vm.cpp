@@ -28,12 +28,8 @@ VM::VM() : gc(this), m_oParser(this), modules()
     initString = Fox_AsString(NewString("init"));
     DefineCoreArray(this);
     DefineCoreString(this);
-<<<<<<< HEAD
-    // DefineNative("clock", clockNative);
-=======
     DefineCoreMap(this);
     DefineCoreFiber(this);
->>>>>>> ea84aabfcfdd4ce211324c6c24d237915a741c92
 }
 
 VM::~VM()
@@ -445,7 +441,7 @@ InterpretResult VM::Interpret(const char* strModule, const char* strSource)
     // The first slot always holds the closure.
     m_pCurrentFiber->m_pStackTop[0] = Fox_Object(pClosure);
     m_pCurrentFiber->m_pStackTop++;
-    pFrame->slots = m_pCurrentFiber->m_pStackTop - 1;
+    // pFrame->slots = m_pCurrentFiber->m_pStackTop - 1;
     Pop(); // closure.
     // m_pApiStack = NULL;
     // CallValue(Fox_Object(pClosure), 0);
@@ -506,7 +502,8 @@ InterpretResult VM::run(ObjectFiber* pFiber)
         Push(Fox_##ValueType(a op b));                                       \
     } while (false)
 
-    while (true) {
+    while (true)
+    {
         if (result == INTERPRET_RUNTIME_ERROR)
             return result;
 #ifdef DEBUG_TRACE_EXECUTION
@@ -807,6 +804,7 @@ InterpretResult VM::run(ObjectFiber* pFiber)
             if (!Invoke(pMethod, iArgCount)) {
                 return INTERPRET_RUNTIME_ERROR;
             }
+            std::cout << "FrameCount: " << m_pCurrentFiber->m_iFrameCount << std::endl;
             frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
             break;
         }
@@ -890,9 +888,8 @@ InterpretResult VM::run(ObjectFiber* pFiber)
                     m_pCurrentFiber->m_pStackTop = m_pCurrentFiber->m_vStack + 1;
                     return INTERPRET_OK;
                 }
-            std::cout << "Caller1!!" << std::endl;
-                Pop();
-
+                
+                // Pop();
                 ObjectFiber* pResumingFiber = m_pCurrentFiber->m_pCaller;
                 m_pCurrentFiber->m_pCaller = nullptr;
                 pFiber = pResumingFiber;

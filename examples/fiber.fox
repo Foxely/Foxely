@@ -10,3 +10,5 @@ fiber: var = Fiber(call);
 
 fiber.call();
 print "Calledd!!\n";
+fiber.call();
+print "Calledd!!\n";
