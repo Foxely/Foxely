@@ -3,6 +3,7 @@
 #include <set>
 #include <string>
 #include <utility>
+#include <vector>
 
 #define GC_HEAP_GROW_FACTOR 2
 
@@ -94,12 +95,11 @@ public:
 
 	template <typename T, typename... Args>
 	T* New(Args&&... args);
-	template <class T> T* New();
-
+	template <class T>
+    T* New();
 	template <class T>
 	T* NewArray(size_t count);
 };
-
 
 template <typename T, typename... Args>
 inline T* GC::New(Args&&... args)
@@ -118,7 +118,8 @@ inline T* GC::New(Args&&... args)
     return pObject;
 }
 
-template <class T> inline T* GC::New()
+template <class T>
+inline T* GC::New()
 {
     T* pObject = new T();
 

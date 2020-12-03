@@ -6,7 +6,8 @@
 #include "common.h"
 #include "value.hpp"
 
-typedef enum {
+typedef enum
+{
     OP_CONST,
     OP_NIL,
     OP_TRUE,
@@ -49,11 +50,10 @@ typedef enum {
     OP_SUBSCRIPT,
     OP_ARRAY,
     OP_ADD_LIST,
+    OP_SLICE,
     
     OP_MAP,
     OP_ADD_MAP,
-
-    OP_FOREIGN,
 
     OP_END_MODULE,
     OP_END,

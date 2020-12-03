@@ -12,5 +12,7 @@ void DefinePathModule(VM* oVM);
 
 void DefineCoreArray(VM* oVM);
 void DefineCoreString(VM* oVM);
+void DefineCoreMap(VM* pVM);
+void DefineCoreFiber(VM* pVM);
 
 #endif

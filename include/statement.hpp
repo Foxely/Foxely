@@ -9,3 +9,6 @@ void WhileStatement(Parser& parser);
 void for_loop(Parser& parser, int *exit_jump);
 void for_increment(Parser& parser, int *loop_start);
 void ImportStatement(Parser& parser);
+void SwitchStatement(Parser& parser);
+void ReturnStatement(Parser& parser);
+void IfStatement(Parser& parser);

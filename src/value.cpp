@@ -160,8 +160,25 @@ std::string ObjectToString(Value value)
 			break;
         }
         case OBJ_MAP:
-            string += "Map";
+        {
+            ObjectMap* pMap = Fox_AsMap(value);
+            string += "{";
+            int size = pMap->m_vValues.Size();
+            for (auto& it : pMap->m_vValues.m_vEntries)
+            {
+                if (!(it.m_oKey == Fox_Nil) && !(it.m_oValue == Fox_Nil))
+                {
+                    size--;
+                    string += ValueToString(it.m_oKey);
+                    string += ": ";
+                    string += ValueToString(it.m_oValue);
+                    if (size > 0)
+                        string += ", ";
+                }
+            }
+            string += "}";
 			break;
+        }
         case OBJ_HANDLE:
             string += "Handle";
 			break;

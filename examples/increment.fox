@@ -1,0 +1,21 @@
+
+
+i: var = 0;
+print "i = %\n", i++;
+print "i = %\n", i;
+print "i = %\n", ++i;
+print "i = %\n", i;
+
+j: var = 0;
+print "j = %\n", j--;
+print "j = %\n", j;
+print "j = %\n", --j;
+print "j = %\n", j;
+
+/*
+for (i: var = 0; i < 3; i++)
+    print "AHAHA!!\n";
+
+for (i: var = 3; i > 0; i--)
+    print "--AHAHA!!\n";
+*/

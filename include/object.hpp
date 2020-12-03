@@ -37,6 +37,7 @@ class VM;
 #define Fox_IsNative(val)        is_obj_type(val, OBJ_NATIVE)
 #define Fox_IsString(val)        is_obj_type(val, OBJ_STRING)
 #define Fox_IsModule(val)        is_obj_type(val, OBJ_MODULE)
+#define Fox_IsFiber(val)        is_obj_type(val, OBJ_FIBER)
 
 #define Fox_AsMap(val)           ((ObjectMap *)Fox_AsObject(val))
 #define Fox_AsArray(val)           ((ObjectArray *)Fox_AsObject(val))
@@ -51,6 +52,7 @@ class VM;
 #define Fox_AsString(val)        	((ObjectString *)Fox_AsObject(val))
 #define Fox_AsCString(val)       	(((ObjectString *)Fox_AsObject(val))->string.c_str())
 #define Fox_AsModule(val)       	((ObjectModule *)Fox_AsObject(val))
+#define Fox_AsFiber(val)       	    ((ObjectFiber *)Fox_AsObject(val))
 
 typedef enum {
     OBJ_UNKNOWN,
@@ -68,15 +70,16 @@ typedef enum {
     OBJ_UPVALUE,
     OBJ_MODULE,
     OBJ_HANDLE,
+    OBJ_FIBER,
 } ObjType;
 
+struct CallFrame;
 
 
 class Object : public Traceable
 {
 public:
     ObjType type;
-    bool bIsForeign;
 
     bool operator==(const Object& other) const
     {
@@ -344,5 +347,75 @@ static inline bool is_obj_type(Value val, ObjType type)
 {
     return Fox_IsObject(val) && Fox_AsObject(val)->type == type;
 }
+
+#define UINT8_COUNT (UINT8_MAX + 1)
+#define FRAMES_MAX 64
+#define STACK_MAX (FRAMES_MAX * UINT8_COUNT)
+
+struct CallFrame
+{
+	ObjectClosure* closure;
+	std::vector<uint8_t>::iterator ip;
+	Value* slots;
+};
+
+class ObjectFiber : public Object
+{
+public:
+    explicit ObjectFiber(ObjectClosure* pClosure)
+	{
+		type = OBJ_FIBER;
+        m_pStackTop = m_vStack;
+        m_iFrameCount = 0;
+
+        m_vOpenUpvalues = nullptr;
+        m_pCaller = nullptr;
+        m_oError = Fox_Nil;
+        // fiber->state = FIBER_OTHER;
+        
+        if (pClosure != nullptr)
+        {
+            // Initialize the first call frame.
+            CallFrame *pFrame = &m_vFrames[m_iFrameCount++];
+            pFrame->closure = pClosure;
+            pFrame->ip = pClosure->function->chunk.m_vCode.begin();
+
+            // The first slot always holds the closure.
+            m_pStackTop[0] = Fox_Object(pClosure);
+            m_pStackTop++;
+            pFrame->slots = m_pStackTop - 1;
+        }
+	}
+
+    // The stack of value slots. This is used for holding local variables and
+    // temporaries while the fiber is executing. It is heap-allocated and grown
+    // as needed.
+    Value m_vStack[STACK_MAX];
+    
+    // A pointer to one past the top-most value on the stack.
+    Value* m_pStackTop;
+    
+    // The stack of call frames. This is a dynamic array that grows as needed but
+    // never shrinks.
+    CallFrame m_vFrames[FRAMES_MAX];
+    
+    // The number of frames currently in use in [frames].
+    int m_iFrameCount;
+    
+    // Pointer to the first node in the linked list of open upvalues that are
+    // pointing to values still on the stack. The head of the list will be the
+    // upvalue closest to the top of the stack, and then the list works downwards.
+    ObjectUpvalue* m_vOpenUpvalues;
+    
+    // The fiber that ran this one. If this fiber is yielded, control will resume
+    // to this one. May be `NULL`.
+    ObjectFiber* m_pCaller;
+    
+    // If the fiber failed because of a runtime error, this will contain the
+    // error object. Otherwise, it will be null.
+    Value m_oError;
+    
+    // FiberState state;
+};
 
 #endif
