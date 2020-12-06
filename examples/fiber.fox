@@ -1,14 +1,46 @@
 
 import "core";
 
-call :: func()
+callWith :: func(prints)
 {
-    print "Called!!\n";
+    print "Print = %\n", prints;
+    print "Before Yield!!\n";
+    Fiber.yield("yo!");
+    print "Print = %\n", prints;
+    print "After Yield!!\n";
+    Fiber.yield("yoo!");
+    print "End Yield!!\n";
+    return 10;
 }
 
-fiber: var = Fiber(call);
+callWithout :: func()
+{
+    print "Before Yield!!\n";
+    Fiber.yield("yo!");
+    print "After Yield!!\n";
+    Fiber.yield("yoo!");
+    print "End Yield!!\n";
+    return true;
+}
 
-fiber.call();
-print "Calledd!!\n";
-fiber.call();
-print "Calledd!!\n";
+fiber: var = Fiber.new(callWith);
+fiber2: var = Fiber.new(callWithout);
+
+print "\n ----With arguments------- \n";
+
+print "Before!!\n";
+print "%\n", fiber.call("lala");
+print "After!!\n";
+print "%\n", fiber.call("lolo");
+print "Finished!!\n";
+print "Return = %\n", fiber.call("lala");
+
+print "\n ----Without arguments------- \n";
+
+print "Before!!\n";
+print "%\n", fiber2.call();
+print "After!!\n";
+print "%\n", fiber2.call();
+print "Finished!!\n";
+print "Return = %\n", fiber2.call();
+// Fiber.abort();

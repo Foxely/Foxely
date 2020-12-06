@@ -74,6 +74,31 @@ bool IsFalsey(Value oValue) {
 
 void VM::RuntimeError(const char *format, ...)
 {
+    // ASSERT(wrenHasError(vm->fiber), "Should only call this after an error.");
+
+    ObjectFiber* pCurrent = m_pCurrentFiber;
+    Value oError = pCurrent->m_oError;
+
+    while (pCurrent != NULL)
+    {
+        // Every fiber along the call chain gets aborted with the same error.
+        pCurrent->m_oError = oError;
+
+        // If the caller ran this fiber using "try", give it the error and stop.
+        // if (pCurrent->state == FIBER_TRY)
+        // {
+        //     // Make the caller's try method return the error message.
+        //     pCurrent->m_pCaller->stackTop[-1] = vm->fiber->m_oError;
+        //     m_pCurrentFiber = pCurrent->caller;
+        //     return;
+        // }
+        
+        // Otherwise, unhook the caller since we will never resume and return to it.
+        ObjectFiber* pCaller = pCurrent->m_pCaller;
+        pCurrent->m_pCaller = nullptr;
+        pCurrent = pCaller;
+    }
+    
     va_list args;
     va_start(args, format);
     vfprintf(stderr, format, args);
@@ -98,13 +123,55 @@ void VM::RuntimeError(const char *format, ...)
     result = InterpretResult::INTERPRET_RUNTIME_ERROR;
 }
 
+void VM::PrintError(ObjectFiber* pFiber, const char *format, ...)
+{
+    std::string strMsg;
+    if (result == INTERPRET_ABORT)
+    {
+        strMsg += "[ABORT] ";
+        strMsg += format;
+    }
+
+    va_list args;
+    va_start(args, strMsg.c_str());
+    vfprintf(stderr, strMsg.c_str(), args);
+    va_end(args);
+    fputs("\n", stderr);
+
+    for (int i = pFiber->m_iFrameCount - 1; i >= 0; i--)
+    {
+        CallFrame *frame = &pFiber->m_vFrames[i];
+        ObjectFunction *function = frame->closure->function;
+
+        // -1 because the IP is sitting on the next instruction to be executed.
+        size_t instruction = frame->ip - function->chunk.m_vCode.begin() - 1;
+        fprintf(stderr, "[line %d] in ", function->chunk.m_vLines[instruction]);
+        if (function->name == NULL)
+            fprintf(stderr, "script\n");
+        else
+            fprintf(stderr, "%s()\n", function->name->string.c_str());
+    }
+
+    // ResetStack();
+    // result = InterpretResult::INTERPRET_RUNTIME_ERROR;
+}
+
 bool VM::CallFunction(ObjectClosure *pClosure, int iArgCount)
 {
     // Check the number of args pass to the function call
-    if (iArgCount != pClosure->function->arity) {
+    if (iArgCount < pClosure->function->iMinArity) {
         RuntimeError(
             "Expected %d arguments but got %d.",
-            pClosure->function->arity,
+            pClosure->function->iMinArity,
+            iArgCount);
+        return false;
+    }
+
+    if (iArgCount > pClosure->function->iMaxArity)
+    {
+        RuntimeError(
+            "Expected %d arguments but got %d.",
+            pClosure->function->iMaxArity,
             iArgCount);
         return false;
     }
@@ -439,10 +506,8 @@ InterpretResult VM::Interpret(const char* strModule, const char* strSource)
     pFrame->ip = pClosure->function->chunk.m_vCode.begin();
     
     // The first slot always holds the closure.
-    m_pCurrentFiber->m_pStackTop[0] = Fox_Object(pClosure);
-    m_pCurrentFiber->m_pStackTop++;
-    // pFrame->slots = m_pCurrentFiber->m_pStackTop - 1;
-    Pop(); // closure.
+    pFrame->slots = m_pCurrentFiber->m_pStackTop - 1;
+    // Pop(); // closure.
     // m_pApiStack = NULL;
     // CallValue(Fox_Object(pClosure), 0);
 
@@ -505,6 +570,8 @@ InterpretResult VM::run(ObjectFiber* pFiber)
     while (true)
     {
         if (result == INTERPRET_RUNTIME_ERROR)
+            return result;
+        if (result == INTERPRET_ABORT)
             return result;
 #ifdef DEBUG_TRACE_EXECUTION
         printf("          ");
@@ -618,7 +685,8 @@ InterpretResult VM::run(ObjectFiber* pFiber)
             break;
         }
 
-        case OP_SET_PROPERTY: {
+        case OP_SET_PROPERTY:
+        {
             if (!Fox_IsInstance(Peek(1)))
             {
                 RuntimeError("Only instances have fields.");
@@ -746,7 +814,8 @@ InterpretResult VM::run(ObjectFiber* pFiber)
             break;
         }
 
-        case OP_JUMP: {
+        case OP_JUMP:
+        {
             uint16_t uOffset = READ_SHORT();
             frame->ip += uOffset;
             break;
@@ -759,7 +828,8 @@ InterpretResult VM::run(ObjectFiber* pFiber)
             break;
         }
 
-        case OP_LOOP: {
+        case OP_LOOP:
+        {
             uint16_t uOffset = READ_SHORT();
             frame->ip -= uOffset;
             break;
@@ -804,7 +874,6 @@ InterpretResult VM::run(ObjectFiber* pFiber)
             if (!Invoke(pMethod, iArgCount)) {
                 return INTERPRET_RUNTIME_ERROR;
             }
-            std::cout << "FrameCount: " << m_pCurrentFiber->m_iFrameCount << std::endl;
             frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
             break;
         }
@@ -869,7 +938,8 @@ InterpretResult VM::run(ObjectFiber* pFiber)
             break;
         }
 
-        case OP_RETURN: {
+        case OP_RETURN:
+        {
             Value oResult = Pop();
             // Close any upvalues still in scope.
             CloseUpvalues(frame->slots);
@@ -879,7 +949,6 @@ InterpretResult VM::run(ObjectFiber* pFiber)
             {
                 if (m_pCurrentFiber->m_pCaller == nullptr)
                 {
-            std::cout << "Caller0!!" << std::endl;
                     // Store the final result value at the beginning of the stack so the
                     // C API can get it.
                     Pop();
@@ -903,19 +972,20 @@ InterpretResult VM::run(ObjectFiber* pFiber)
             }
             else
             {
-                Pop();
-                std::cout << "Caller2!!" << std::endl;
+                // Pop();
                 // Store the result of the block in the first slot, which is where the
                 // caller expects it.
-                m_pCurrentFiber->m_vStack[0] = oResult;
+                // m_pCurrentFiber->m_vStack[0] = oResult;
+
+                m_pCurrentFiber->m_pStackTop = frame->slots;
+                Push(oResult);
 
                 // Discard the stack slots for the call frame (leaving one slot for the
                 // result).
-                m_pCurrentFiber->m_pStackTop = m_pCurrentFiber->m_vStack + 1;
+                // m_pCurrentFiber->m_pStackTop = m_pCurrentFiber->m_vStack + 1;
             }
 
             frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
-            std::cout << "Caller3!!" << std::endl;
             break;
         }
 

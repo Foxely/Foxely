@@ -123,6 +123,8 @@ class ObjectFunction : public Object
 {
 public:
     int arity;
+    int iMinArity;
+    int iMaxArity;
     int upValueCount;
     Chunk chunk;
     ObjectString *name;
@@ -381,11 +383,17 @@ public:
             pFrame->ip = pClosure->function->chunk.m_vCode.begin();
 
             // The first slot always holds the closure.
-            m_pStackTop[0] = Fox_Object(pClosure);
+            *m_pStackTop = Fox_Object(pClosure);
             m_pStackTop++;
-            pFrame->slots = m_pStackTop - 1;
+            pFrame->slots = m_pStackTop - pClosure->function->arity - 1;
         }
 	}
+
+    void SetSlot(int iArgCount)
+    {
+        CallFrame *pFrame = &m_vFrames[m_iFrameCount];
+        pFrame->slots = m_pStackTop - iArgCount - 1;
+    }
 
     // The stack of value slots. This is used for holding local variables and
     // temporaries while the fiber is executing. It is heap-allocated and grown

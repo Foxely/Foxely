@@ -18,6 +18,18 @@ extern "C"
 #define Fox_PanicIfNot(pVM, cond, msg, ...) if (!(cond)) { Fox_RuntimeError(pVM, msg, ##__VA_ARGS__); return Fox_Nil; }
 #define Fox_ApiPanicIfNot(pVM, cond, msg, ...) if (!(cond)) { Fox_ApiError(pVM, msg, ##__VA_ARGS__); exit(84); }
 
+#define Fox_Arity(pVM, argCount, min, max) \
+        if (argCount < min && argCount > max) { \
+            Fox_RuntimeError(pVM, "Expected [%d-%d] arguments but got %d.", min, max, argCount); \
+            return Fox_Nil; \
+        }
+
+#define Fox_FixArity(pVM, argCount, min) \
+        if (argCount != min) { \
+            Fox_RuntimeError(pVM, "Expected %d arguments but got %d.", min, argCount); \
+            return Fox_Nil; \
+        }
+
 	static inline Value Fox_NewString(VM* pVM, const char* str)
 	{
 		return Fox_Object(pVM->m_oParser.TakeString(str));
@@ -130,18 +142,6 @@ extern "C"
 	{
 		Fox_AsInstance(oInstance)->cStruct = data;
         return Fox_AsInstance(oInstance)->cStruct;
-	}
-
-    static inline void Fox_Arity(VM* pVM, int argCount, int min, int max)
-	{
-        if (argCount < min && argCount > max)
-            Fox_RuntimeError(pVM, "Expected [%d-%d] arguments but got %d.", min, max, argCount);
-	}
-
-    static inline void Fox_FixArity(VM* pVM, int argCount, int min)
-	{
-        if (argCount != min)
-            Fox_RuntimeError(pVM, "Expected %d arguments but got %d.", min, argCount);
 	}
 
     static inline Value Fox_NewArray(VM* pVM)

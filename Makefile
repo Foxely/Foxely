@@ -58,9 +58,16 @@ re: fclean all
 debug: fclean
 	make "BUILD=debug"
 
-example: re
+example:
+	make -sC examples
+
+example_debug:
+	make "BUILD=debug"
+	make debug -sC examples
+
+re_example: re
 	make re -sC examples
 
-example_debug: debug
+re_example_debug: debug
 	make fclean -sC examples
 	make debug -sC examples

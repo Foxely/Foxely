@@ -1,5 +1,10 @@
 
 
-test: var = Test();
+set :: func(value = 0)
+{
+    print "value = %",  value;
+}
 
-print "%\n", test.x = 11;
+set();
+set(10);
+set(10, 20); // Error: Expected 1 arguments but got 2.

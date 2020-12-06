@@ -871,13 +871,19 @@ void Function(Parser& parser, FunctionType type, const Token& name)
 		do
 		{
 			parser.currentCompiler->function->arity++;
+            parser.currentCompiler->function->iMinArity++;
+            parser.currentCompiler->function->iMaxArity++;
 			if (parser.currentCompiler->function->arity > 255)
-			{
 				parser.ErrorAtCurrent("Cannot have more than 255 parameters.");
-			}
 			parser.Consume(TOKEN_IDENTIFIER, "Expect parameter name.");
 			Token& name = (Token&) parser.PreviousToken();
 			uint8_t paramConstant = ParseVariable(parser, name, "Expect parameter name.");
+
+            if (parser.Match(TOKEN_EQUAL))
+            {
+                parser.currentCompiler->function->iMinArity--;
+                Expression(parser);
+            }
 			DefineVariable(parser, paramConstant);
 		} while (parser.Match(TOKEN_COMMA));
 	}

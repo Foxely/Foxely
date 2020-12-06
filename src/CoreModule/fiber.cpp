@@ -18,34 +18,44 @@ Value callNative(VM* pVM, int argCount, Value* args)
 
     ObjectFiber* pFiber = Fox_AsFiber(args[-1]);
 
-    std::cerr << "Call1" << std::endl;
+    bool hasValue = argCount > 0;
 
     // if (wrenHasError(fiber))
     //     RETURN_ERROR_FMT("Cannot $ an aborted fiber.", verb);
 
-    // if (isCall)
-    // {
-        // You can't call a called fiber, but you can transfer directly to it,
-        // which is why this check is gated on `isCall`. This way, after resuming a
-        // suspended fiber, it will run and then return to the fiber that called it
-        // and so on.
-        if (pFiber->m_pCaller != nullptr) //RETURN_ERROR("Fiber has already been called.");
-            return Fox_Nil;
-
-        // if (pFiber->state == FIBER_ROOT) RETURN_ERROR("Cannot call root fiber.");
-        
-        // Remember who ran it.
-        pFiber->m_pCaller = pVM->m_pCurrentFiber;
-    // }
-
-    if (pFiber->m_iFrameCount == 0)
+    // You can't call a called fiber, but you can transfer directly to it,
+    // which is why this check is gated on `isCall`. This way, after resuming a
+    // suspended fiber, it will run and then return to the fiber that called it
+    // and so on.
+    if (pFiber->m_pCaller != nullptr)
+    {
+        fprintf(stderr, "Fiber has already been called.\n");
         return Fox_Nil;
-        // RETURN_ERROR_FMT("Cannot $ a finished fiber.", verb);
+    }
+
+    if (pFiber->m_pCaller != nullptr)
+    {
+        fprintf(stderr, "Fiber has already been called.\n");
+        return Fox_Nil;
+    }
+
+    // if (pFiber->state == FIBER_ROOT) RETURN_ERROR("Cannot call root fiber.");
+    
+    // Remember who ran it.
+    pFiber->m_pCaller = pVM->m_pCurrentFiber;
+
+    if (pFiber->m_vFrames[0].closure->function->arity != argCount)
+    {
+        fprintf(stderr, "Fiber: <method call>: Expected %d arguments but got %d.\n",
+        pFiber->m_vFrames[0].closure->function->arity, argCount);
+        return Fox_Nil;
+    }
 
     // When the calling fiber resumes, we'll store the result of the call in its
     // stack. If the call has two arguments (the fiber and the value), we only
     // need one slot for the result, so discard the other slot now.
-    // if (hasValue) vm->fiber->m_pStackTop--;
+    if (hasValue)
+        pVM->m_pCurrentFiber->m_pStackTop--;
 
     if (pFiber->m_iFrameCount == 1 &&
         pFiber->m_vFrames[0].ip == pFiber->m_vFrames[0].closure->function->chunk.m_vCode.begin())
@@ -54,21 +64,73 @@ Value callNative(VM* pVM, int argCount, Value* args)
         // parameter, bind an argument to it.
         if (pFiber->m_vFrames[0].closure->function->arity == 1)
         {
-            // pFiber->m_pStackTop[0] = hasValue ? args[1] : Fox_Nil;
-            pFiber->m_pStackTop[0] = Fox_Nil;
             pFiber->m_pStackTop++;
+            pVM->m_pCurrentFiber = pFiber;
+            return hasValue ? args[0] : Fox_Nil;
         }
     }
     else
     {
-        // The fiber is being resumed, make yield() or transfer() return the result.
-        pFiber->m_pStackTop[-1] = Fox_Nil;
-        // pFiber->m_pStackTop[-1] = hasValue ? args[1] : Fox_Nil;
+        // Go to the first argument of the closure
+        pFiber->m_pStackTop -= argCount + 1;
+        // push the new arg in the first slot
+        *pFiber->m_pStackTop = args[0];
+        // advance all the arguments and add 2 more slots who it will be popped when exit this native function
+        pFiber->m_pStackTop += argCount + 2;
     }
 
     pVM->m_pCurrentFiber = pFiber;
-    // pVM->run(pFiber);
-    std::cerr << "Call End" << std::endl;
+    return Fox_Nil;
+}
+
+Value yieldNative(VM* pVM, int argCount, Value* args)
+{
+    Fox_Arity(pVM, argCount, 0, 1);
+
+    ObjectFiber* pCurrent = pVM->m_pCurrentFiber;
+    pVM->m_pCurrentFiber = pCurrent->m_pCaller;
+
+    // Unhook this fiber from the one that called it.
+    pCurrent->m_pCaller = nullptr;
+    // current->state = FIBER_OTHER;
+
+    if (pVM->m_pCurrentFiber != nullptr)
+    {
+        if (argCount == 0)
+        {
+            // Make the caller's run method return null.
+            // pVM->m_pCurrentFiber->m_pStackTop[0] = Fox_Nil;
+            return Fox_Nil;
+        }
+        else
+        {
+            // When the yielding fiber resumes, we'll store the result of the yield
+            // call in its stack. Since Fiber.yield(value) has two arguments (the Fiber
+            // class and the value) and we only need one slot for the result, discard
+            // the other slot now.
+            pCurrent->m_pStackTop--;
+            pVM->m_pCurrentFiber->m_pStackTop++;
+            return args[0];
+        }
+            // Make the caller's run method return the argument passed to yield.
+            // pVM->m_pCurrentFiber->m_pStackTop[-1] = args[0];
+    }
+    return Fox_Nil;
+}
+
+Value abortNative(VM* pVM, int argCount, Value* args)
+{
+    Fox_Arity(pVM, argCount, 0, 1);
+    Fox_PanicIfNot(pVM, Fox_IsString(args[0]), "Expect string type.");
+
+    pVM->result = INTERPRET_ABORT;
+    
+    if (argCount == 1)
+        pVM->PrintError(pVM->m_pCurrentFiber, Fox_AsCString(args[0]));
+    else
+        pVM->PrintError(pVM->m_pCurrentFiber, "");
+
+
     return Fox_Nil;
 }
 
@@ -76,7 +138,9 @@ void DefineCoreFiber(VM* pVM)
 {
     NativeMethods oMethods =
 	{
-		std::make_pair<std::string, NativeFn>("init", initNative),
+		std::make_pair<std::string, NativeFn>("new", initNative),
+		std::make_pair<std::string, NativeFn>("yield", yieldNative),
+		std::make_pair<std::string, NativeFn>("abort", abortNative),
 	};
 
     NativeMethods oBuiltInMethods =
@@ -84,6 +148,6 @@ void DefineCoreFiber(VM* pVM)
 		std::make_pair<std::string, NativeFn>("call", callNative),
 	};
 
-    pVM->DefineClass("core", "Fiber", oMethods);
+    pVM->DefineLib("core", "Fiber", oMethods);
     pVM->DefineBuiltIn(pVM->fiberMethods, oBuiltInMethods);
 }

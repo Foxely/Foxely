@@ -41,7 +41,8 @@ typedef enum
 {
 	INTERPRET_OK,
 	INTERPRET_COMPILE_ERROR,
-	INTERPRET_RUNTIME_ERROR
+	INTERPRET_RUNTIME_ERROR,
+	INTERPRET_ABORT
 } InterpretResult;
 
 using NativeMethods = std::map<std::string, NativeFn>;
@@ -49,14 +50,10 @@ using NativeMethods = std::map<std::string, NativeFn>;
 class VM
 {
 public:
-	// CallFrame frames[FRAMES_MAX];
-  	// int frameCount;
+	InterpretResult result;
 
     Chunk m_oChunk;
     ObjectFiber* m_pCurrentFiber;
-    // Value stack[STACK_MAX];
-    // Value* stackTop;
-	// ObjectUpvalue* openUpvalues;
     Value* m_pApiStack;
     Parser m_oParser;
 	Table strings;
@@ -91,6 +88,7 @@ public:
     Value Peek(int distance);
 	Value PeekStart(int distance);
     void RuntimeError(const char* format, ...);
+    void PrintError(ObjectFiber* pFiber, const char *format, ...);
 
     void EmitByte(uint8_t byte);
     void Concatenate();
@@ -161,9 +159,6 @@ public:
     InterpretResult run(ObjectFiber* pFiber);
 
 private:
-	static VM m_oInstance;
-
-	InterpretResult result;
 	bool isInit;
 };
 
