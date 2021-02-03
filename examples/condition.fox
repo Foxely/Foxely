@@ -1,0 +1,12 @@
+
+
+i := 4;
+if (i >= 35)
+{
+    print "is true\n";
+}
+
+print "Condition (a < b): %\n", 4 < 35;
+print "Condition (a > b): %\n", 4 > 35;
+print "Condition (a >= b): %\n", 4 >= 35;
+print "Condition (a =< b): %\n", 4 <= 35;

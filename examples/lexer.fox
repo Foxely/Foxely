@@ -1,6 +1,6 @@
 import "lexer";
 
-lex: var = Lexer();
+lex := Lexer();
 
 lex.Define("Identifier", "[a-zA-Z_]+[0-9]*", false);
 

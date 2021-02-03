@@ -1,0 +1,14 @@
+
+
+test_func :: func(n)
+{
+    print "n = %\n", n;
+}
+
+test_func(10);
+
+test :: func(pointer)
+{
+    pointer(10);
+}
+test(test_func);

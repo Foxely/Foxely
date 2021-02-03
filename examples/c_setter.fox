@@ -1,5 +1,5 @@
 
 
-test: var = Test();
+test := Test();
 
 print "%\n", test.x = 11;

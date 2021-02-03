@@ -26,8 +26,7 @@ void Statement(Parser& parser)
 		parser.BeginScope();
 		Block(parser);
 		parser.EndScope();
-	}
-	else
+	} else
 		ExpressionStatement(parser);
 }
 
@@ -94,7 +93,9 @@ void PrintStatement(Parser& parser)
 void ExpressionStatement(Parser& parser)
 {
     if  (parser.PeekTokenIsType(TOKEN_IDENTIFIER) &&
-        (parser.PeekNextTokenIsType(TOKEN_COLON) || parser.PeekNextTokenIsType(TOKEN_DOUBLE_COLON)))
+        (parser.PeekNextTokenIsType(TOKEN_COLON) ||
+        parser.PeekNextTokenIsType(TOKEN_DOUBLE_COLON) ||
+        parser.PeekNextTokenIsType(TOKEN_DOUBLE_DOT_EQUAL)))
     {
 	    Expression(parser);
     }

@@ -1,6 +1,6 @@
 
 
-map: var = { 0 : 2, 10 : false, "test" : 10 };
+map := { 0 : 2, 10 : false, "test" : 10 };
 
 print "map[0] = %\n", map[0];
 print "map.get(10) = %\n", map.get(10);

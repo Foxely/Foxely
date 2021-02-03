@@ -1,6 +1,6 @@
 
-list: var = [2];
-string: var = "salut";
+list := [2];
+string := "salut";
 
 print "list[0] = %\n", list[0];
 print "string[1] = '%'\n", string[1];
@@ -46,7 +46,7 @@ list[1] = 0;
 print "%\n", list[1];
 */
 
-py_string: var = "Python";
+py_string := "Python";
 
 print "\n";
 print "py_string = Python\n";

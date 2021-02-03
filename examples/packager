@@ -26,8 +26,8 @@ Make :: func(SRC)
 // Declare a native Lib
 declareNative :: func(name, sources)
 {
-    SRC: var = "";
-    for (i: var = 0; i < sources.size(); i = i + 1)
+    SRC := "";
+    for (i := 0; i < sources.size(); i = i + 1)
     {
         SRC = SRC + " " + "ProjectTest/" + sources.get(i);
     }
@@ -35,8 +35,8 @@ declareNative :: func(name, sources)
     os.shell(compiler() + arguments() + include() + SRC + " -o " + "ProjectTest/" + name + ".so");
 }
 
-args: var = os.args();
-index: var = 0;
+args := os.args();
+index := 0;
 
 if (args.contain("-l"))
 {

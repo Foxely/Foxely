@@ -23,8 +23,8 @@ callWithout :: func()
     return true;
 }
 
-fiber: var = Fiber.new(callWith);
-fiber2: var = Fiber.new(callWithout);
+fiber := Fiber.new(callWith);
+fiber2 := Fiber.new(callWithout);
 
 print "\n ----With arguments------- \n";
 

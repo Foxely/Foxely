@@ -59,9 +59,15 @@ void repl()
 
         if (input[input.size() - 1] == '{') {
             std::cout << "| ";
+            int refCount = 1;
             while (std::getline(std::cin, line))
             {
-                if (line == "}") {
+                if (line[line.size() - 1] == '{')
+                    refCount++;
+                if (line == "}")
+                    refCount--;
+                if (refCount <= 0)
+                {
                     input += line;
                     break;
                 }

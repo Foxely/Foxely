@@ -1,7 +1,7 @@
   
 import "io";
 
-file: var = io.open("history.txt", "r");
+file := io.open("history.txt", "r");
 
 print "File Parsed:\n{\n";
 print "%\n", file.read();

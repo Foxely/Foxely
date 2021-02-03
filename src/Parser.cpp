@@ -90,6 +90,7 @@ Parser::Parser(VM* pVm)
     oLexer.Define(TOKEN_IMPORT, "import");
     oLexer.Define(TOKEN_RETURN, "return");
     oLexer.Define(TOKEN_VAR, "var");
+    oLexer.Define(TOKEN_DOUBLE_DOT_EQUAL, ":=");
     oLexer.Define(TOKEN_WHILE, "while");
     oLexer.Define(TOKEN_SWITCH, "switch");
     oLexer.Define(TOKEN_BANG, "!");
@@ -154,6 +155,7 @@ Parser::Parser(VM* pVm)
     rules[TOKEN_THIS] = { RuleThis, NULL, PREC_NONE };
     rules[TOKEN_TRUE] = { Literal, NULL, PREC_NONE };
     rules[TOKEN_VAR] = { NULL, NULL, PREC_NONE };
+    rules[TOKEN_DOUBLE_DOT_EQUAL] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_WHILE] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_SWITCH] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_COLON] = { NULL, NULL, PREC_NONE };
@@ -567,7 +569,7 @@ void RuleSuper(Parser& parser, bool can_assign)
 void Variable(Parser& parser, bool can_assign)
 {
 	Token name = parser.PreviousToken();
-	if (parser.IsToken(TOKEN_COLON) && parser.IsToken(TOKEN_VAR))
+	if (parser.IsToken(TOKEN_DOUBLE_DOT_EQUAL))
 		VarDeclaration(parser, name);
 	else if (parser.IsToken(TOKEN_DOUBLE_COLON))
 	{
@@ -825,11 +827,11 @@ void VarDeclaration(Parser& parser, Token name)
 {
     uint8_t global = ParseVariable(parser, name, "Expect variable name.");
 
-    if (parser.Match(TOKEN_EQUAL)) {
+    // if (parser.Match(TOKEN_EQUAL)) {
         Expression(parser);
-    } else {
-        parser.EmitByte(OP_NIL);
-    }
+    // } else {
+    //     parser.EmitByte(OP_NIL);
+    // }
     parser.Consume(TOKEN_SEMICOLON, "Expect ';' after variable declaration.");
     DefineVariable(parser, global);
 }

@@ -1,11 +1,11 @@
 import "os";
 
 // Reset
-RESET: var = "\033[0m";
+RESET := "\033[0m";
 
 // Regular Colors
-RED: var = "\033[0;31m";
-GREEN: var = "\033[0;32m";
+RED := "\033[0;31m";
+GREEN := "\033[0;32m";
 
 assert :: func (name, condition)
 {

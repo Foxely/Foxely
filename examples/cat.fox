@@ -1,0 +1,22 @@
+
+
+import "io";
+import "os";
+
+main::func(ac, av)
+{
+    if (ac <= 1) {
+        print "my_cat: Usage: ./my_cat file [...]\n";
+        return;
+    }
+    for (i := 1; i < ac; ++i) {
+        strFile := io.open(av[i], "r");
+        if (strFile) {
+            strFileContent := strFile.read();
+            if (strFileContent != nil)
+                print "%", strFileContent;
+        }
+    }
+}
+
+main(os.args().size(), os.args());
