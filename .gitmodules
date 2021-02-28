@@ -1,0 +1,3 @@
+[submodule "examples/lib/MeCli"]
+	path = examples/lib/MeCli
+	url = https://github.com/smbss1/MeCli

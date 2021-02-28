@@ -2,54 +2,70 @@
 list := [2];
 string := "salut";
 
+print "\n-- Get --\n";
 print "list[0] = %\n", list[0];
 print "string[1] = '%'\n", string[1];
 
-print "\n";
 list.push(3);
 list.push(4);
 print "list.get(1) = %\n", list.get(1);
 
-print "\n";
-print "Before pop = %\n", list;
+
+print "\n-- Pop --\n";
+print "Before = %\n", list;
 list.pop();
-print "After pop = %\n", list;
+print "After = %\n", list;
 
-print "\n";
-list.set(1, 5);
-print "list[1] = %\n", list[1];
 
+print "\n-- Size --\n";
 print "Size = %\n", list.size();
 
-print "\n";
 
+print "\n-- Contain --\n";
+print "%\n", list;
 if (list.contain(5))
     print "Contain value 5\n";
 else
     print "Not Contain value 5\n";
 
-if (list.contain(14))
-    print "Contain value 14\n";
+list.push(5);
+print "%\n", list;
+if (list.contain(5))
+    print "Contain value 5\n";
 else
-    print "Not Contain value 14\n";
+    print "Not Contain value 5\n";
 
-print "\n";
+
+print "\n-- Find --\n";
 list.push(14);
-
 print "Index of 14 is %\n", list.find(14);
 
+
+print "\n-- To String --\n";
 print "%\n", list.toString();
 
-print "\n";
-/*
+
+print "\n-- Set --\n";
 list[1] = 0;
-print "%\n", list[1];
-*/
+print "list[1] = %\n", list[1];
+print "list = %\n", list;
+
+list.set(1, 5);
+print "list.set(1, 5) = %\n", list[1];
+print "list = %\n", list;
+
+
+print "\n-- String --\n";
+
 
 py_string := "Python";
+print "py_string = %\n", py_string;
 
-print "\n";
-print "py_string = Python\n";
+print "\n-- Set --\n";
+py_string[1] = "o";
+print "py_string = %\n", py_string;
+
+print "\n-- Subscript --\n";
 print "py_string[:3] = %\n", py_string[:3];
 print "py_string[2:5] = %\n", py_string[2:5];
 print "py_string[1:] = %\n", py_string[1:];

@@ -2,6 +2,8 @@
 
 map := { 0 : 2, 10 : false, "test" : 10 };
 
+print "\n-- Get --\n";
+print "map = %\n", map;
 print "map[0] = %\n", map[0];
 print "map.get(10) = %\n", map.get(10);
 print "map['test'] = %\n", map["test"];
@@ -11,6 +13,8 @@ print "map['number'] = %\n", map["number"];
 
 // A non declare key, will return automatically nil
 print "map['undefined'] = %\n", map["undefined"];
+
+print "\n-- Contain --\n";
 
 print "Before pop = %\n", map;
 
@@ -27,9 +31,21 @@ if (map.contain(0))
 else
     print "Not Contain key: 0\n";
 
+print "\n-- Set --\n";
+
 map.set(10, true);
 print "map[10] = %\n", map[10];
 
 print "Size = %\n", map.size();
 
+map[1] = 0;
+print "map[1] = %\n", map[1];
+print "map = %\n", map;
+
+map.set(1, 5);
+print "map.set(1, 5) = %\n", map[1];
+print "map = %\n", map;
+print "Size = %\n", map.size();
+
+print "\n-- To String --\n";
 print "%\n", map.toString();

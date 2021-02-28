@@ -2,9 +2,9 @@
 
 set :: func(value = 0)
 {
-    print "value = %",  value;
+    print "value = %\n",  value;
 }
 
 set();
 set(10);
-set(10, 20); // Error: Expected 1 arguments but got 2.
+// set(10, 20); // Error: Expected 1 arguments but got 2.

@@ -10,83 +10,70 @@
 
 #include "library/library.h"
 #include "foxely.h"
+#include "App.hpp"
 
-
-char* RED = "\u001b[31m";
-char* BLACK = "\u001b[30m";
-char* GREEN = "\u001b[32m";
-char* YELLOW = "\u001b[33m";
-char* BLUE = "\u001b[34m";
-char* MAGENTA = "\u001b[35m";
-char* CYAN = "\u001b[36m";
-char* WHITE = "\u001b[37m";
-
-char* Bright_Black = "\u001b[30;1m";
-char* Bright_Red = "\u001b[31;1m";
-char* Bright_Green = "\u001b[32;1m";
-char* Bright_Yellow = "\u001b[33;1m";
-char* Bright_Blue = "\u001b[34;1m";
-char* Bright_Magenta = "\u001b[35;1m";
-char* Bright_Cyan = "\u001b[36;1m";
-char* Bright_White = "\u001b[37;1m";
-
-char* Bold = "\u001b[1m";
-char* Underline = "\u001b[4m";
-char* Reversed = "\u001b[7m";
-
-
-char* Up = "\u001b[{n}A";
-char* Down = "\u001b[{n}B";
-char* Right = "\u001b[{n}C";
-char* Left = "\u001b[1D";
-
-
-char* RESET = "\u001b[0m";
-
+void highlight(const std::string& str)
+{
+    std::cout << mecli::style::bold;
+    std::cout << mecli::style::green;
+    std::cout << str << mecli::style::reset;
+}
 
 void repl()
 {
     VM oVM;
+    mecli::App app;
 
-    std::string input;
-    std::string line;
-    std::cout << RESET;
-    while(true)
+    app.SetOnLineListener([&oVM](const std::string& str)
     {
-        input.clear();
-        std::cout << "> ";
-        std::getline(std::cin, input);
+        oVM.Interpret(NULL, str.c_str());
+    });
 
-        if (input[input.size() - 1] == '{') {
-            std::cout << "| ";
-            int refCount = 1;
-            while (std::getline(std::cin, line))
-            {
-                if (line[line.size() - 1] == '{')
-                    refCount++;
-                if (line == "}")
-                    refCount--;
-                if (refCount <= 0)
-                {
-                    input += line;
-                    break;
-                }
-                std::cout << "| ";
-                input += line;
-            }
-            std::cout << "\n";
-        }
+    app.AddSyntax("for", highlight);
+    app.AddSyntax("while", highlight);
+    app.AddSyntax("class", highlight);
+    app.AddSyntax("func", highlight);
 
-        if (input == "exit")
-            break;
+    app.Run();
 
-        if (input[0] != '\n' && input[0] != '\0')
-            oVM.Interpret(NULL, input.c_str());
-        else {
-            std::cout << std::endl;
-            break;
-        }
-    }
+    // std::string input;
+    // std::string line;
+    // while(true)
+    // {
+    //     input.clear();
+    //     std::cout << "> ";
+    //     std::getline(std::cin, input);
+
+    //     if (input[input.size() - 1] == '{') {
+    //         std::cout << "| ";
+    //         int refCount = 1;
+    //         while (std::getline(std::cin, line))
+    //         {
+    //             if (line[line.size() - 1] == '{')
+    //                 refCount++;
+    //             if (line == "}")
+    //                 refCount--;
+    //             if (refCount <= 0)
+    //             {
+    //                 input += line;
+    //                 break;
+    //             }
+    //             std::cout << "| ";
+    //             input += line;
+    //         }
+    //         std::cout << "\n";
+    //     }
+
+    //     if (input == "exit")
+    //         break;
+
+    //     if (input[0] != '\n' && input[0] != '\0')
+    //         oVM.Interpret(NULL, input.c_str());
+    //     else {
+    //         std::cout << std::endl;
+    //         break;
+    //     }
+    // }
 }
 
 struct Test
