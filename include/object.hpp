@@ -137,6 +137,8 @@ public:
 		upValueCount = 0;
 		type = OBJ_FUNCTION;
         module = NULL;
+        iMinArity = 0;
+        iMaxArity = 0;
 	}
 };
 
@@ -207,6 +209,7 @@ public:
     ObjectClass* superClass;
     ObjectString *name;
     Table methods;
+    Table operators;
     int derivedCount;
 
 	explicit ObjectClass(ObjectString* n)

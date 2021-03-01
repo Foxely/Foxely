@@ -112,6 +112,7 @@ public:
 	ObjectUpvalue* CaptureUpvalue(Value* local);
 	void CloseUpvalues(Value* last);
 
+	// Garbage Collector
 	void AddToRoots();
 	void AddTableToRoot(Table& table);
 	void AddValueToRoot(Value value);
@@ -119,6 +120,9 @@ public:
 	void AddCompilerToRoots();
 	void AddArrayToRoot(ValueArray* array);
 	void BlackenObject(Object* object);
+
+	// Class
+	void DefineOperator(ObjectString *name);
 	void DefineMethod(ObjectString* name);
 	bool BindMethod(ObjectClass* klass, ObjectString* name);
 	bool Invoke(ObjectString* name, int argCount);

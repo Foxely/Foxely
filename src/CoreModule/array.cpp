@@ -47,7 +47,7 @@ Value setNative(VM* pVM, int argCount, Value* args)
     Fox_FixArity(pVM, argCount, 2);
     if (Fox_IsInt(args[0]))
     {
-        int index = Fox_AsDouble(args[0]);
+        int index = Fox_IsInt(args[0]);
         ObjectArray* array = Fox_AsArray(args[-1]);
         array->m_vValues[index] = args[1];
     }

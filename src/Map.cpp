@@ -36,6 +36,12 @@ static inline uint32_t hashNumber(double num)
     return hashBits(bits.bits64);
 }
 
+static inline uint32_t hashInt(int num)
+{
+    // Hash the raw bits of the value.
+    return hashBits(num);
+}
+
 // Generates a hash code for [object].
 static uint32_t hashObject(Object* pObject)
 {
@@ -72,11 +78,12 @@ static uint32_t hashValue(Value value)
 
     switch (value.type)
     {
-        case VAL_BOOL:  return (Fox_AsBool(value) ? 1 : 0);
-        case VAL_NIL:   return 1;
-        case VAL_NUMBER:   return hashNumber(Fox_AsDouble(value));
-        case VAL_OBJ:   return hashObject(Fox_AsObject(value));
-        default:        return -1;
+        case VAL_BOOL:      return (Fox_AsBool(value) ? 1 : 0);
+        case VAL_NIL:       return 1;
+        case VAL_INT:       return hashInt(Fox_AsInt(value));
+        case VAL_NUMBER:    return hashNumber(Fox_AsDouble(value));
+        case VAL_OBJ:       return hashObject(Fox_AsObject(value));
+        default:            return -1;
     }
     
     return 0;
@@ -111,8 +118,8 @@ MapEntry& MapTable::FindEntry(Value oKey)
         if (Fox_IsNil(entry.m_oKey)) {
             if (Fox_IsNil(entry.m_oValue))
                 return tombstone != NULL ? *tombstone : entry;
-            else
-                if (tombstone == NULL) tombstone = &entry;
+            else if (tombstone == NULL)
+                    tombstone = &entry;
         } else if (ValuesEqual(entry.m_oKey, oKey))
             return entry;
 
@@ -222,7 +229,7 @@ bool MapTable::Delete(Value key)
     if (Fox_IsNil(entry.m_oKey))
         return false;
     entry.m_oKey = Fox_Nil;
-    entry.m_oValue = Fox_Bool(true);
+    entry.m_oValue = Fox_Nil;
     m_iCount--;
     return true;
 }

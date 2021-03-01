@@ -1,4 +1,4 @@
-SRC_DIRS = .
+SRC_DIRS = src
 SRC := $(shell find $(SRC_DIRS) -name '*.cpp')
 
 OBJ = $(SRC:%.cpp=%.o)
@@ -6,7 +6,7 @@ NAME = liblexer
 
 ifeq ($(BUILD),debug)
 # "Debug" build - no optimization, and debugging symbols
-CFLAGS += -O0 -g3 -std=c++17
+CFLAGS += -O0 -g3 -std=c++14
 CFLAGS += -DDEBUG
 else
 # "Release" build - optimization, and no debug symbols
@@ -26,17 +26,17 @@ reset = `tput sgr0`
 all: $(NAME)
 
 $(NAME): $(OBJ)
-		@echo "$(bold)$(magenta)Compiling$(white) $(NAME) $(reset)"
+		@echo "$(bold) $(magenta) Compiling $(white) $(NAME) $(reset)"
 		@ar -rc $(NAME).a $(OBJ)
 		@cp $(NAME).a ../
 
 %.o : %.cpp
 	@g++ $(CFLAGS) -Iinclude -W -Wall -c $< -o $@
-	@echo "\033[1;32mCompiled \033[1;37m'$<'\033[m"
+	@echo "\033[1;32mCompiled \033[1;37m'$<' $(reset)"
 
 .PHONY: clean
 clean:
-		@echo "$(bold)$(blue)Cleaning$(white) $(NAME)$(reset)"
+		@echo "$(bold) $(blue)Cleaning $(white) $(NAME) $(reset)"
 		@$(RM) -r $(OBJ)
 
 fclean: clean
@@ -44,3 +44,6 @@ fclean: clean
 		@$(RM) -r ../$(NAME).a
 
 re: fclean all
+
+exec:
+	g++ $(CFLAGS) -Iinclude main.cpp -L. -llexer

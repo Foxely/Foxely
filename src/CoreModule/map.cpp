@@ -14,7 +14,7 @@ Value getMapNative(VM* pVM, int argCount, Value* args)
     Value oValue;
     ObjectMap* pMap = Fox_AsMap(args[-1]);
     
-    if (pMap->m_vValues.Get(args[-1], oValue))
+    if (pMap->m_vValues.Get(args[0], oValue))
         return oValue;
     return Fox_Nil;
 }
@@ -24,7 +24,6 @@ Value setMapNative(VM* pVM, int argCount, Value* args)
     Fox_FixArity(pVM, argCount, 2);
     ObjectMap* pMap = Fox_AsMap(args[-1]);
     pMap->m_vValues.Set(args[0], args[1]);
-
     return Fox_Nil;
 }
 

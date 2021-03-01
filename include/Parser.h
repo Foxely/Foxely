@@ -123,6 +123,7 @@ public:
     void Consume(int oType, const char* message);
 	Chunk* GetCurrentChunk();
 	void SetCurrentChunk(Chunk& chunk);
+    void RemoveComment();
 
 	ObjectString* CopyString(const std::string& value);
 	ObjectString* TakeString(const std::string& value);
@@ -191,6 +192,7 @@ void Increment(Parser& parser, bool can_assign);
 void Block(Parser& parser);
 void Declaration(Parser& parser);
 void Synchronize(Parser& parser);
+uint8_t ParseVariable(Parser& parser, Token& name, const char *msg);
 void VarDeclaration(Parser& parser, Token name);
 // void VarDeclaration(Parser& parser);
 int NamedVariable(Parser& parser, Token name, bool can_assign, uint8_t* pGetOp = NULL, uint8_t* pSetOp = NULL);

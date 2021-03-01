@@ -1,6 +1,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <algorithm>
 #include "Lexer.h"
 #include "Token.h"
 #include "Parser.h"
@@ -101,9 +102,11 @@ Parser::Parser(VM* pVm)
     oLexer.Define(TOKEN_EQUAL_EQUAL, "==");
     oLexer.Define(TOKEN_SHEBANG,"#[^\n\r]*", true);
     oLexer.Define(TOKEN_IDENTIFIER,"[A-Za-z_]+[0-9]*");
-    // oLexer.Define("Arrow","->");
+    oLexer.Define("Token Operator", "operator");
+
     oLexer.Define(TOKEN_SINGLE_COMMENT,"//[^\n\r]*", true);
-    oLexer.Define(TOKEN_MULTI_COMMENT,"/\\*.+\\*/", true);
+    oLexer.Define("Token_Start_MultiComment","/\\*");
+    oLexer.Define("Token_End_MultiComment","\\*/");
     oLexer.Define(TOKEN_EOF,"\\0");
 
     for (int i = 0; i < TOKEN_MAX; i++)
@@ -181,10 +184,28 @@ void Parser::MarkInitialized()
     currentCompiler->locals[currentCompiler->localCount - 1].depth = currentCompiler->scopeDepth;
 }
 
+void Parser::RemoveComment()
+{
+    int iOpenComment = 0;
+    Lexer& oLex = GetLexer();
+    oLex.oTokenList.erase(std::remove_if(oLex.oTokenList.begin(), oLex.oTokenList.end(), [&iOpenComment](const Token& oToken)
+    {
+        bool bSuccess = iOpenComment == 1;
+        if (oToken.GetText() == "/*" && iOpenComment == 0) {
+            iOpenComment++;
+            bSuccess = true;
+        }
+        else if (oToken.GetText() == "*/" && iOpenComment == 1)
+            iOpenComment--;
+        return bSuccess;
+    }), oLex.oTokenList.end());
+}
+
 ObjectFunction* Compile(Parser& parser, const std::string& strText, Chunk* chunk)
 {
     if (!parser.Init(strText))
         return NULL;
+    parser.RemoveComment();
 
 	Compiler compiler(parser, TYPE_SCRIPT, "");
 	parser.compilingChunk = chunk;
@@ -623,8 +644,7 @@ void List(Parser& parser, bool canAssign)
 
     if (!parser.IsToken(TOKEN_RIGHT_BRACKET, false))
     {
-        do
-        {
+        do {
             args++;
             Expression(parser);
 
@@ -687,7 +707,7 @@ void Subscript(Parser& parser, bool canAssign)
 
     if (canAssign && parser.Match(TOKEN_EQUAL)) {
         Expression(parser);
-        //parser.EmitByte(OP_SUBSCRIPT_ASSIGN);
+        parser.EmitByte(OP_SUBSCRIPT_ASSIGN);
     } else
         parser.EmitByte(OP_SUBSCRIPT);
 }
@@ -1189,14 +1209,26 @@ void Parser::EndScope()
 
 void Method(Parser& parser)
 {
-	parser.Consume(TOKEN_IDENTIFIER, "Expect method name.");
-	uint8_t constant = parser.IdentifierConstant(parser.PreviousToken());
-	FunctionType type = TYPE_METHOD;
-	if (parser.PreviousToken().GetText() == "init") {
-		type = TYPE_INITIALIZER;
-	}
-	Function(parser, type, parser.PreviousToken());
-	parser.EmitBytes(OP_METHOD, constant);
+    parser.Consume(TOKEN_IDENTIFIER, "Expect method name.");
+    Token oToken = parser.PreviousToken();
+    if (oToken.GetText() == "operator")
+    {
+        parser.NextToken();
+        uint8_t constant = parser.IdentifierConstant(parser.PreviousToken());
+        FunctionType type = TYPE_METHOD;
+        Function(parser, type, parser.PreviousToken());
+        parser.EmitBytes(OP_OPERATOR, constant);
+    }
+    else
+    {
+        uint8_t constant = parser.IdentifierConstant(parser.PreviousToken());
+        FunctionType type = TYPE_METHOD;
+        if (parser.PreviousToken().GetText() == "init") {
+            type = TYPE_INITIALIZER;
+        }
+        Function(parser, type, parser.PreviousToken());
+        parser.EmitBytes(OP_METHOD, constant);
+    }
 }
 
 void ClassDeclaration(Parser& parser, Token& name)

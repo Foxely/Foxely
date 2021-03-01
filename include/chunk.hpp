@@ -46,8 +46,10 @@ typedef enum
     OP_CLASS,
     OP_INHERIT,
     OP_METHOD,
+    OP_OPERATOR,
 
     OP_SUBSCRIPT,
+    OP_SUBSCRIPT_ASSIGN,
     OP_ARRAY,
     OP_ADD_LIST,
     OP_SLICE,

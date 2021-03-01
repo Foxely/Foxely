@@ -15,6 +15,7 @@
 #include "vm.hpp"
 #include "object.hpp"
 #include "Table.hpp"
+#include "Utility.hpp"
 
 VM::VM() : gc(this), m_oParser(this), modules()
 {
@@ -492,7 +493,6 @@ bool VM::Invoke(ObjectString *pName, int iArgCount)
 InterpretResult VM::Interpret(const char* strModule, const char* strSource)
 {
     // ResetStack();
-    
     result = INTERPRET_OK;
 
     ObjectClosure* pClosure = CompileSource(strModule, strSource, false, true);
@@ -737,6 +737,14 @@ InterpretResult VM::run(ObjectFiber* pFiber)
                 int b = Fox_AsInt(Pop());
                 int a = Fox_AsInt(Pop());
                 Push(Fox_Int(a + b));
+            } else if (Fox_IsInstance(Peek(1))) {
+                ObjectInstance* pInst = Fox_AsInstance(Peek(1));
+                Value oMethod;
+                // If we found the + operator so call it
+                if (pInst->klass->operators.Get(m_oParser.TakeString("+"), oMethod)) {
+                    CallValue(oMethod, 1);
+                    frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
+                }
             } else {
                 RuntimeError("Operands must be two numbers or two strings.");
                 return INTERPRET_RUNTIME_ERROR;
@@ -744,19 +752,47 @@ InterpretResult VM::run(ObjectFiber* pFiber)
             break;
         }
         case OP_SUB:
-            if (Fox_IsDouble(Peek(0)))
+            if (Fox_IsInstance(Peek(1))) {
+                ObjectInstance* pInst = Fox_AsInstance(Peek(1));
+                Value oMethod;
+                // If we found the + operator so call it
+                if (pInst->klass->operators.Get(m_oParser.TakeString("-"), oMethod)) {
+                    CallValue(oMethod, 1);
+                    frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
+                }
+            }
+            else if (Fox_IsDouble(Peek(0)))
                 BINARY_OP(Double, double, -);
             else if (Fox_IsInt(Peek(0)))
                 BINARY_OP(Int, int, -);
+            
             break;
         case OP_MUL:
-            if (Fox_IsDouble(Peek(0)))
+            if (Fox_IsInstance(Peek(1))) {
+                ObjectInstance* pInst = Fox_AsInstance(Peek(1));
+                Value oMethod;
+                // If we found the + operator so call it
+                if (pInst->klass->operators.Get(m_oParser.TakeString("*"), oMethod)) {
+                    CallValue(oMethod, 1);
+                    frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
+                }
+            }
+            else if (Fox_IsDouble(Peek(0)))
                 BINARY_OP(Double, double, *);
             else if (Fox_IsInt(Peek(0)))
                 BINARY_OP(Int, int, *);
             break;
         case OP_DIV:
-            if (Fox_IsDouble(Peek(0)))
+            if (Fox_IsInstance(Peek(1))) {
+                ObjectInstance* pInst = Fox_AsInstance(Peek(1));
+                Value oMethod;
+                // If we found the + operator so call it
+                if (pInst->klass->operators.Get(m_oParser.TakeString("/"), oMethod)) {
+                    CallValue(oMethod, 1);
+                    frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
+                }
+            }
+            else if (Fox_IsDouble(Peek(0)))
                 BINARY_OP(Double, double,  /);
             else if (Fox_IsInt(Peek(0)))
                 BINARY_OP(Int, int, /);
@@ -811,6 +847,7 @@ InterpretResult VM::run(ObjectFiber* pFiber)
         case OP_PRINT_REPL:
         {
             PrintValue(Pop());
+            std::cout << std::endl;
             break;
         }
 
@@ -866,6 +903,10 @@ InterpretResult VM::run(ObjectFiber* pFiber)
 
         case OP_METHOD:
             DefineMethod(READ_STRING());
+            break;
+        
+        case OP_OPERATOR:
+            DefineOperator(READ_STRING());
             break;
 
         case OP_INVOKE: {
@@ -928,7 +969,7 @@ InterpretResult VM::run(ObjectFiber* pFiber)
                 CallFunction(Fox_AsClosure(Peek(0)), 0);
                 frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
             }
-            else
+            else if (!Fox_IsNil(Peek(0)))
             {
                 // The module has already been loaded. Remember it so we can import
                 // variables from it if needed.
@@ -1023,7 +1064,7 @@ InterpretResult VM::run(ObjectFiber* pFiber)
                 {
                     if (!Fox_IsDouble(oIndexValue) && !Fox_IsInt(oIndexValue))
                     {
-                        RuntimeError("pArray index must be a number.");
+                        RuntimeError("Array index must be a number.");
                         return INTERPRET_RUNTIME_ERROR;
                     }
 
@@ -1048,6 +1089,12 @@ InterpretResult VM::run(ObjectFiber* pFiber)
 
                 case OBJ_STRING:
                 {
+                    if (!Fox_IsDouble(oIndexValue) && !Fox_IsInt(oIndexValue))
+                    {
+                        RuntimeError("String index must be a number.");
+                        return INTERPRET_RUNTIME_ERROR;
+                    }
+                    
                     ObjectString *pString = Fox_AsString(oSubscriptValue);
                     int iIndex = Fox_AsInt(oIndexValue);
 
@@ -1068,12 +1115,6 @@ InterpretResult VM::run(ObjectFiber* pFiber)
 
                 case OBJ_MAP: {
                     ObjectMap *pMap = Fox_AsMap(oSubscriptValue);
-                    // if (!isValidKey(oIndexValue)) {
-                    //     frame->ip = ip;
-                    //     RuntimeError("Map key must be an immutable type.");
-                    //     return INTERPRET_RUNTIME_ERROR;
-                    // }
-
                     Value oValue;
                     Pop();
                     Pop();
@@ -1087,6 +1128,99 @@ InterpretResult VM::run(ObjectFiber* pFiber)
                 default:
                 {
                     RuntimeError("Can only subscript on pArrays, strings or dictionaries.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+            }
+            break;
+        }
+
+        case OP_SUBSCRIPT_ASSIGN:
+        {
+            Value oValue = Peek(0);
+            Value oIndexValue = Peek(1);
+            Value oSubscriptValue = Peek(2);
+
+            if (!Fox_IsObject(oSubscriptValue))
+            {
+                RuntimeError("Can only subscript on Arrays, strings or maps.");
+                return INTERPRET_RUNTIME_ERROR;
+            }
+
+            switch (Fox_AsObject(oSubscriptValue)->type)
+            {
+                case OBJ_ARRAY:
+                {
+                    if (!Fox_IsDouble(oIndexValue) && !Fox_IsInt(oIndexValue))
+                    {
+                        RuntimeError("pArray index must be a number.");
+                        return INTERPRET_RUNTIME_ERROR;
+                    }
+
+                    ObjectArray *pArray = Fox_AsArray(oSubscriptValue);
+                    int iIndex = Fox_AsInt(oIndexValue);
+
+                    // Allow negative indexes
+                    if (iIndex < 0)
+                        iIndex = pArray->m_vValues.size() + iIndex;
+
+                    if (iIndex >= 0 && iIndex < pArray->m_vValues.size())
+                    {
+                        Pop();
+                        Pop();
+                        Pop();
+                        pArray->m_vValues[iIndex] = oValue;
+                        break;
+                    }
+
+                    RuntimeError("Array index out of bounds.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+
+                case OBJ_STRING:
+                {
+                    if (!Fox_IsDouble(oIndexValue) && !Fox_IsInt(oIndexValue))
+                    {
+                        RuntimeError("String index must be a number.");
+                        return INTERPRET_RUNTIME_ERROR;
+                    }
+
+                    if (!Fox_IsString(oValue))
+                    {
+                        RuntimeError("The value to set must be a string.");
+                        return INTERPRET_RUNTIME_ERROR;
+                    }
+
+                    ObjectString *pString = Fox_AsString(oSubscriptValue);
+                    int iIndex = Fox_AsInt(oIndexValue);
+                    ObjectString *pValueString = Fox_AsString(oValue);
+
+                    // Allow negative indexes
+                    if (iIndex < 0)
+                        iIndex = pString->string.size() + iIndex;
+
+                    if (iIndex >= 0 && iIndex < pString->string.size()) {
+                        Pop();
+                        Pop();
+                        pString->string[iIndex] = pValueString->string[0];
+                        break;
+                    }
+
+                    RuntimeError("String index out of bounds.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+
+                case OBJ_MAP: {
+                    ObjectMap *pMap = Fox_AsMap(oSubscriptValue);
+                    Pop();
+                    Pop();
+                    Pop();
+                    pMap->m_vValues.Set(oIndexValue, oValue);
+                    break;
+                }
+
+                default:
+                {
+                    RuntimeError("Can only subscript on Arrays, strings or dictionaries.");
                     return INTERPRET_RUNTIME_ERROR;
                 }
             }
@@ -1421,6 +1555,14 @@ void VM::DefineMethod(ObjectString *name)
     Pop();
 }
 
+void VM::DefineOperator(ObjectString *name)
+{
+    Value method = Peek(0);
+    ObjectClass *klass = Fox_AsClass(Peek(1));
+    klass->operators.Set(name, method);
+    Pop();
+}
+
 bool VM::BindMethod(ObjectClass *klass, ObjectString *name)
 {
     Value method;
@@ -1544,30 +1686,19 @@ Value VM::ImportModule(Value name)
     
     Push(name);
 
-    const char* source = NULL;
-    bool allocatedSource = true;
-    
     // If the host didn't provide it, see if it's a built in optional module.
-    // if (source == NULL)
-    // {
     ObjectString* nameString = Fox_AsString(name);
     nameString->string += ".fox";
+    std::string strContent;
 
-    std::ifstream t(nameString->string);
-    std::string str((   std::istreambuf_iterator<char>(t)),
-                        std::istreambuf_iterator<char>());
-    source = str.c_str();
-    allocatedSource = false;
-    // }
-    
-    if (source == NULL)
+    if (!ReadFile(nameString->string, strContent))
     {
         RuntimeError("Could not load module '%s'.", Fox_AsCString(name));
         Pop(); // name.
         return Fox_Nil;
     }
     
-    ObjectClosure* moduleClosure = CompileInModule(name, source, false, true);
+    ObjectClosure* moduleClosure = CompileInModule(name, strContent.c_str(), false, true);
     
     // Modules loaded by the host are expected to be dynamically allocated with
     // ownership given to the VM, which will free it. The built in optional

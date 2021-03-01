@@ -133,7 +133,7 @@ public:
 
     inline bool IsError() const
     {
-        return (false);
+        return (m_oType == 84);
         // return (m_eType == TokenType::TokenUnknown);
     }
 };

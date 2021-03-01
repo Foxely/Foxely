@@ -15,15 +15,6 @@ ValueArray::ValueArray()
 
 void ValueArray::WriteValueArray(Value value)
 {
-//     if (array->capacity < array->count + 1) {
-//     int oldCapacity = array->capacity;
-//     array->capacity = GROW_CAPACITY(oldCapacity);
-//     array->values = GROW_ARRAY(Value, array->values,
-//                                oldCapacity, array->capacity);
-//   }
-
-//   array->values[array->count] = value;
-//   array->count++;
     m_iCount++;
     m_vValues.push_back(value);
 }
