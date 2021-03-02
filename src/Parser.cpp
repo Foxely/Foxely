@@ -148,7 +148,7 @@ Parser::Parser(VM* pVm)
     rules[TOKEN_ELSE] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_FALSE] = { Literal, NULL, PREC_NONE };
     rules[TOKEN_FOR] = { NULL, NULL, PREC_NONE };
-    rules[TOKEN_FUN] = { NULL, NULL, PREC_NONE };
+    rules[TOKEN_FUN] = { Lambda, NULL, PREC_NONE };
     rules[TOKEN_IF] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_NIL] = { Literal, NULL, PREC_NONE };
     rules[TOKEN_OR] = { NULL, RuleOr, PREC_OR };
@@ -211,8 +211,10 @@ ObjectFunction* Compile(Parser& parser, const std::string& strText, Chunk* chunk
 	parser.compilingChunk = chunk;
     parser.hadError = false;
     parser.panicMode = false;
-#if DEBUG_TOKEN
-	helper::Dump(parser.GetLexer());
+
+#if DEBUG
+	if (parser.m_pVm->IsLogToken())
+        helper::Dump(parser.GetLexer());
  #endif
 
 	while (!parser.IsEnd()) {
@@ -605,9 +607,11 @@ void Variable(Parser& parser, bool can_assign)
 
 void Lambda(Parser& parser, bool can_assign)
 {
-    Token name = Token(StringID(TOKEN_IDENTIFIER), "lambda", 6);
+    static std::size_t lId = 0;
+    Token name = Token(StringID(TOKEN_IDENTIFIER), "|_@mBd@" + std::to_string(lId), 7 + std::to_string(lId).size());
 	FuncDeclaration(parser, name);
     NamedVariable(parser, name, can_assign);
+    lId++;
 }
 
 void String(Parser& parser, bool can_assign)
@@ -1244,7 +1248,7 @@ void ClassDeclaration(Parser& parser, Token& name)
 	classCompiler.hasSuperclass = false;
 	parser.currentClass = &classCompiler;
 
-	if (parser.Match(TOKEN_LESS))
+	if (parser.Match(TOKEN_COLON))
 	{
 		parser.Consume(TOKEN_IDENTIFIER, "Expect superclass name.");
 		Variable(parser, false);

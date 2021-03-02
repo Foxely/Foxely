@@ -1,7 +1,8 @@
-#pragma once
 
+#ifndef FOX_MAP_HPP_
+#define FOX_MAP_HPP_
 
-class Value;
+#include "value.hpp"
 
 #define MAP_MAX_LOAD (0.75)
 
@@ -43,3 +44,5 @@ public:
 	void Print();
     int Size();
 };
+
+#endif

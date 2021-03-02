@@ -1,0 +1,43 @@
+
+
+A :: class
+{
+    string()
+    {
+        return "A class";
+    }
+}
+
+B :: class : A
+{
+    string()
+    {
+        return "B class";
+    }
+}
+
+C :: class : A
+{
+    string()
+    {
+        return "C class";
+    }
+}
+
+D :: class : B
+{
+    string()
+    {
+        return super.string();
+    }
+}
+
+a := A();
+b := B();
+c := C();
+d := D();
+
+print "%\n", a.string();
+print "%\n", b.string();
+print "%\n", c.string();
+print "%\n", d.string();

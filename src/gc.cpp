@@ -98,7 +98,7 @@ void GC::Sweep()
 	{
 		Traceable* p = *it;
 		total++;
-		if (p->mMarked) {
+		if (p && p->mMarked) {
 			p->mMarked = false;
 			++live;
 		}
@@ -125,15 +125,17 @@ void GC::Collect()
 {
 	Mark();
 
-#ifdef DEBUG_LOG_GC
-	Dump("After mark:");
+#ifdef DEBUG
+	if (m_pVm->IsLogGC())
+		Dump("After mark:");
 #endif
 
 	Sweep();
 	nextGC = bytesAllocated * GC_HEAP_GROW_FACTOR;
 
-#ifdef DEBUG_LOG_GC
-	Dump("After sweep:");
+#ifdef DEBUG
+	if (m_pVm->IsLogGC())
+		Dump("After sweep:");
 #endif
 }
 

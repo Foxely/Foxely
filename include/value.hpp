@@ -1,5 +1,4 @@
 
-#pragma once
 #ifndef fox_value_h
 #define fox_value_h
 
@@ -10,6 +9,7 @@
 // typedef double Value;
 
 class Object;
+class VM;
 
 enum ValueType {
     VAL_BOOL,
@@ -35,8 +35,8 @@ public:
 
 
 bool ValuesEqual(Value a, Value b);
-void PrintValue(Value value);
-std::string ValueToString(Value value);
+void PrintValue(Value value, VM* pVm = nullptr);
+std::string ValueToString(Value value, VM* pVm = nullptr);
 
 // inline bool operator==(const Value& a, const Value& b)
 // {

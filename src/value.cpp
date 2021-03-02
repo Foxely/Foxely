@@ -5,6 +5,8 @@
 #include "memory.h"
 #include "value.hpp"
 #include "object.hpp"
+#include "Parser.h"
+#include "vm.hpp"
 
 ValueArray::ValueArray()
 {
@@ -91,7 +93,7 @@ std::string FunctionToString(ObjectFunction* function)
     return string;
 }
 
-std::string ObjectToString(Value value)
+std::string ObjectToString(Value value, VM* pVm)
 {
     std::string string = "";
     switch (Fox_ObjectType(value))
@@ -117,7 +119,7 @@ std::string ObjectToString(Value value)
             string += ">";
 			break;
 		case OBJ_INSTANCE:
-			string += Fox_AsInstance(value)->klass->name->string;
+            string += Fox_AsInstance(value)->klass->name->string;
             string += " instance";
 			break;
 		case OBJ_BOUND_METHOD:
@@ -142,8 +144,8 @@ std::string ObjectToString(Value value)
             int size = pArray->m_vValues.size();
             for (auto& it : pArray->m_vValues)
             {
-                size--;
-                string += ValueToString(it);
+                --size;
+                string += ValueToString(it, pVm);
                 if (size > 0)
                     string += ", ";
             }
@@ -160,9 +162,9 @@ std::string ObjectToString(Value value)
                 if (!(it.m_oKey == Fox_Nil) && !(it.m_oValue == Fox_Nil))
                 {
                     size--;
-                    string += ValueToString(it.m_oKey);
+                    string += ValueToString(it.m_oKey, pVm);
                     string += ": ";
-                    string += ValueToString(it.m_oValue);
+                    string += ValueToString(it.m_oValue, pVm);
                     if (size > 0)
                         string += ", ";
                 }
@@ -178,7 +180,7 @@ std::string ObjectToString(Value value)
     return string;
 }
 
-std::string ValueToString(Value value)
+std::string ValueToString(Value value, VM* pVm)
 {
     std::string string = "";
     switch (value.type)
@@ -187,12 +189,12 @@ std::string ValueToString(Value value)
         case VAL_NIL:    string +=  "nil"; break;
         case VAL_NUMBER: string +=  std::to_string(Fox_AsDouble(value)); break;
         case VAL_INT: string +=  std::to_string(Fox_AsInt(value)); break;
-        case VAL_OBJ: string += ObjectToString(value); break;
+        case VAL_OBJ: string += ObjectToString(value, pVm); break;
     }
     return string;
 }
 
-void PrintValue(Value value)
+void PrintValue(Value value, VM* pVm)
 {
-    std::cout << ValueToString(value);
+    std::cout << ValueToString(value, pVm);
 }

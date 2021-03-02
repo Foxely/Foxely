@@ -1,5 +1,5 @@
-#ifndef fox_chunk_h
-#define fox_chunk_h
+#ifndef FOX_CHUNK_HPP_
+#define FOX_CHUNK_HPP_
 
 #include <vector>
 #include <cstdint>

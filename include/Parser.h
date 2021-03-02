@@ -1,5 +1,6 @@
 
-#pragma once
+#ifndef FOX_PARSER_HPP_
+#define FOX_PARSER_HPP_
 
 #include <stdint.h>
 #include "Lexer.h"
@@ -188,6 +189,7 @@ void List(Parser& parser, bool canAssign = false);
 void Map(Parser& parser, bool canAssign = false);
 
 void Increment(Parser& parser, bool can_assign);
+void Lambda(Parser& parser, bool can_assign);
 
 void Block(Parser& parser);
 void Declaration(Parser& parser);
@@ -208,3 +210,5 @@ void ClassDeclaration(Parser& parser, Token& name);
 uint8_t ArgumentList(Parser& parser);
 void DeclareVariable(Parser& parser, Token name);
 void DefineVariable(Parser& parser, uint8_t global);
+
+#endif

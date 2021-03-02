@@ -1,10 +1,11 @@
 
+#ifndef _FOXELY_UTILITY_HPP_
+#define _FOXELY_UTILITY_HPP_
+
 #include <string>
 #include <fstream>
 #include <sstream>
 
-#ifndef _FOXELY_UTILITY_HPP_
-#define _FOXELY_UTILITY_HPP_
     /**
     * @brief Read file
     * @param strFile the path of the file

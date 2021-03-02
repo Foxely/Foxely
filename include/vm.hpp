@@ -1,8 +1,6 @@
 #ifndef fox_vm_h
 #define fox_vm_h
 
-#pragma once
-
 #include <vector>
 #include <string>
 #include <time.h>
@@ -50,28 +48,7 @@ using NativeMethods = std::map<std::string, NativeFn>;
 class VM
 {
 public:
-	InterpretResult result;
-
-    Chunk m_oChunk;
-    ObjectFiber* m_pCurrentFiber;
-    Value* m_pApiStack;
-    Parser m_oParser;
-	Table strings;
-	Table modules;
-	ObjectString* initString;
-	GC gc;
-	ObjectModule* currentModule;
-	std::vector<Handle*> m_vHandles;
-
-    Table arrayMethods;
-    Table stringMethods;
-    Table mapMethods;
-    Table fiberMethods;
-
-	int argc;
-	char** argv;
-
-    VM();
+	VM(int ac, char** av);
 	~VM();
 
 	void Load();
@@ -162,8 +139,41 @@ public:
     
     InterpretResult run(ObjectFiber* pFiber);
 
+	bool IsLogToken() const;
+	bool IsLogGC() const;
+	bool IsLogTrace() const;
+
+public:
+	InterpretResult result;
+
+    Chunk m_oChunk;
+    ObjectFiber* m_pCurrentFiber;
+    Value* m_pApiStack;
+    Parser m_oParser;
+	Table strings;
+	Table modules;
+	ObjectString* initString;
+	ObjectString* stringString;
+	GC gc;
+	ObjectModule* currentModule;
+	std::vector<Handle*> m_vHandles;
+
+    Table arrayMethods;
+    Table stringMethods;
+    Table mapMethods;
+    Table fiberMethods;
+    Table builtConvMethods;
+
+	int argc;
+	char** argv;
+
 private:
 	bool isInit;
+
+	// Debug
+	bool m_bLogToken;
+	bool m_bLogGC;
+	bool m_bLogTrace;
 };
 
 struct ExpandType
@@ -242,9 +252,6 @@ public:
 //     return Call(pMethod);
 // }
 
-inline Value clockNative(VM* oVM, int argCount, Value* args)
-{
-	return Fox_Double((double)clock() / CLOCKS_PER_SEC);
-}
+Value clockNative(VM* oVM, int argCount, Value* args);
 
 #endif

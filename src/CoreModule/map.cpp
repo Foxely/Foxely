@@ -88,9 +88,9 @@ Value toStringMapNative(VM* pVM, int argCount, Value* args)
         if (!(it.m_oKey == Fox_Nil) && !(it.m_oValue == Fox_Nil))
         {
             size--;
-            string += ValueToString(it.m_oKey);
+            string += ValueToString(it.m_oKey, pVM);
             string += ": ";
-            string += ValueToString(it.m_oValue);
+            string += ValueToString(it.m_oValue, pVM);
             if (size > 0)
                 string += ", ";
         }

@@ -1,6 +1,7 @@
+#include "object.hpp"
+#include "gc.hpp"
 #include "Parser.h"
 #include "vm.hpp"
-#include "object.hpp"
 
 ObjectClosure::ObjectClosure(VM* oVM, ObjectFunction *func)
 {

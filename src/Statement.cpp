@@ -81,10 +81,9 @@ void PrintStatement(Parser& parser)
 	parser.Consume(TOKEN_STRING, "Expect string type for the print function.");
     parser.EmitConstant(Fox_Object(parser.CopyString(parser.PreviousToken().GetText())));
     int argCount = 1;
-    while (parser.Match(TOKEN_COMMA))
-    {
+    while (parser.Match(TOKEN_COMMA)) {
         Expression(parser);
-        argCount++;
+        ++argCount;
     }
 	parser.Consume(TOKEN_SEMICOLON, "Expect ';' after value.");
     parser.EmitBytes(OP_PRINT, argCount);
@@ -98,15 +97,12 @@ void ExpressionStatement(Parser& parser)
         parser.PeekNextTokenIsType(TOKEN_DOUBLE_DOT_EQUAL)))
     {
 	    Expression(parser);
-    }
-    else
-    {
+    } else {
         Expression(parser);
 	    parser.Consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
-        if (IsRepl) {
+        if (IsRepl)
             parser.EmitByte(OP_PRINT_REPL);
-        } else
-            parser.EmitByte(OP_POP);
+        parser.EmitByte(OP_POP);
     }
 }
 

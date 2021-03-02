@@ -112,4 +112,9 @@ void DefineCoreString(VM* pVM)
 	};
 
     pVM->DefineBuiltIn(pVM->stringMethods, methods);
+    pVM->DefineFunction("core", "str", [](VM* pVM, int argCount, Value* args)
+    {
+        Fox_FixArity(pVM, argCount, 1);
+        return Fox_NewString(pVM, ValueToString(args[0]).c_str());
+    });
 }

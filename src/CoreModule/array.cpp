@@ -114,7 +114,7 @@ Value toStringNative(VM* pVM, int argCount, Value* args)
     for (auto& it : pArray->m_vValues)
     {
         size--;
-        string += ValueToString(it);
+        string += ValueToString(it, pVM);
         if (size > 0)
             string += ",";
     }

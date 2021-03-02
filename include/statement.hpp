@@ -1,5 +1,6 @@
 
-#pragma once
+#ifndef FOX_STATEMENT_HPP_
+#define FOX_STATEMENT_HPP_
 
 void Statement(Parser& parser);
 void PrintStatement(Parser& parser);
@@ -12,3 +13,5 @@ void ImportStatement(Parser& parser);
 void SwitchStatement(Parser& parser);
 void ReturnStatement(Parser& parser);
 void IfStatement(Parser& parser);
+
+#endif

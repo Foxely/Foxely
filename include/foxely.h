@@ -1,6 +1,9 @@
-#pragma once
 
 // #define FOXELY_API __attribute__((visibility ("default")))
+
+#ifndef FOX_FOXELY_HPP_
+#define FOX_FOXELY_HPP_
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -148,3 +151,5 @@ extern "C"
 		return Fox_Object(pVM->gc.New<ObjectArray>());
 	}
 }
+
+#endif

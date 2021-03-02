@@ -9,7 +9,7 @@ fibonacci :: func(n) {
   return fibonacci(n - 2) + fibonacci(n - 1);
 }
 
-for (i := 0; i <= 35; i++)
+for (i := 0; i <= 35; ++i)
 {
     print "%\n", fibonacci(i);
 }

@@ -1,4 +1,6 @@
-#pragma once
+
+#ifndef FOX_GC_HPP_
+#define FOX_GC_HPP_
 
 #include <set>
 #include <string>
@@ -158,3 +160,5 @@ inline T* GC::NewArray(size_t count)
     }
     return pObject;
 }
+
+#endif

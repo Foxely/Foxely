@@ -1,5 +1,7 @@
-#pragma once
 
+
+#ifndef FOX_TABLE_HPP_
+#define FOX_TABLE_HPP_
 
 class ObjectString;
 
@@ -36,3 +38,5 @@ public:
 	void RemoveWhite();
 	void Print();
 };
+
+#endif

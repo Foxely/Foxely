@@ -1,5 +1,6 @@
-#ifndef fox_debug_h
-#define fox_debug_h
+
+#ifndef FOX_DEBUG_HPP_
+#define FOX_DEBUG_HPP_
 
 #include "chunk.hpp"
 

@@ -5,10 +5,8 @@
 ** parser & lexer
 */
 
-#pragma once
-
-#ifndef __OBJECT_H__
-#define __OBJECT_H__
+#ifndef FOX_OBJECT_HPP_
+#define FOX_OBJECT_HPP_
 
 #include <iostream>
 #include <string>

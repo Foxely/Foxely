@@ -19,9 +19,9 @@ void highlight(const std::string& str)
     std::cout << str << mecli::style::reset;
 }
 
-void repl()
+void repl(int ac, char** av)
 {
-    VM oVM;
+    VM oVM(ac, av);
     mecli::App app;
 
     app.SetOnLineListener([&oVM](const std::string& str)
@@ -104,12 +104,9 @@ NativeMethods testMethods =
     }),
 };
 
-void runFile(int ac, char** av, const char* path)
+void runFile(int ac, char** av, const std::string& path)
 {
-    VM oVM;
-
-    oVM.argc = ac;
-    oVM.argv = av;
+    VM oVM(ac, av);
 	std::ifstream t(path);
 	std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
     t.close();
@@ -142,11 +139,19 @@ void runFile(int ac, char** av, const char* path)
 
 int main(int ac, char** av)
 {
-    if (ac == 1) {
+    std::string strFile;
+    for (int i = 1; i < ac; ++i)
+    {
+        if (av[i][0] != '-')
+        {
+            strFile = av[i];
+        }
+    }
+    if (strFile.empty()) {
         IsRepl = true;
-        repl();
+        repl(ac , av);
     } else if (ac >= 2) {
-        runFile(ac, av, av[1]);
+        runFile(ac, av, strFile);
     } else {
         fprintf(stderr, "Usage: foxely [path]\n");
         exit(64);

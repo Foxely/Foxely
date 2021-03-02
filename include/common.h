@@ -1,5 +1,5 @@
-#ifndef fox_common_h
-#define fox_common_h
+#ifndef FOX_COMMON_HPP_
+#define FOX_COMMON_HPP_
 
 #include <stdbool.h>
 #include <stddef.h>

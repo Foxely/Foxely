@@ -7,6 +7,7 @@
 #include <cstring>
 
 #include "common.h"
+#include "chunk.hpp"
 #include "gc.hpp"
 #include "debug.h"
 #include "library/library.h"
@@ -17,8 +18,30 @@
 #include "Table.hpp"
 #include "Utility.hpp"
 
-VM::VM() : gc(this), m_oParser(this), modules()
+Value clockNative(VM* pVM, int argCount, Value* args)
 {
+	return Fox_Double((double)clock() / CLOCKS_PER_SEC);
+}
+
+VM::VM(int ac, char** av) : argc(ac), argv(av), gc(this), m_oParser(this), modules()
+{
+    m_bLogTrace = false;
+    m_bLogToken = false;
+    m_bLogGC = false;
+    for (int i = 1; i < ac; ++i)
+    {
+        if (av[i][0] == '-')
+        {
+            if (av[i][1] == 'l' && av[i][2] == 't')
+                m_bLogToken = true;
+
+            if (av[i][1] == 'l' && av[i][2] == 'g')
+                m_bLogGC = true;
+
+            if (av[i][1] == 'l' && av[i][2] == 'e')
+                m_bLogTrace = true;
+        }
+    }
     // ResetStack();
     m_pCurrentFiber = nullptr;
     isInit = false;
@@ -27,6 +50,7 @@ VM::VM() : gc(this), m_oParser(this), modules()
     m_pCurrentFiber = gc.New<ObjectFiber>(nullptr);
     DefineModule("core");
     initString = Fox_AsString(NewString("init"));
+    stringString = Fox_AsString(NewString("string"));
     DefineCoreArray(this);
     DefineCoreString(this);
     DefineCoreMap(this);
@@ -35,7 +59,8 @@ VM::VM() : gc(this), m_oParser(this), modules()
 
 VM::~VM()
 {
-    initString = NULL;
+    initString = nullptr;
+    stringString = nullptr;
 }
 
 void VM::ResetStack()
@@ -75,7 +100,7 @@ bool IsFalsey(Value oValue) {
 
 void VM::RuntimeError(const char *format, ...)
 {
-    // ASSERT(wrenHasError(vm->fiber), "Should only call this after an error.");
+    // FOX_ASSERT(!Fox_IsNil(m_pCurrentFiber->m_oError), "Should only call this after an error.");
 
     ObjectFiber* pCurrent = m_pCurrentFiber;
     Value oError = pCurrent->m_oError;
@@ -339,10 +364,13 @@ void VM::DefineModule(const std::string& strName)
 
         Pop();
 
-        // Implicitly import the core module.
-    //     ObjectModule* coreModule = GetModule(NewString("core"));
-    //     for (int i = 0; i < coreModule->m_vVariables.m_iCount; i++)
-    //         module->m_vVariables.AddAll(coreModule->m_vVariables);
+        if (Fox_AsString(oStrName)->string != "core")
+        {
+            // Implicitly import the core module.
+            ObjectModule* coreModule = GetModule(NewString("core"));
+            for (int i = 0; i < coreModule->m_vVariables.m_iCount; i++)
+                pModule->m_vVariables.AddAll(coreModule->m_vVariables);
+        }
     }
     else
         std::cerr << "'" << strName << "': This module already exist !!" << std::endl;
@@ -529,7 +557,6 @@ ObjectClosure* VM::CompileSource(const char* strModule, const char* strSource, b
     return pClosure;
 }
 
-
 Value VM::NewString(const char* strString)
 {
     return Fox_Object(m_oParser.TakeString(strString));
@@ -573,17 +600,19 @@ InterpretResult VM::run(ObjectFiber* pFiber)
             return result;
         if (result == INTERPRET_ABORT)
             return result;
-#ifdef DEBUG_TRACE_EXECUTION
-        printf("          ");
-        for (Value *pSlot = m_pCurrentFiber->m_vStack; pSlot < m_pCurrentFiber->m_pStackTop; pSlot++) {
-            printf("[ ");
-            PrintValue(*pSlot);
-            printf(" ]");
+#ifdef DEBUG
+        if (IsLogTrace()) {
+            printf("          ");
+            for (Value *pSlot = m_pCurrentFiber->m_vStack; pSlot < m_pCurrentFiber->m_pStackTop; ++pSlot) {
+                printf("[ ");
+                PrintValue(*pSlot);
+                printf(" ]");
+            }
+            printf("\n");
+            disassembleInstruction(
+                frame->closure->function->chunk,
+                (int)(frame->ip - frame->closure->function->chunk.m_vCode.begin()));
         }
-        printf("\n");
-        disassembleInstruction(
-            frame->closure->function->chunk,
-            (int)(frame->ip - frame->closure->function->chunk.m_vCode.begin()));
 #endif
         uint8_t instruction = READ_BYTE();
         switch (instruction)
@@ -742,8 +771,8 @@ InterpretResult VM::run(ObjectFiber* pFiber)
                 Value oMethod;
                 // If we found the + operator so call it
                 if (pInst->klass->operators.Get(m_oParser.TakeString("+"), oMethod)) {
-                    CallValue(oMethod, 1);
-                    frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
+                    if (CallValue(oMethod, 1))
+                        frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
                 }
             } else {
                 RuntimeError("Operands must be two numbers or two strings.");
@@ -833,12 +862,13 @@ InterpretResult VM::run(ObjectFiber* pFiber)
             for (int i = 0; Fox_AsString(string)->string[i]; i++)
             {
                 if (Fox_AsString(string)->string[i] != '%') {
-                    printf("%c", Fox_AsString(string)->string[i]);
+                    std::cout << Fox_AsString(string)->string[i];
                 } else if (Fox_AsString(string)->string[i] == '%' && Fox_AsString(string)->string[i + 1] == '%') {
-                    printf("%%");
+                    std::cout << "%";
                     i++;
-                } else
-                    PrintValue(Peek(--iTempArgCount));
+                } else {
+                    PrintValue(Peek(--iTempArgCount), this);
+                }
             }
             m_pCurrentFiber->m_pStackTop -= iArgCount;
             break;
@@ -846,7 +876,7 @@ InterpretResult VM::run(ObjectFiber* pFiber)
 
         case OP_PRINT_REPL:
         {
-            PrintValue(Pop());
+            PrintValue(Peek(0), this);
             std::cout << std::endl;
             break;
         }
@@ -1267,19 +1297,15 @@ InterpretResult VM::run(ObjectFiber* pFiber)
                         indexEnd = pArray->m_vValues.size();
                     } else {
                         indexEnd = Fox_AsInt(sliceEndIndex);
-
-                        if (indexEnd > pArray->m_vValues.size()) {
+                        if (indexEnd > pArray->m_vValues.size())
                             indexEnd = pArray->m_vValues.size();
-                        }
                     }
 
-                    for (int i = indexStart; i < indexEnd; i++) {
+                    for (int i = indexStart; i < indexEnd; i++)
                         pNewArray->m_vValues.push_back(pArray->m_vValues[i]);
-                    }
 
                     Pop();
                     returnVal = Fox_Object(pNewArray);
-
                     break;
                 }
 
@@ -1339,9 +1365,7 @@ InterpretResult VM::run(ObjectFiber* pFiber)
             ObjectArray *pArray = Fox_AsArray(opArrayValue);
 
             for (int i = iArgCount - 1; i >= 0; i--)
-            {
                 pArray->m_vValues.push_back(Peek(i));
-            }
 
             m_pCurrentFiber->m_pStackTop -= iArgCount;
 
@@ -1371,7 +1395,6 @@ InterpretResult VM::run(ObjectFiber* pFiber)
             Push(Fox_Object(pMap));
             break;
         }
-
         }
     }
 
@@ -1430,10 +1453,12 @@ void VM::AddValueToRoot(Value value) {
 void VM::AddObjectToRoot(Object *object) {
     if (object == NULL)
         return;
-#ifdef DEBUG_LOG_GC
-    printf("%p added to root ", (void *)object);
-    PrintValue(Fox_Object(object));
-    printf("\n");
+#ifdef DEBUG
+	if (IsLogGC()) {
+        printf("%p added to root ", (void *)object);
+        PrintValue(Fox_Object(object));
+        printf("\n");
+    }
 #endif
     gc.AddRoot(object);
 
@@ -1458,10 +1483,12 @@ void VM::AddArrayToRoot(ValueArray *array)
 
 void VM::BlackenObject(Object *object)
 {
-#ifdef DEBUG_LOG_GC
-    printf("%p blacken ", (void *)object);
-    PrintValue(Fox_Object(object));
-    printf("\n");
+#ifdef DEBUG
+	if (IsLogGC()) {
+        printf("%p blacken ", (void *)object);
+        PrintValue(Fox_Object(object));
+        printf("\n");
+    }
 #endif
     switch (object->type) {
     case OBJ_INSTANCE:
@@ -1995,4 +2022,19 @@ void VM::SetListElement(int iSlot, int index, int elementSlot)
     FOX_ASSERT(index <= pArray->m_vValues.size(), "Index out of bounds.\n");
 
     pArray->m_vValues[index] = m_pApiStack[elementSlot];
+}
+
+bool VM::IsLogToken() const
+{
+    return m_bLogToken;
+}
+
+bool VM::IsLogGC() const
+{
+    return m_bLogGC;
+}
+
+bool VM::IsLogTrace() const
+{
+    return m_bLogTrace;
 }

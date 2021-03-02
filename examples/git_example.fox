@@ -1,0 +1,30 @@
+Vector :: class {
+	// constructor
+	init (a, b, c) {
+	    // instance variables
+		this.x = a;
+        this.y = b;
+        this.z = c;
+	}
+
+	// instance method (built-in operator overriding)
+	operator + (v) {
+        return Vector(this.x + v.x, this.y + v.y, this.z + v.z);
+	}
+
+	string() {
+		return "[" + str(this.x) + ", " + str(this.y) + ", " + str(this.z) + "]";
+	}
+}
+
+// initialize a new vector object
+v1 := Vector(1, 2, 3);
+
+// initialize a new vector object
+v2 := Vector(4, 5, 6);
+
+// call + function in the vector object
+v3 := v1 + v2;
+
+// returns string "[1,2,3] + [4,5,6] = [5,7,9]"
+print "% + % = %\n", v1.string(), v2.string(), v3.string();
