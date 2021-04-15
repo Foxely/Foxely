@@ -26,6 +26,7 @@ typedef enum
     OP_EQUAL,
     OP_GREATER,
     OP_LESS,
+
     OP_ADD,
     OP_SUB,
     OP_MUL,
@@ -59,6 +60,8 @@ typedef enum
 
     OP_END_MODULE,
     OP_END,
+
+    OP_IS,
 
     // CODES for Repl Mode
     OP_PRINT_REPL,

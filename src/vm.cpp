@@ -826,6 +826,18 @@ InterpretResult VM::run(ObjectFiber* pFiber)
             else if (Fox_IsInt(Peek(0)))
                 BINARY_OP(Int, int, /);
             break;
+        case OP_IS:
+        // 'is' don't work with int type, modifie it
+            if (Fox_IsInstance(Peek(1))) {
+                if (Fox_IsClass(Peek(0))) {
+                    ObjectClass* oClassType = Fox_AsClass(Pop());
+                    ObjectInstance* pInst = Fox_AsInstance(Pop());
+                    Push(Fox_Bool(pInst->klass->name == oClassType->name));
+                } else
+                    RuntimeError("Expected class type.");
+            } else
+                RuntimeError("Expected an instance before the keyword 'is'.");
+            break;
         case OP_NOT:
             Push(Fox_Bool(IsFalsey(Pop())));
             break;

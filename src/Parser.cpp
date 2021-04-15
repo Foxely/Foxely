@@ -98,6 +98,7 @@ Parser::Parser(VM* pVm)
     oLexer.Define(TOKEN_BANG_EQUAL, "!=");
     oLexer.Define(TOKEN_CLASS, "class");
     oLexer.Define(TOKEN_ELSE, "else");
+    oLexer.Define(TOKEN_IS, "is");
     oLexer.Define(TOKEN_EQUAL, "=");
     oLexer.Define(TOKEN_EQUAL_EQUAL, "==");
     oLexer.Define(TOKEN_SHEBANG,"#[^\n\r]*", true);
@@ -163,6 +164,7 @@ Parser::Parser(VM* pVm)
     rules[TOKEN_SWITCH] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_COLON] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_DOUBLE_COLON] = { NULL, NULL, PREC_NONE };
+    rules[TOKEN_IS] = { NULL, Binary, PREC_EQUALITY };
     // rules[TOKEN_ERROR] = { NULL, NULL, PREC_NONE };
     // rules[TOKEN_EOF] = { NULL, NULL, PREC_NONE };
 }
@@ -477,6 +479,9 @@ void Binary(Parser& parser, bool can_assign)
         case TOKEN_SLASH:
             parser.EmitByte(OP_DIV);
         break;
+        case TOKEN_IS:
+            parser.EmitByte(OP_IS);
+            break;
         default:
             return;
     }

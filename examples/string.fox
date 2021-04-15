@@ -8,7 +8,7 @@ print "%\n", word.length(); // length of the string
 print "%\n", word.count("l"); // count how many times l is in the string
 // 3
 
-print "%\n", word.find("H"); // find the word H in the string
+print "%\n", word.find("H"); // find the first letter H in the string
 // 0
 
 print "%\n", word.split(" "); // Split on whitespace

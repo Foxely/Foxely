@@ -1,0 +1,22 @@
+
+
+Fruit :: class
+{
+}
+
+Candy :: class
+{
+}
+
+candy := Candy();
+fruit := Fruit();
+
+if ( candy is Candy )
+    print "candy is a Candy class\n";
+if ( candy is Fruit )
+    print "candy is a Fruit class\n";
+
+if ( fruit is Candy )
+    print "fruit is a Candy class\n";
+if ( fruit is Fruit )
+    print "fruit is a Fruit class\n";
