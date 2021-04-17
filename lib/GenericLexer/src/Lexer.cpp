@@ -3,7 +3,6 @@
 #include <vector>
 #include <cstring>
 #include <algorithm>
-#include <regex>
 #include "Lexer.h"
 
 Lexer::Lexer()
@@ -64,7 +63,7 @@ bool Lexer::Process(const std::string& strText)
     bool bFound = false;
     std::vector<StringID>::iterator itTrash;
     int maxLen = 0;
-    std::pair<StringID, std::string> defineTarget;
+    std::pair<StringID, std::regex> defineTarget;
 	// helper::replaceAll(m_strText, "\\\"", "\"", m_strText.size());
 
     while (!m_strText.empty())
@@ -115,8 +114,7 @@ bool Lexer::Process(const std::string& strText)
         for (auto& define : m_oAllDefines)
         {
             std::smatch match;
-            std::regex reg(define.second);
-            if (std::regex_search(m_strText, match, reg))
+            if (std::regex_search(m_strText, match, define.second))
             {
                 int index = match.position();
                 iLen = match.length();
@@ -245,7 +243,7 @@ bool Lexer::Finished() const
 
 void Lexer::Define(const std::string& strId, const std::string& strRegex, bool bAddInTrash)
 {
-    m_oAllDefines.push_back(std::make_pair(StringID(strId), strRegex));
+    m_oAllDefines.push_back(std::make_pair(StringID(strId), std::regex(strRegex)));
 
     if (bAddInTrash)
         m_oTrashDefines.push_back(StringID(strId));
@@ -253,7 +251,7 @@ void Lexer::Define(const std::string& strId, const std::string& strRegex, bool b
 
 void Lexer::Define(const int id, const std::string& strRegex, bool bAddInTrash)
 {
-    m_oAllDefines.push_back(std::make_pair(StringID(id), strRegex));
+    m_oAllDefines.push_back(std::make_pair(StringID(id), std::regex(strRegex)));
 
     if (bAddInTrash)
         m_oTrashDefines.push_back(StringID(id));

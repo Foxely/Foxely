@@ -7,7 +7,6 @@
 #include "Parser.h"
 #include "object.hpp"
 #include "vm.hpp"
-#include "gc.hpp"
 #include "statement.hpp"
 #include "object.hpp"
 
@@ -27,7 +26,7 @@ Compiler::Compiler (Parser& parser, FunctionType eType, const std::string& name)
     localCount = 0;
     scopeDepth = 0;
     type = eType;
-    function = parser.m_pVm->gc.New<ObjectFunction>();
+    function = new_ref<ObjectFunction>();
     parser.currentCompiler = this;
 
     if (eType != TYPE_SCRIPT) {
@@ -203,7 +202,7 @@ void Parser::RemoveComment()
     }), oLex.oTokenList.end());
 }
 
-ObjectFunction* Compile(Parser& parser, const std::string& strText, Chunk* chunk)
+ref<ObjectFunction> Compile(Parser& parser, const std::string& strText, Chunk* chunk)
 {
     if (!parser.Init(strText))
         return NULL;
@@ -222,7 +221,7 @@ ObjectFunction* Compile(Parser& parser, const std::string& strText, Chunk* chunk
 	while (!parser.IsEnd()) {
 		Declaration(parser);
 	}
-	ObjectFunction *func = parser.EndCompiler();
+	ref<ObjectFunction> func = parser.EndCompiler();
     return parser.hadError ? NULL : func;
 }
 
@@ -313,10 +312,10 @@ uint8_t Parser::MakeConstant(Value value)
   	return (uint8_t) constant;
 }
 
-ObjectFunction* Parser::EndCompiler()
+ref<ObjectFunction> Parser::EndCompiler()
 {
 	EmitReturn();
-    ObjectFunction* func = currentCompiler->function;
+    ref<ObjectFunction> func = currentCompiler->function;
     #ifdef DEBUG_PRINT_CODE
     if (!hadError) {
         disassemble_chunk(GetCurrentChunk(), func->name != NULL ? func->name->string : "<script>");
@@ -925,7 +924,7 @@ void Function(Parser& parser, FunctionType type, const Token& name)
 	Block(parser);
 
 	// Create the function object.
-	ObjectFunction* function = parser.EndCompiler();
+	ref<ObjectFunction> function = parser.EndCompiler();
 	parser.EmitBytes(OP_CLOSURE, parser.MakeConstant(Fox_Object(function)));
 	for (int i = 0; i < function->upValueCount; i++)
 	{
@@ -1121,9 +1120,9 @@ uint32_t Parser::hashString(const std::string& str)
 * @param hash l'identifiant unique de la string après un hashage (passage dans une fonction de hashage comme 'hashString')
 * @return un pointeur ObjectString alloué dans le garbage Collector
 */
-ObjectString* Parser::AllocateString(const std::string& str, uint32_t hash)
+ref<ObjectString> Parser::AllocateString(const std::string& str, uint32_t hash)
 {
-	ObjectString* string = m_pVm->gc.New<ObjectString>(str);
+	ref<ObjectString> string = new_ref<ObjectString>(str);
 	string->type = OBJ_STRING;
 	string->hash = hash;
 
@@ -1138,10 +1137,10 @@ ObjectString* Parser::AllocateString(const std::string& str, uint32_t hash)
 * @param value la chaine de caractère qui sera copier
 * @return une copie de la string sous un pointeur ObjectString alloué dans le garbage Collector
 */
-ObjectString* Parser::CopyString(const std::string& value)
+ref<ObjectString> Parser::CopyString(const std::string& value)
 {
 	uint32_t hash = hashString(value);
-	ObjectString* interned = NULL;
+	ref<ObjectString> interned = NULL;
 
 	interned = m_pVm->strings.FindString(value, hash);
 
@@ -1154,10 +1153,10 @@ ObjectString* Parser::CopyString(const std::string& value)
 /*
 * @brief Cette fonction fait la même chose que 'CopyString'
 */
-ObjectString* Parser::TakeString(const std::string& value)
+ref<ObjectString> Parser::TakeString(const std::string& value)
 {
 	uint32_t hash = hashString(value);
-	ObjectString* interned = NULL;
+	ref<ObjectString> interned = NULL;
 
 	interned = m_pVm->strings.FindString(value, hash);
 	if (interned != NULL)

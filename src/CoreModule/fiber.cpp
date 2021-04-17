@@ -9,14 +9,14 @@ Value initNative(VM* pVM, int argCount, Value* args)
     Fox_FixArity(pVM, argCount, 1);
     Fox_PanicIfNot(pVM, Fox_IsClosure(args[0]), "Expected a function.");
 
-    return Fox_Object(pVM->gc.New<ObjectFiber>(Fox_AsClosure(args[0])));
+    return Fox_Object(new_ref<ObjectFiber>(Fox_AsClosure(args[0])));
 }
 
 Value callNative(VM* pVM, int argCount, Value* args)
 {
     Fox_Arity(pVM, argCount, 0, 1);
 
-    ObjectFiber* pFiber = Fox_AsFiber(args[-1]);
+    ref<ObjectFiber> pFiber = Fox_AsFiber(args[-1]);
 
     bool hasValue = argCount > 0;
 
@@ -87,7 +87,7 @@ Value yieldNative(VM* pVM, int argCount, Value* args)
 {
     Fox_Arity(pVM, argCount, 0, 1);
 
-    ObjectFiber* pCurrent = pVM->m_pCurrentFiber;
+    ref<ObjectFiber> pCurrent = pVM->m_pCurrentFiber;
     pVM->m_pCurrentFiber = pCurrent->m_pCaller;
 
     // Unhook this fiber from the one that called it.
@@ -126,9 +126,9 @@ Value abortNative(VM* pVM, int argCount, Value* args)
     pVM->result = INTERPRET_ABORT;
     
     if (argCount == 1)
-        pVM->PrintError(pVM->m_pCurrentFiber, Fox_AsCString(args[0]));
+        pVM->PrintError(pVM->m_pCurrentFiber.get(), Fox_AsCString(args[0]));
     else
-        pVM->PrintError(pVM->m_pCurrentFiber, "");
+        pVM->PrintError(pVM->m_pCurrentFiber.get(), "");
 
 
     return Fox_Nil;

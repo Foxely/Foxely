@@ -7,6 +7,7 @@
 #include <string>
 #include <sstream>
 #include <fstream>
+#include <memory>
 #include <sys/stat.h>
 
 inline bool IsRepl;
@@ -60,5 +61,23 @@ inline bool IsRepl;
   #define FOX_ASSERT(condition, message)
 
 #endif
+
+template<typename T>
+using scope = std::unique_ptr<T>;
+
+template<typename T, typename ... Args>
+constexpr scope<T> new_scope(Args&& ... args)
+{
+    return std::make_unique<T>(std::forward<Args>(args)...);
+}
+
+template<typename T>
+using ref = std::shared_ptr<T>;
+
+template<typename T, typename ... Args>
+constexpr ref<T> new_ref(Args&& ... args)
+{
+    return std::make_shared<T>(std::forward<Args>(args)...);
+}
 
 #endif

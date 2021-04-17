@@ -2,7 +2,6 @@
 #include "Parser.h"
 #include "object.hpp"
 #include "vm.hpp"
-#include "gc.hpp"
 #include "statement.hpp"
 
 void Statement(Parser& parser)

@@ -5,6 +5,7 @@
 #include <map>
 #include <iostream>
 #include <string>
+#include <regex>
 #include <iterator>
 #include "Token.h"
 
@@ -53,7 +54,7 @@ public:
     std::vector<Token>::iterator oStoreTokenIterator;
     Token oEofToken;
     const char* strEnd;
-    std::vector<std::pair<StringID, std::string>> m_oAllDefines;
+    std::vector<std::pair<StringID, std::regex>> m_oAllDefines;
     std::vector<std::pair<StringID, Area>> m_oAreaDefines;
     std::vector<StringID> m_oTrashDefines;
 

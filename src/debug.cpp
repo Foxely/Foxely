@@ -161,7 +161,7 @@ int disassembleInstruction(Chunk& chunk, int offset)
 			printf("%-16s %4d ", "OP_CLOSURE", constant);
 			PrintValue(chunk.m_oConstants.m_vValues[constant]);
 			printf("\n");
-			ObjectFunction *function = Fox_AsFunction(chunk.m_oConstants.m_vValues[constant]);
+			ref<ObjectFunction> function = Fox_AsFunction(chunk.m_oConstants.m_vValues[constant]);
 			for (int j = 0; j < function->upValueCount; j++)
             {
 				int is_local = chunk.m_vCode[offset++];

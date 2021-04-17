@@ -14,7 +14,6 @@
 
 #include "chunk.hpp"
 #include "value.hpp"
-#include "gc.hpp"
 #include "Table.hpp"
 #include "Map.hpp"
 
@@ -37,20 +36,20 @@ class VM;
 #define Fox_IsModule(val)        is_obj_type(val, OBJ_MODULE)
 #define Fox_IsFiber(val)        is_obj_type(val, OBJ_FIBER)
 
-#define Fox_AsMap(val)           ((ObjectMap *)Fox_AsObject(val))
-#define Fox_AsArray(val)           ((ObjectArray *)Fox_AsObject(val))
-#define Fox_AsAbstract(val)        ((ObjectAbstract *)Fox_AsObject(val))
-#define Fox_AsLib(val)           	((ObjectLib *)Fox_AsObject(val))
-#define Fox_AsBoundMethod(val)  	((ObjectBoundMethod *)Fox_AsObject(val))
-#define Fox_AsClass(val)         	((ObjectClass *)Fox_AsObject(val))
-#define Fox_AsClosure(val)       	((ObjectClosure *)Fox_AsObject(val))
-#define Fox_AsFunction(val)      	((ObjectFunction *)Fox_AsObject(val))
-#define Fox_AsInstance(val)        ((ObjectInstance *)Fox_AsObject(val))
-#define Fox_AsNative(val)        	(((ObjectNative *)Fox_AsObject(val))->function)
-#define Fox_AsString(val)        	((ObjectString *)Fox_AsObject(val))
-#define Fox_AsCString(val)       	(((ObjectString *)Fox_AsObject(val))->string.c_str())
-#define Fox_AsModule(val)       	((ObjectModule *)Fox_AsObject(val))
-#define Fox_AsFiber(val)       	    ((ObjectFiber *)Fox_AsObject(val))
+#define Fox_AsMap(val)              ((val).as_ref<ObjectMap>())
+#define Fox_AsArray(val)            ((val).as_ref<ObjectArray>())
+#define Fox_AsAbstract(val)         ((val).as_ref<ObjectAbstract>())
+#define Fox_AsLib(val)           	((val).as_ref<ObjectLib>())
+#define Fox_AsBoundMethod(val)  	((val).as_ref<ObjectBoundMethod>())
+#define Fox_AsClass(val)         	((val).as_ref<ObjectClass>())
+#define Fox_AsClosure(val)       	((val).as_ref<ObjectClosure>())
+#define Fox_AsFunction(val)      	((val).as_ref<ObjectFunction>())
+#define Fox_AsInstance(val)         ((val).as_ref<ObjectInstance>())
+#define Fox_AsNative(val)        	((val).as_ref<ObjectNative>()->function)
+#define Fox_AsString(val)        	((val).as_ref<ObjectString>())
+#define Fox_AsCString(val)       	((Fox_AsString(val))->string.c_str())
+#define Fox_AsModule(val)       	((val).as_ref<ObjectModule>())
+#define Fox_AsFiber(val)       	    ((val).as_ref<ObjectFiber>())
 
 typedef enum {
     OBJ_UNKNOWN,
@@ -74,9 +73,11 @@ typedef enum {
 struct CallFrame;
 
 
-class Object : public Traceable
+class Object
 {
 public:
+    Object() { }
+	virtual ~Object() {}
     ObjType type;
 
     bool operator==(const Object& other) const
@@ -101,7 +102,7 @@ public:
 class ObjectModule : public Object
 {
 public:
-    explicit ObjectModule(ObjectString* strName)
+    explicit ObjectModule(ref<ObjectString> strName)
 	{
 		type = OBJ_MODULE;
         m_strName = strName;
@@ -114,7 +115,7 @@ public:
 
     Table m_vVariables;
     // The name of the module.
-    ObjectString* m_strName;
+    ref<ObjectString> m_strName;
 };
 
 class ObjectFunction : public Object
@@ -125,8 +126,8 @@ public:
     int iMaxArity;
     int upValueCount;
     Chunk chunk;
-    ObjectString *name;
-    ObjectModule* module;
+    ref<ObjectString> name;
+    ref<ObjectModule> module;
 
 	explicit ObjectFunction()
 	{
@@ -145,7 +146,7 @@ class ObjectUpvalue : public Object
 public:
     Value *location;
     Value closed;
-    struct ObjectUpvalue *next;
+    ref<ObjectUpvalue> next;
 
     explicit ObjectUpvalue(Value* slot)
     {
@@ -179,10 +180,10 @@ public:
 class ObjectLib : public Object
 {
 public:
-    ObjectString *name;
+    ref<ObjectString> name;
     Table methods;
 
-	explicit ObjectLib(ObjectString* n)
+	explicit ObjectLib(ref<ObjectString> n)
 	{
 		type = OBJ_LIB;
 		name = NULL;
@@ -194,23 +195,23 @@ public:
 class ObjectClosure : public Object
 {
 public:
-    ObjectFunction *function;
-    ObjectUpvalue **upValues;
+    ref<ObjectFunction> function;
+    std::vector<ref<ObjectUpvalue>> upValues;
     int upvalueCount;
 
-    ObjectClosure(VM* oVM, ObjectFunction *func);
+    ObjectClosure(VM* oVM, ref<ObjectFunction> func);
 };
 
 class ObjectClass : public Object
 {
 public:
-    ObjectClass* superClass;
-    ObjectString *name;
+    ref<ObjectClass> superClass;
+    ref<ObjectString> name;
     Table methods;
     Table operators;
     int derivedCount;
 
-	explicit ObjectClass(ObjectString* n)
+	explicit ObjectClass(ref<ObjectString> n)
 	{
 		type = OBJ_CLASS;
 		name = n;
@@ -229,8 +230,7 @@ public:
             end = (ObjectClass*) this;
         }
         while (cl && !(cl == end))
-            cl = cl->superClass;
-        
+            cl = cl->superClass.get();
         return cl != NULL;
     }
 };
@@ -238,13 +238,13 @@ public:
 class ObjectInstance : public Object
 {
 public:
-    ObjectClass *klass;
+    ref<ObjectClass> klass;
     Table fields;
     Table getters;
     Table setters;
 	void* cStruct;
 
-	explicit ObjectInstance(ObjectClass *k)
+	explicit ObjectInstance(ref<ObjectClass> k)
 	{
 		type = OBJ_INSTANCE;
 		klass = k;
@@ -252,7 +252,7 @@ public:
         cStruct = nullptr;
 	}
 
-    explicit ObjectInstance(ObjectClass *k, void* cS)
+    explicit ObjectInstance(ref<ObjectClass> k, void* cS)
 	{
 		type = OBJ_INSTANCE;
 		klass = k;
@@ -270,9 +270,9 @@ class ObjectBoundMethod : public Object
 {
 public:
     Value receiver;
-    ObjectClosure *method;
+    ref<ObjectClosure> method;
 
-	explicit ObjectBoundMethod(Value r, ObjectClosure* m)
+	explicit ObjectBoundMethod(Value r, ref<ObjectClosure> m)
 	{
 		type = OBJ_BOUND_METHOD;
 		receiver = r;
@@ -357,7 +357,7 @@ static inline bool is_obj_type(Value val, ObjType type)
 
 struct CallFrame
 {
-	ObjectClosure* closure;
+	ref<ObjectClosure> closure;
 	std::vector<uint8_t>::iterator ip;
 	Value* slots;
 };
@@ -365,7 +365,7 @@ struct CallFrame
 class ObjectFiber : public Object
 {
 public:
-    explicit ObjectFiber(ObjectClosure* pClosure)
+    explicit ObjectFiber(ref<ObjectClosure> pClosure)
 	{
 		type = OBJ_FIBER;
         m_pStackTop = m_vStack;
@@ -414,11 +414,11 @@ public:
     // Pointer to the first node in the linked list of open upvalues that are
     // pointing to values still on the stack. The head of the list will be the
     // upvalue closest to the top of the stack, and then the list works downwards.
-    ObjectUpvalue* m_vOpenUpvalues;
+    ref<ObjectUpvalue> m_vOpenUpvalues;
     
     // The fiber that ran this one. If this fiber is yielded, control will resume
     // to this one. May be `NULL`.
-    ObjectFiber* m_pCaller;
+    ref<ObjectFiber> m_pCaller;
     
     // If the fiber failed because of a runtime error, this will contain the
     // error object. Otherwise, it will be null.

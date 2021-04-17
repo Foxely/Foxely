@@ -55,7 +55,7 @@ Value argsNative(VM* oVM, int argCount, Value* args)
 {
     Fox_FixArity(oVM, argCount, 0);
     Value oArray = Fox_NewArray(oVM);
-    ObjectArray* pArray = Fox_AsArray(oArray);
+    ref<ObjectArray> pArray = Fox_AsArray(oArray);
     std::vector<Value> vValues;
 
     for (int i = 1; i < oVM->argc; i++)

@@ -9,7 +9,7 @@ void DefineCoreString(VM* pVM)
         {
             Fox_FixArity(pVM, argc, 0);
 
-            return Fox_Int(Fox_AsString(args[-1])->string.size());
+            return Fox_Int((int)Fox_AsString(args[-1])->string.size());
         }),
 
         std::make_pair<std::string, NativeFn>("count", [](VM* pVM, int argc, Value* args)
@@ -41,7 +41,7 @@ void DefineCoreString(VM* pVM)
             Fox_PanicIfNot(pVM, !strLetter.empty(), "Can't find an empty string.");
             Fox_PanicIfNot(pVM, !strObject.empty(), "Can't find in an empty string.");
 
-            return Fox_Int(strObject.find_first_of(strLetter));
+            return Fox_Int((int)strObject.find_first_of(strLetter));
         }),
 
         std::make_pair<std::string, NativeFn>("split", [](VM* pVM, int argc, Value* args)
@@ -51,7 +51,7 @@ void DefineCoreString(VM* pVM)
 
             std::string& strObject = Fox_AsString(args[-1])->string;
             std::string& strDelimiter = Fox_AsString(args[0])->string;
-            ObjectArray* pArray = Fox_AsArray(Fox_NewArray(pVM));
+            ref<ObjectArray> pArray = Fox_AsArray(Fox_NewArray(pVM));
 
             Fox_PanicIfNot(pVM, !strDelimiter.empty(), "String delimiter can't be empty.");
 

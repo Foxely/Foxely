@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <string>
+#include <variant>
 #include "common.h"
 
 // typedef double Value;
@@ -22,16 +23,71 @@ enum ValueType {
 class Value
 {
 public:
+    Value()
+    {
+        type = VAL_NIL;
+        val = 0;
+    }
+
+    Value(const Value& other) : type(other.type), val(other.val)
+    {
+    }
+
+    Value(bool value) : val(value)
+    {
+        type = VAL_BOOL;
+    }
+
+    Value(double value) : val(value)
+    {
+        type = VAL_NUMBER;
+    }
+
+    Value(int value) : val(value)
+    {
+        type = VAL_INT;
+    }
+
+    Value(ref<Object> value) : val(value)
+    {
+        type = VAL_OBJ;
+    }
+
+    ~Value() = default;
+    
     ValueType type;
-    union {
-        bool boolean;
-        double number;
-        int integer;
-        Object* obj;
-    } as;
+    std::variant<bool, double, int, ref<Object>> val;
+
+    template <typename T>
+    ref<T> as_ref()
+    {
+        return std::dynamic_pointer_cast<T>(std::get<ref<Object>>(val));
+    }
+
+    template <typename T>
+    T as()
+    {
+        return static_cast<T>(*std::get<ref<Object>>(val));
+    }
 
     bool operator==(const Value& other) const;
+
+    Value& operator=(const Value& other)
+    {
+        type = other.type;
+        val = other.val;
+        return *this;
+    }
 };
+
+template <>
+bool Value::as<bool>();
+
+template <>
+double Value::as<double>();
+
+template <>
+int Value::as<int>();
 
 
 bool ValuesEqual(Value a, Value b);
@@ -60,15 +116,15 @@ public:
 #define Fox_IsInt(val)     ((val).type == VAL_INT)
 #define Fox_IsObject(val)     ((val).type == VAL_OBJ)
 
-#define Fox_AsObject(val)     ((val).as.obj)
-#define Fox_AsBool(val)    ((val).as.boolean)
-#define Fox_AsDouble(val)  ((val).as.number)
-#define Fox_AsInt(val)  ((val).as.integer)
+#define Fox_AsObject(val)     ((val).as_ref<Object>())
+#define Fox_AsBool(val)    ((val).as<bool>())
+#define Fox_AsDouble(val)  ((val).as<double>())
+#define Fox_AsInt(val)  ((val).as<int>())
 
-#define Fox_Bool(val)   ((Value){ VAL_BOOL, { .boolean = val } })
-#define Fox_Nil           ((Value){ VAL_NIL, { .number = 0 } })
-#define Fox_Double(val) ((Value){ VAL_NUMBER, { .number = val } })
-#define Fox_Int(val) ((Value){ VAL_INT, { .integer = val } })
-#define Fox_Object(object)   ((Value){ VAL_OBJ, { .obj = (Object *)object } })
+#define Fox_Bool(val)           (Value(val))
+#define Fox_Nil                 (Value())
+#define Fox_Double(val)         (Value(val))
+#define Fox_Int(val)            (Value(val))
+#define Fox_Object(object)      (Value(object))
 
 #endif

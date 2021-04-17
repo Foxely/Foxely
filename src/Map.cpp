@@ -49,7 +49,7 @@ static uint32_t hashObject(Object* pObject)
     {
         case OBJ_CLASS:
         // Classes just use their name.
-        return hashObject(((ObjectClass *) pObject)->name);
+        return hashObject(((ObjectClass *) pObject)->name.get());
         
         // Allow bare (non-closure) functions so that we can use a map to find
         // existing constants in a function's constant table. This is only used
@@ -82,7 +82,7 @@ static uint32_t hashValue(Value value)
         case VAL_NIL:       return 1;
         case VAL_INT:       return hashInt(Fox_AsInt(value));
         case VAL_NUMBER:    return hashNumber(Fox_AsDouble(value));
-        case VAL_OBJ:       return hashObject(Fox_AsObject(value));
+        case VAL_OBJ:       return hashObject(Fox_AsObject(value).get());
         default:            return -1;
     }
     
@@ -246,13 +246,13 @@ void MapTable::MarkMap()
 
 void MapTable::RemoveWhite()
 {
-    for (int i = 0; i <= m_iCapacity; i++)
-	{
-        MapEntry& entry = m_vEntries[i];
-        if (!Fox_IsNil(entry.m_oKey) && !Fox_AsObject(entry.m_oKey)->mMarked) {
-            Delete(entry.m_oKey);
-        }
-    }
+    // for (int i = 0; i <= m_iCapacity; i++)
+	// {
+    //     MapEntry& entry = m_vEntries[i];
+    //     if (!Fox_IsNil(entry.m_oKey) && !Fox_AsObject(entry.m_oKey)->mMarked) {
+    //         Delete(entry.m_oKey);
+    //     }
+    // }
 }
 
 int MapTable::Size()

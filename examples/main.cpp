@@ -85,20 +85,20 @@ NativeMethods testMethods =
 {
 	std::make_pair<std::string, NativeFn>("init", [](VM* pVM, int argc, Value* args)
     {
-        ObjectInstance* pInstance = Fox_AsInstance(args[-1]);
+        ref<ObjectInstance> pInstance = Fox_AsInstance(args[-1]);
         pInstance->cStruct = new Test;
-        Fox_SetField(pVM, Fox_Object(pInstance), "x", Fox_Double(0));
+        Fox_SetField(pVM, Fox_Object(pInstance), "x", Value(0));
         
-        Fox_Setter(pVM, pInstance, "x", [](VM* pVM, int argc, Value* args)
+        Fox_Setter(pVM, pInstance.get(), "x", [](VM* pVM, int argc, Value* args)
         {
             Test* pTest = (Test *) Fox_GetUserData(args[-1]);
-            pTest->a = Fox_AsInt(args[0]);
-            return Fox_Int(pTest->a);
+            pTest->a = args[0].as<int>();
+            return Value(pTest->a);
         });
-        Fox_Getter(pVM, pInstance, "x", [](VM* pVM, int argc, Value* args)
+        Fox_Getter(pVM, pInstance.get(), "x", [](VM* pVM, int argc, Value* args)
         {
             Test* pTest = (Test *) Fox_GetUserData(args[-1]);
-            return Fox_Int(pTest->a);
+            return Value(pTest->a);
         });
         return args[-1];
     }),
@@ -133,8 +133,8 @@ void runFile(int ac, char** av, const std::string& path)
     // if (add.IsValid())
     //     add.Call(1, 2);
 
-    if (result == INTERPRET_COMPILE_ERROR) exit(65);
-    if (result == INTERPRET_RUNTIME_ERROR) exit(70);
+    // if (result == INTERPRET_COMPILE_ERROR) exit(65);
+    // if (result == INTERPRET_RUNTIME_ERROR) exit(70);
 }
 
 int main(int ac, char** av)

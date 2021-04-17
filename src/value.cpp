@@ -48,22 +48,23 @@ bool ValuesSame(Value a, Value b)
 {
     if (a.type != b.type)     return false;
     if (a.type == VAL_NIL)    return true;
-    if (a.type == VAL_NUMBER) return a.as.number == b.as.number;
-    if (a.type == VAL_INT) return a.as.integer == b.as.integer;
-    if (a.type == VAL_BOOL)   return Fox_AsBool(a) == Fox_AsBool(b);
-    return a.as.obj == b.as.obj;
+    // if (a.type == VAL_NUMBER) return a.as<double>() == b.as<double>();
+    // if (a.type == VAL_INT) return a.as<int>() == b.as<int>();
+    // if (a.type == VAL_BOOL)   return Fox_AsBool(a) == Fox_AsBool(b);
+    return a.val == b.val;
 }
 
 bool ValuesEqual(Value a, Value b)
 {
-    if (ValuesSame(a, b)) return true;
+    if (ValuesSame(a, b))
+        return true;
 
     // If we get here, it's only possible for two heap-allocated immutable objects
   // to be equal.
     if (!Fox_IsObject(a) || !Fox_IsObject(b)) return false;
 
-    Object* aObject = Fox_AsObject(a);
-    Object* bObject = Fox_AsObject(b);
+    ref<Object> aObject = Fox_AsObject(a);
+    ref<Object> bObject = Fox_AsObject(b);
 
     // Must be the same type.
     if (aObject->type != bObject->type) return false;
@@ -76,7 +77,23 @@ bool Value::operator==(const Value& other) const
     return ValuesEqual(*this, other);
 }
 
+template <>
+bool Value::as<bool>()
+{
+    return std::get<bool>(val);
+}
 
+template <>
+double Value::as<double>()
+{
+    return std::get<double>(val);
+}
+
+template <>
+int Value::as<int>()
+{
+    return std::get<int>(val);
+}
 
 std::string FunctionToString(ObjectFunction* function)
 {
@@ -102,13 +119,13 @@ std::string ObjectToString(Value value, VM* pVm)
             string += (Fox_AsString(value))->string;
         	break;
 		case OBJ_FUNCTION:
-			string += FunctionToString(Fox_AsFunction(value));
+			string += FunctionToString(Fox_AsFunction(value).get());
 			break;
 		case OBJ_NATIVE:
             string += "<native fn>";
 			break;
         case OBJ_CLOSURE:
-            string += FunctionToString(Fox_AsClosure(value)->function);
+            string += FunctionToString(Fox_AsClosure(value)->function.get());
             break;
         case OBJ_UPVALUE:
             string += "upvalue";
@@ -123,7 +140,7 @@ std::string ObjectToString(Value value, VM* pVm)
             string += " instance";
 			break;
 		case OBJ_BOUND_METHOD:
-			string += FunctionToString(Fox_AsBoundMethod(value)->method->function);
+			string += FunctionToString(Fox_AsBoundMethod(value)->method->function.get());
 			break;
         case OBJ_ABSTRACT:
 			string += Fox_AsAbstract(value)->abstractType->name;
@@ -139,7 +156,7 @@ std::string ObjectToString(Value value, VM* pVm)
 			break;
         case OBJ_ARRAY:
         {
-            ObjectArray* pArray = Fox_AsArray(value);
+            ref<ObjectArray> pArray = Fox_AsArray(value);
             string += "[";
             int size = pArray->m_vValues.size();
             for (auto& it : pArray->m_vValues)
@@ -154,7 +171,7 @@ std::string ObjectToString(Value value, VM* pVm)
         }
         case OBJ_MAP:
         {
-            ObjectMap* pMap = Fox_AsMap(value);
+            ref<ObjectMap> pMap = Fox_AsMap(value);
             string += "{";
             int size = pMap->m_vValues.Size();
             for (auto& it : pMap->m_vValues.m_vEntries)

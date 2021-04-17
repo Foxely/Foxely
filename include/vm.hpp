@@ -6,6 +6,7 @@
 #include <time.h>
 #include <utility>
 #include <map>
+#include <memory>
 
 #include "chunk.hpp"
 #include "value.hpp"
@@ -49,28 +50,28 @@ class VM
 {
 public:
 	VM(int ac, char** av);
-	~VM();
+	~VM() = default;
 
 	void Load();
 	void LoadStandard(const std::string& name);
 
-	Value NewString(const char* string);
+	Value NewString(const std::string& string);
 
-    InterpretResult Interpret(const char* module, const char* source);
-	ObjectClosure* CompileSource(const char* module, const char* source, bool isExpression, bool printErrors);
+    InterpretResult Interpret(const std::string& module, const std::string& source);
+	ref<ObjectClosure> CompileSource(const std::string& module, const std::string& source, bool isExpression, bool printErrors);
 
     void ResetStack();
     void Push(Value value);
-    Value Pop();
-    Value Peek(int distance);
-	Value PeekStart(int distance);
+    Value& Pop();
+    Value& Peek(int distance);
+	Value& PeekStart(int distance);
     void RuntimeError(const char* format, ...);
     void PrintError(ObjectFiber* pFiber, const char *format, ...);
 
     void EmitByte(uint8_t byte);
     void Concatenate();
 	bool CallValue(Value callee, int argCount);
-	bool CallFunction(ObjectClosure* closure, int argCount);
+	bool CallFunction(ref<ObjectClosure> closure, int argCount);
 	
 	void DefineFunction(const std::string &strModule, const std::string& name, NativeFn function);
 	void DefineClass(const std::string &strModule, const std::string& name, NativeMethods& functions);
@@ -79,14 +80,14 @@ public:
 	void DefineModule(const std::string& strName);
 	void DefineVariable(const char* module, const char* name, Value oValue);
 	
-	InterpretResult Call(Handle* pMethod);
+	InterpretResult Call(ref<Handle> pMethod);
 	// template <typename... Args>
 	// InterpretResult Call(Handle* pMethod, Args&&... args);
-	void ReleaseHandle(Handle* handle);
-	Handle* MakeHandle(Value value);
-    Handle* MakeCallHandle(const char* signature);
+	void ReleaseHandle(ref<Handle> handle);
+	ref<Handle> MakeHandle(Value value);
+    ref<Handle> MakeCallHandle(const char* signature);
 
-	ObjectUpvalue* CaptureUpvalue(Value* local);
+	ref<ObjectUpvalue> CaptureUpvalue(Value* local);
 	void CloseUpvalues(Value* last);
 
 	// Garbage Collector
@@ -99,14 +100,14 @@ public:
 	void BlackenObject(Object* object);
 
 	// Class
-	void DefineOperator(ObjectString *name);
-	void DefineMethod(ObjectString* name);
-	bool BindMethod(ObjectClass* klass, ObjectString* name);
-	bool Invoke(ObjectString* name, int argCount);
-	bool InvokeFromClass(ObjectClass* klass, ObjectString* name, int argCount);
+	void DefineOperator(ref<ObjectString> name);
+	void DefineMethod(ref<ObjectString> name);
+	bool BindMethod(ref<ObjectClass> klass, ref<ObjectString> name);
+	bool Invoke(ref<ObjectString> name, int argCount);
+	bool InvokeFromClass(ref<ObjectClass> klass, ref<ObjectString> name, int argCount);
 
-	ObjectModule* GetModule(Value name);
-	ObjectClosure* CompileInModule(Value name, const char* source, bool isExpression, bool printErrors);
+	ref<ObjectModule> GetModule(Value name);
+	ref<ObjectClosure> CompileInModule(Value name, const std::string& source, bool isExpression, bool printErrors);
 	Value FindVariable(ObjectModule* module, const char* name);
 	void GetVariable(const char* module, const char* name, int slot);
 	Value ImportModule(Value name);
@@ -123,7 +124,7 @@ public:
     bool GetSlotBool(int slot);
     double GetSlotDouble(int slot);
     const char* GetSlotString(int slot);
-    Handle* GetSlotHandle(int slot);
+    ref<Handle> GetSlotHandle(int slot);
 
 	void SetSlot(int slot, Value value);
 	void SetSlotBool(int slot, bool value);
@@ -137,7 +138,7 @@ public:
 	void GetListElement(int listSlot, int index, int elementSlot);
 	void SetListElement(int listSlot, int index, int elementSlot);
     
-    InterpretResult run(ObjectFiber* pFiber);
+    InterpretResult run(ref<ObjectFiber> pFiber);
 
 	bool IsLogToken() const;
 	bool IsLogGC() const;
@@ -147,16 +148,15 @@ public:
 	InterpretResult result;
 
     Chunk m_oChunk;
-    ObjectFiber* m_pCurrentFiber;
+    ref<ObjectFiber> m_pCurrentFiber;
     Value* m_pApiStack;
     Parser m_oParser;
 	Table strings;
 	Table modules;
-	ObjectString* initString;
-	ObjectString* stringString;
-	GC gc;
-	ObjectModule* currentModule;
-	std::vector<Handle*> m_vHandles;
+	ref<ObjectString> initString;
+	ref<ObjectString> stringString;
+	ref<ObjectModule> currentModule;
+	std::vector<std::shared_ptr<Handle>> m_vHandles;
 
     Table arrayMethods;
     Table stringMethods;
@@ -187,8 +187,8 @@ struct ExpandType
 class Callable
 {
 public:
-    Handle* m_pVariable;
-    Handle* m_pMethod;
+    ref<Handle> m_pVariable;
+    ref<Handle> m_pMethod;
     VM* m_pVM;
 
 	template<typename... Args>
@@ -198,7 +198,7 @@ public:
 		
 		m_pVM->ResetStack();
         m_pVM->EnsureSlots(iArity + 1);
-        m_pVM->SetSlotHandle(0, m_pVariable);
+        m_pVM->SetSlotHandle(0, m_pVariable.get());
 
         std::tuple<Args...> tuple = std::make_tuple(args...);
         passArguments(tuple, std::make_index_sequence<iArity>{});
@@ -216,8 +216,8 @@ public:
 
     void Release()
     {
-		m_pVM->ReleaseHandle(m_pVariable);
-		m_pVM->ReleaseHandle(m_pMethod);
+		// m_pVM->ReleaseHandle(m_pVariable);
+		// m_pVM->ReleaseHandle(m_pMethod);
     }
 
     template <typename T, std::size_t index> void read(T value)

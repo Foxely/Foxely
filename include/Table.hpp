@@ -9,8 +9,12 @@ class ObjectString;
 
 struct Entry
 {
-    ObjectString* m_pKey;
+    ref<ObjectString> m_pKey;
     Value m_oValue;
+
+	Entry() : m_oValue()
+	{
+	}
 
 	bool operator==(const Entry& other) const
     {
@@ -27,13 +31,13 @@ public:
 	std::vector<Entry> m_vEntries;
 
 	void AdjustCapacity(int capacity);
-	Entry& FindEntry(ObjectString* pKey);
-	bool Set(ObjectString *key, Value value);
+	Entry& FindEntry(ref<ObjectString> pKey);
+	bool Set(ref<ObjectString> key, Value value);
 	void AddAll(Table& from);
-	bool Get(ObjectString *key, Value& value);
-	bool Delete(ObjectString *key);
-	ObjectString *FindString(const char *chars, int length, uint32_t hash);
-	ObjectString *FindString(const std::string& string, uint32_t hash);
+	bool Get(ref<ObjectString> key, Value& value);
+	bool Delete(ref<ObjectString> key);
+	ref<ObjectString> FindString(const char *chars, int length, uint32_t hash);
+	ref<ObjectString> FindString(const std::string& string, uint32_t hash);
 	void MarkTable();
 	void RemoveWhite();
 	void Print();

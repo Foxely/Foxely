@@ -26,7 +26,7 @@ Table::Table()
     }
 }
 
-Entry& Table::FindEntry(ObjectString* pKey)
+Entry& Table::FindEntry(ref<ObjectString> pKey)
 {
     uint32_t index = pKey->hash & m_iCapacity;
     Entry* tombstone = NULL;
@@ -72,7 +72,7 @@ void Table::AdjustCapacity(int capacity)
     m_iCapacity = capacity;
 }
 
-bool Table::Set(ObjectString *key, Value value)
+bool Table::Set(ref<ObjectString> key, Value value)
 {
     if (m_iCount + 1 > (m_iCapacity + 1) * TABLE_MAX_LOAD) {
         int capacity = GROW_CAPACITY(m_iCapacity + 1) - 1;
@@ -110,7 +110,7 @@ void Table::Print()
     }
 }
 
-bool Table::Get(ObjectString *key, Value& value)
+bool Table::Get(ref<ObjectString> key, Value& value)
 {
     if (m_iCount == 0)
         return false;
@@ -123,7 +123,7 @@ bool Table::Get(ObjectString *key, Value& value)
     return true;
 }
 
-bool Table::Delete(ObjectString *key)
+bool Table::Delete(ref<ObjectString> key)
 {
     if (m_iCount == 0)
         return false;
@@ -136,7 +136,7 @@ bool Table::Delete(ObjectString *key)
     return true;
 }
 
-ObjectString *Table::FindString(const char *chars, int length, uint32_t hash)
+ref<ObjectString> Table::FindString(const char *chars, int length, uint32_t hash)
 {
     if (m_iCount == 0)
         return NULL;
@@ -155,7 +155,7 @@ ObjectString *Table::FindString(const char *chars, int length, uint32_t hash)
     }
 }
 
-ObjectString *Table::FindString(const std::string& string, uint32_t hash)
+ref<ObjectString> Table::FindString(const std::string& string, uint32_t hash)
 {
     if (m_iCount == 0)
         return NULL;
@@ -186,11 +186,11 @@ void Table::MarkTable()
 
 void Table::RemoveWhite()
 {
-    for (int i = 0; i <= m_iCapacity; i++)
-	{
-        Entry& entry = m_vEntries[i];
-        if (entry.m_pKey != NULL && !entry.m_pKey->mMarked) {
-            Delete(entry.m_pKey);
-        }
-    }
+    // for (int i = 0; i <= m_iCapacity; i++)
+	// {
+    //     Entry& entry = m_vEntries[i];
+    //     if (entry.m_pKey != NULL && !entry.m_pKey->mMarked) {
+    //         Delete(entry.m_pKey);
+    //     }
+    // }
 }
