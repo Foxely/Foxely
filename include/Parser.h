@@ -171,7 +171,7 @@ ref<ObjectFunction> Compile(Parser& parser, const std::string &strText, Chunk* c
 void Expression(Parser& parser);
 void ParsePrecedence(Parser& parser, Precedence preced);
 void Number(Parser& parser, bool can_assign = false);
-void IntNumber(Parser& parser, bool can_assign = false);
+// void IntNumber(Parser& parser, bool can_assign = false);
 void Grouping(Parser& parser, bool can_assign = false);
 void Unary(Parser& parser, bool can_assign = false);
 void Binary(Parser& parser, bool can_assign = false);

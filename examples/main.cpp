@@ -92,7 +92,7 @@ NativeMethods testMethods =
         Fox_Setter(pVM, pInstance.get(), "x", [](VM* pVM, int argc, Value* args)
         {
             Test* pTest = (Test *) Fox_GetUserData(args[-1]);
-            pTest->a = args[0].as<int>();
+            pTest->a = args[0].as<double>();
             return Value(pTest->a);
         });
         Fox_Getter(pVM, pInstance.get(), "x", [](VM* pVM, int argc, Value* args)
@@ -106,6 +106,9 @@ NativeMethods testMethods =
 
 void runFile(int ac, char** av, const std::string& path)
 {
+#if PROFILING
+    Instrumentor::Get().BeginSession("runFile");
+#endif
     VM oVM(ac, av);
 	std::ifstream t(path);
 	std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
@@ -135,6 +138,9 @@ void runFile(int ac, char** av, const std::string& path)
 
     // if (result == INTERPRET_COMPILE_ERROR) exit(65);
     // if (result == INTERPRET_RUNTIME_ERROR) exit(70);
+#if PROFILING
+    Instrumentor::Get().EndSession();
+#endif
 }
 
 int main(int ac, char** av)

@@ -20,7 +20,7 @@ void Parser::SetCurrentChunk(Chunk& chunk)
   	compilingChunk = &chunk;
 }
 
-Compiler::Compiler (Parser& parser, FunctionType eType, const std::string& name)
+Compiler::Compiler(Parser& parser, FunctionType eType, const std::string& name)
 {
     enclosing = parser.currentCompiler;
     localCount = 0;
@@ -52,8 +52,8 @@ Parser::Parser(VM* pVm)
 
     oLexer.Define(TOKEN_NEW_LINE,"\n", true);
     oLexer.Define(TOKEN_WS,"[ \t\r\b]+", true);
-    oLexer.Define(TOKEN_NUMBER,"[0-9]+.[0-9]+[f]");
-    oLexer.Define(TOKEN_INT,"[0-9]+");
+    oLexer.Define(TOKEN_NUMBER,"([0-9]+)|([0-9]+.[0-9]+)");
+    // oLexer.Define(TOKEN_INT,"[0-9]+");
     oLexer.DefineArea(TOKEN_STRING,'"', '"');
 	oLexer.Define(TOKEN_PLUS, "\\+");
     oLexer.Define(TOKEN_PLUS_PLUS, "\\+\\+");
@@ -142,7 +142,7 @@ Parser::Parser(VM* pVm)
     rules[TOKEN_IDENTIFIER] = { Variable, NULL, PREC_NONE };
     rules[TOKEN_STRING] = { String, NULL, PREC_NONE };
     rules[TOKEN_NUMBER] = { Number, NULL, PREC_NONE };
-    rules[TOKEN_INT] = { IntNumber, NULL, PREC_NONE };
+    // rules[TOKEN_INT] = { IntNumber, NULL, PREC_NONE };
     rules[TOKEN_AND] = { NULL, RuleAnd, PREC_AND };
     rules[TOKEN_CLASS] = { NULL, NULL, PREC_NONE };
     rules[TOKEN_ELSE] = { NULL, NULL, PREC_NONE };
@@ -373,14 +373,14 @@ void ParsePrecedence(Parser& parser, Precedence preced)
 void Number(Parser& parser, bool can_assign)
 {
 	double value = strtod(parser.PreviousToken().GetText().c_str(), NULL);
-	parser.EmitConstant(Fox_Double(value));
+	parser.EmitConstant(Fox_Number(value));
 }
 
-void IntNumber(Parser& parser, bool can_assign)
-{
-	int value = std::stoi(parser.PreviousToken().GetText().c_str(), NULL);
-	parser.EmitConstant(Fox_Int(value));
-}
+// void IntNumber(Parser& parser, bool can_assign)
+// {
+// 	int value = std::stoi(parser.PreviousToken().GetText().c_str(), NULL);
+// 	parser.EmitConstant(Fox_Number(value));
+// }
 
 void Grouping(Parser& parser, bool can_assign)
 {
@@ -421,7 +421,7 @@ void Increment(Parser& parser, bool can_assign)
         // Expression(parser);
     }
 
-	parser.EmitConstant(Fox_Int(1));
+	parser.EmitConstant(Fox_Number(1));
 
     switch (operatorType) {
         case TOKEN_PLUS_PLUS:
@@ -793,7 +793,8 @@ int NamedVariable(Parser& parser, Token name, bool can_assign, uint8_t* pGetOp, 
 		Expression(parser);
 		parser.EmitBytes(set_op, (uint8_t) arg);
 	}
-    else if (can_assign && (parser.PeekTokenIsType(TOKEN_PLUS_PLUS) || parser.PeekTokenIsType(TOKEN_MINUS_MINUS))) {
+    else if (can_assign && (parser.PeekTokenIsType(TOKEN_PLUS_PLUS) ||
+                            parser.PeekTokenIsType(TOKEN_MINUS_MINUS))) {
 		parser.EmitBytes(get_op, (uint8_t) arg);
 		parser.EmitBytes(get_op, (uint8_t) arg);
 		Expression(parser);

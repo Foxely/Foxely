@@ -17,13 +17,6 @@ class Callable;
 class GC;
 class Table;
 
-// struct CallFrame
-// {
-// 	ObjectClosure* closure;
-// 	std::vector<uint8_t>::iterator ip;
-// 	Value* slots;
-// };
-
 // A handle to a value, basically just a linked list of extra GC roots.
 class Handle : public Object
 {
@@ -90,15 +83,6 @@ public:
 	ref<ObjectUpvalue> CaptureUpvalue(Value* local);
 	void CloseUpvalues(Value* last);
 
-	// Garbage Collector
-	void AddToRoots();
-	void AddTableToRoot(Table& table);
-	void AddValueToRoot(Value value);
-	void AddObjectToRoot(Object* object);
-	void AddCompilerToRoots();
-	void AddArrayToRoot(ValueArray* array);
-	void BlackenObject(Object* object);
-
 	// Class
 	void DefineOperator(ref<ObjectString> name);
 	void DefineMethod(ref<ObjectString> name);
@@ -156,7 +140,7 @@ public:
 	ref<ObjectString> initString;
 	ref<ObjectString> stringString;
 	ref<ObjectModule> currentModule;
-	std::vector<std::shared_ptr<Handle>> m_vHandles;
+	std::vector<ref<Handle>> m_vHandles;
 
     Table arrayMethods;
     Table stringMethods;

@@ -61,7 +61,7 @@ Value sizeMapNative(VM* pVM, int argCount, Value* args)
 {
     Fox_FixArity(pVM, argCount, 0);
     ref<ObjectMap> pMap = Fox_AsMap(args[-1]);
-    return Fox_Int(pMap->m_vValues.Size());
+    return Fox_Number(pMap->m_vValues.Size());
 }
 
 Value containMapNative(VM* pVM, int argCount, Value* args)

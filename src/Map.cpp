@@ -80,8 +80,8 @@ static uint32_t hashValue(Value value)
     {
         case VAL_BOOL:      return (Fox_AsBool(value) ? 1 : 0);
         case VAL_NIL:       return 1;
-        case VAL_INT:       return hashInt(Fox_AsInt(value));
-        case VAL_NUMBER:    return hashNumber(Fox_AsDouble(value));
+        // case VAL_INT:       return hashInt(Fox_AsInt(value));
+        case VAL_NUMBER:    return hashNumber(Fox_AsNumber(value));
         case VAL_OBJ:       return hashObject(Fox_AsObject(value).get());
         default:            return -1;
     }

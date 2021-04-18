@@ -89,11 +89,11 @@ double Value::as<double>()
     return std::get<double>(val);
 }
 
-template <>
-int Value::as<int>()
-{
-    return std::get<int>(val);
-}
+// template <>
+// double Value::as<int>()
+// {
+//     return std::get<double>(val);
+// }
 
 std::string FunctionToString(ObjectFunction* function)
 {
@@ -204,8 +204,8 @@ std::string ValueToString(Value value, VM* pVm)
     {
         case VAL_BOOL: string += (Fox_AsBool(value) ? "true" : "false"); break;
         case VAL_NIL:    string +=  "nil"; break;
-        case VAL_NUMBER: string +=  std::to_string(Fox_AsDouble(value)); break;
-        case VAL_INT: string +=  std::to_string(Fox_AsInt(value)); break;
+        case VAL_NUMBER: string +=  std::to_string(Fox_AsNumber(value)); break;
+        // case VAL_INT: string +=  std::to_string(Fox_AsInt(value)); break;
         case VAL_OBJ: string += ObjectToString(value, pVm); break;
     }
     return string;

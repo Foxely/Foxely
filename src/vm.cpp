@@ -19,7 +19,8 @@
 
 Value clockNative(VM* pVM, int argCount, Value* args)
 {
-	return Fox_Double((double)clock() / CLOCKS_PER_SEC);
+    PROFILE_FUNCTION();
+	return Fox_Number((double)clock() / CLOCKS_PER_SEC);
 }
 
 VM::VM(int ac, char** av) : argc(ac), argv(av), m_oParser(this), modules()
@@ -64,18 +65,21 @@ VM::VM(int ac, char** av) : argc(ac), argv(av), m_oParser(this), modules()
 
 void VM::ResetStack()
 {
+    PROFILE_FUNCTION();
     m_pCurrentFiber->m_pStackTop = m_pCurrentFiber->m_vStack;
     m_pCurrentFiber->m_iFrameCount = 0;
 }
 
 void VM::Push(Value oValue)
 {
+    PROFILE_FUNCTION();
     *m_pCurrentFiber->m_pStackTop = oValue;
     m_pCurrentFiber->m_pStackTop++;
 }
 
 Value& VM::Pop()
 {
+    PROFILE_FUNCTION();
     FOX_ASSERT(m_pCurrentFiber->m_pStackTop != nullptr, "No temporary roots to release.");
     m_pCurrentFiber->m_pStackTop--;
     return *m_pCurrentFiber->m_pStackTop;
@@ -83,22 +87,27 @@ Value& VM::Pop()
 
 Value& VM::Peek(int iDistance)
 {
+    PROFILE_FUNCTION();
     return m_pCurrentFiber->m_pStackTop[-1 - iDistance];
 }
 
 Value& VM::PeekStart(int iDistance)
 {
+    PROFILE_FUNCTION();
     if (!isInit)
         return m_pCurrentFiber->m_vStack[iDistance];
     return m_pCurrentFiber->m_vStack[iDistance + 1];
 }
 
-bool IsFalsey(Value oValue) {
+bool IsFalsey(Value oValue)
+{
+    PROFILE_FUNCTION();
     return Fox_IsNil(oValue) || (Fox_IsBool(oValue) && !Fox_AsBool(oValue));
 }
 
 void VM::RuntimeError(const char *format, ...)
 {
+    PROFILE_FUNCTION();
     // FOX_ASSERT(!Fox_IsNil(m_pCurrentFiber->m_oError), "Should only call this after an error.");
 
     ref<ObjectFiber> pCurrent = m_pCurrentFiber;
@@ -150,6 +159,7 @@ void VM::RuntimeError(const char *format, ...)
 
 void VM::PrintError(ObjectFiber* pFiber, const char *format, ...)
 {
+    PROFILE_FUNCTION();
     std::string strMsg;
     if (result == INTERPRET_ABORT)
     {
@@ -183,6 +193,7 @@ void VM::PrintError(ObjectFiber* pFiber, const char *format, ...)
 
 bool VM::CallFunction(ref<ObjectClosure> pClosure, int iArgCount)
 {
+    PROFILE_FUNCTION();
     // Check the number of args pass to the function call
     if (iArgCount < pClosure->function->iMinArity) {
         RuntimeError(
@@ -216,6 +227,7 @@ bool VM::CallFunction(ref<ObjectClosure> pClosure, int iArgCount)
 
 bool VM::CallValue(Value oCallee, int iArgCount)
 {
+    PROFILE_FUNCTION();
     if (Fox_IsObject(oCallee))
     {
         switch (Fox_ObjectType(oCallee))
@@ -267,6 +279,7 @@ bool VM::CallValue(Value oCallee, int iArgCount)
 
 ref<ObjectUpvalue> VM::CaptureUpvalue(Value *local)
 {
+    PROFILE_FUNCTION();
     ref<ObjectUpvalue> pPrevUpvalue = nullptr;
     ref<ObjectUpvalue> pUpvalue = m_pCurrentFiber->m_vOpenUpvalues;
 
@@ -288,6 +301,7 @@ ref<ObjectUpvalue> VM::CaptureUpvalue(Value *local)
 
 void VM::CloseUpvalues(Value *last)
 {
+    PROFILE_FUNCTION();
     while (m_pCurrentFiber->m_vOpenUpvalues != nullptr && m_pCurrentFiber->m_vOpenUpvalues->location >= last) {
         ref<ObjectUpvalue> pUpvalue = m_pCurrentFiber->m_vOpenUpvalues;
         pUpvalue->closed = *pUpvalue->location;
@@ -298,6 +312,7 @@ void VM::CloseUpvalues(Value *last)
 
 void VM::DefineFunction(const std::string &strModule, const std::string &strName, NativeFn function)
 {
+    PROFILE_FUNCTION();
     Value oStrModuleName = NewString(strModule.c_str());
 
     // See if the module has already been loaded.
@@ -316,6 +331,7 @@ void VM::DefineFunction(const std::string &strModule, const std::string &strName
 
 void VM::DefineLib(const std::string &strModule, const std::string &strName, NativeMethods &functions)
 {
+    PROFILE_FUNCTION();
     Value oStrModuleName = NewString(strModule.c_str());
 
     // See if the module has already been loaded.
@@ -344,6 +360,7 @@ void VM::DefineLib(const std::string &strModule, const std::string &strName, Nat
 
 void VM::DefineModule(const std::string& strName)
 {
+    PROFILE_FUNCTION();
     Value oStrName = NewString(strName.c_str());
 
     // See if the module has already been loaded.
@@ -377,6 +394,7 @@ void VM::DefineModule(const std::string& strName)
 
 void VM::DefineClass(const std::string &strModule, const std::string &strName, NativeMethods &functions)
 {
+    PROFILE_FUNCTION();
     Value oStrModuleName = NewString(strModule.c_str());
 
     // See if the module has already been loaded.
@@ -406,6 +424,7 @@ void VM::DefineClass(const std::string &strModule, const std::string &strName, N
 
 void VM::DefineBuiltIn(Table& methods, NativeMethods& functions)
 {
+    PROFILE_FUNCTION();
     for (auto &it : functions)
     {
         NativeFn func = it.second;
@@ -422,6 +441,7 @@ void VM::DefineBuiltIn(Table& methods, NativeMethods& functions)
 
 bool VM::InvokeFromClass(ref<ObjectClass> pKlass, ref<ObjectString> pName, int iArgCount)
 {
+    PROFILE_FUNCTION();
     Value oMethod;
     if (!pKlass->methods.Get(pName, oMethod))
     {
@@ -440,7 +460,8 @@ bool VM::InvokeFromClass(ref<ObjectClass> pKlass, ref<ObjectString> pName, int i
 
 bool VM::Invoke(ref<ObjectString> pName, int iArgCount)
 {
-    Value oReceiver = Peek(iArgCount);
+    PROFILE_FUNCTION();
+    Value& oReceiver = Peek(iArgCount);
     Value oValue;
 
     switch (Fox_AsObject(oReceiver)->type)
@@ -519,6 +540,7 @@ bool VM::Invoke(ref<ObjectString> pName, int iArgCount)
 
 InterpretResult VM::Interpret(const std::string& strModule, const std::string& strSource)
 {
+    PROFILE_FUNCTION();
     // ResetStack();
     result = INTERPRET_OK;
     if (strSource.empty())
@@ -545,6 +567,7 @@ InterpretResult VM::Interpret(const std::string& strModule, const std::string& s
 
 ref<ObjectClosure> VM::CompileSource(const std::string& strModule, const std::string& strSource, bool bIsExpression, bool bPrintErrors)
 {
+    PROFILE_FUNCTION();
     Value oNameValue = NewString("core");
     if (!strModule.empty())
     {
@@ -560,20 +583,23 @@ ref<ObjectClosure> VM::CompileSource(const std::string& strModule, const std::st
 
 Value VM::NewString(const std::string& strString)
 {
+    PROFILE_FUNCTION();
     return Fox_Object(m_oParser.TakeString(strString));
 }
 
 static bool ValueIsNumber(Value oNumber)
 {
-    if (Fox_IsDouble(oNumber))
+    PROFILE_FUNCTION();
+    if (Fox_IsNumber(oNumber))
         return true;
-    if (Fox_IsInt(oNumber))
-        return true;
+    // if (Fox_IsNumber(oNumber))
+    //     return true;
     return false;
 }
 
 InterpretResult VM::run(ref<ObjectFiber> pFiber)
 {
+    PROFILE_FUNCTION();
     m_pCurrentFiber = pFiber;
     CallFrame *frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
 
@@ -584,14 +610,14 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
 #define READ_SHORT()                                                           \
     (frame->ip += 2, (uint16_t)((frame->ip[-2] << 8) | frame->ip[-1]))
 
-#define BINARY_OP(ValueType, type, op)                                         \
+#define BINARY_OP(ValueType, GetValue, type, op)                                         \
     do {                                                                       \
         if (!ValueIsNumber(Peek(0)) || !ValueIsNumber(Peek(1))) {              \
             RuntimeError("Operands must be numbers.");                         \
             return INTERPRET_RUNTIME_ERROR;                                    \
         }                                                                      \
-        type b = Fox_As##ValueType(Pop());                                           \
-        type a = Fox_As##ValueType(Pop());                                           \
+        type b = Fox_As##GetValue(Pop());                                           \
+        type a = Fox_As##GetValue(Pop());                                           \
         Push(Fox_##ValueType(a op b));                                       \
     } while (false)
 
@@ -631,19 +657,25 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
             Pop();
             break;
 
-        case OP_GET_UPVALUE: {
+        case OP_GET_UPVALUE:
+        {
+            PROFILE_SCOPE("OP_GET_UPVALUE");
             uint8_t uSlot = READ_BYTE();
             Push(*frame->closure->upValues[uSlot]->location);
             break;
         }
 
-        case OP_SET_UPVALUE: {
+        case OP_SET_UPVALUE:
+        {
+            PROFILE_SCOPE("OP_SET_UPVALUE");
             uint8_t uSlot = READ_BYTE();
             *frame->closure->upValues[uSlot]->location = Peek(0);
             break;
         }
 
-        case OP_GET_LOCAL: {
+        case OP_GET_LOCAL:
+        {
+            PROFILE_SCOPE("OP_GET_LOCAL");
             uint8_t uSlot = READ_BYTE();
             Push(frame->slots[uSlot]);
             break;
@@ -651,6 +683,7 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
 
         case OP_SET_LOCAL:
         {
+            PROFILE_SCOPE("OP_SET_LOCAL");
             uint8_t uSlot = READ_BYTE();
             frame->slots[uSlot] = Peek(0);
             break;
@@ -658,6 +691,7 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
 
         case OP_GET_GLOBAL:
         {
+            PROFILE_SCOPE("OP_GET_GLOBAL");
             ref<ObjectString> pName = READ_STRING();
             Value oValue;
             if (!currentModule->m_vVariables.Get(pName, oValue)) {
@@ -668,14 +702,18 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
             break;
         }
 
-        case OP_DEFINE_GLOBAL: {
+        case OP_DEFINE_GLOBAL:
+        {
+            PROFILE_SCOPE("OP_DEFINE_GLOBAL");
             ref<ObjectString> pName = READ_STRING();
             currentModule->m_vVariables.Set(pName, Peek(0));
             Pop();
             break;
         }
 
-        case OP_SET_GLOBAL: {
+        case OP_SET_GLOBAL:
+        {
+            PROFILE_SCOPE("OP_SET_GLOBAL");
             ref<ObjectString> pName = READ_STRING();
             if (currentModule->m_vVariables.Set(pName, Peek(0))) {
                 currentModule->m_vVariables.Delete(pName);
@@ -685,7 +723,9 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
             break;
         }
 
-        case OP_GET_PROPERTY: {
+        case OP_GET_PROPERTY:
+        {
+            PROFILE_SCOPE("OP_GET_PROPERTY");
             if (!Fox_IsInstance(Peek(0))) {
                 RuntimeError("Only instances have properties.");
                 return INTERPRET_RUNTIME_ERROR;
@@ -717,6 +757,7 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
 
         case OP_SET_PROPERTY:
         {
+            PROFILE_SCOPE("OP_SET_PROPERTY");
             if (!Fox_IsInstance(Peek(1)))
             {
                 RuntimeError("Only instances have fields.");
@@ -741,7 +782,9 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
             break;
         }
 
-        case OP_EQUAL: {
+        case OP_EQUAL:
+        {
+            PROFILE_SCOPE("OP_EQUAL");
             Value b = Pop();
             Value a = Pop();
             Push(Fox_Bool(ValuesEqual(a, b)));
@@ -749,24 +792,28 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
         }
 
         case OP_GREATER:
-            BINARY_OP(Int, int, >);
+        {
+            PROFILE_SCOPE("OP_GREATER");
+            BINARY_OP(Bool, Number, double, >);
             break;
+        }
+
         case OP_LESS:
-            BINARY_OP(Int, int, <);
+        {
+            PROFILE_SCOPE("OP_LESS");
+            BINARY_OP(Bool, Number, double, <);
             break;
+        }
         
         case OP_ADD:
         {
+            PROFILE_SCOPE("OP_ADD");
             if (Fox_IsString(Peek(0)) && Fox_IsString(Peek(1))) {
                 Concatenate();
-            } else if (Fox_IsDouble(Peek(0)) && Fox_IsDouble(Peek(1))) {
-                double b = Fox_AsDouble(Pop());
-                double a = Fox_AsDouble(Pop());
-                Push(Fox_Double(a + b));
-            } else if (Fox_IsInt(Peek(0)) && Fox_IsInt(Peek(1))) {
-                int b = Fox_AsInt(Pop());
-                int a = Fox_AsInt(Pop());
-                Push(Fox_Int(a + b));
+            } else if (Fox_IsNumber(Peek(0)) && Fox_IsNumber(Peek(1))) {
+                double b = Fox_AsNumber(Pop());
+                double a = Fox_AsNumber(Pop());
+                Push(Fox_Number(a + b));
             } else if (Fox_IsInstance(Peek(1))) {
                 ref<ObjectInstance> pInst = Fox_AsInstance(Peek(1));
                 Value oMethod;
@@ -781,7 +828,10 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
             }
             break;
         }
+
         case OP_SUB:
+        {
+            PROFILE_SCOPE("OP_SUB");
             if (Fox_IsInstance(Peek(1))) {
                 ref<ObjectInstance> pInst = Fox_AsInstance(Peek(1));
                 Value oMethod;
@@ -791,13 +841,16 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
                     frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
                 }
             }
-            else if (Fox_IsDouble(Peek(0)))
-                BINARY_OP(Double, double, -);
-            else if (Fox_IsInt(Peek(0)))
-                BINARY_OP(Int, int, -);
-            
+            else if (Fox_IsNumber(Peek(0)))
+                BINARY_OP(Number, Number, double, -);
+            // else if (Fox_IsNumber(Peek(0)))
+            //     BINARY_OP(Int, int, -);
             break;
+        }
+
         case OP_MUL:
+        {
+            PROFILE_SCOPE("OP_MUL");
             if (Fox_IsInstance(Peek(1))) {
                 ref<ObjectInstance> pInst = Fox_AsInstance(Peek(1));
                 Value oMethod;
@@ -807,12 +860,16 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
                     frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
                 }
             }
-            else if (Fox_IsDouble(Peek(0)))
-                BINARY_OP(Double, double, *);
-            else if (Fox_IsInt(Peek(0)))
-                BINARY_OP(Int, int, *);
+            else if (Fox_IsNumber(Peek(0)))
+                BINARY_OP(Number, Number, double, *);
+            // else if (Fox_IsNumber(Peek(0)))
+            //     BINARY_OP(Int, int, *);
             break;
+        }
+
         case OP_DIV:
+        {
+            PROFILE_SCOPE("OP_DIV");
             if (Fox_IsInstance(Peek(1))) {
                 ref<ObjectInstance> pInst = Fox_AsInstance(Peek(1));
                 Value oMethod;
@@ -822,13 +879,17 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
                     frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
                 }
             }
-            else if (Fox_IsDouble(Peek(0)))
-                BINARY_OP(Double, double,  /);
-            else if (Fox_IsInt(Peek(0)))
-                BINARY_OP(Int, int, /);
+            else if (Fox_IsNumber(Peek(0)))
+                BINARY_OP(Number, Number, double,  /);
+            // else if (Fox_IsNumber(Peek(0)))
+            //     BINARY_OP(Int, int, /);
             break;
+        }
+    
         case OP_IS:
+        {
         // 'is' don't work with int type, modifie it
+            PROFILE_SCOPE("OP_IS");
             if (Fox_IsInstance(Peek(1))) {
                 if (Fox_IsClass(Peek(0))) {
                     ref<ObjectClass> oClassType = Fox_AsClass(Pop());
@@ -839,20 +900,30 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
             } else
                 RuntimeError("Expected an instance before the keyword 'is'.");
             break;
+        }
+
         case OP_NOT:
+        {
+            PROFILE_SCOPE("OP_NOT");
             Push(Fox_Bool(IsFalsey(Pop())));
             break;
-        case OP_NEGATE: {
-            if (!Fox_IsDouble(Peek(0))) {
+        }
+        
+        case OP_NEGATE:
+        {
+            PROFILE_SCOPE("OP_NEGATE");
+            if (!Fox_IsNumber(Peek(0))) {
                 RuntimeError("Operand must be a number.");
                 return INTERPRET_RUNTIME_ERROR;
             }
 
-            Push(Fox_Double(-Fox_AsDouble(Pop())));
+            Push(Fox_Number(-Fox_AsNumber(Pop())));
             break;
         }
+
         case OP_PRINT:
         {
+            PROFILE_SCOPE("OP_PRINT");
             int iArgCount = READ_BYTE();
             int iTempArgCount = iArgCount;
             int iPercentCount = 0;
@@ -889,6 +960,7 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
 
         case OP_PRINT_REPL:
         {
+            PROFILE_SCOPE("OP_PRINT_REPL");
             PrintValue(Peek(0), this);
             std::cout << std::endl;
             break;
@@ -896,12 +968,15 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
 
         case OP_JUMP:
         {
+            PROFILE_SCOPE("OP_JUMP");
             uint16_t uOffset = READ_SHORT();
             frame->ip += uOffset;
             break;
         }
 
-        case OP_JUMP_IF_FALSE: {
+        case OP_JUMP_IF_FALSE:
+        {
+            PROFILE_SCOPE("OP_JUMP_IF_FALSE");
             uint16_t uOffset = READ_SHORT();
             if (IsFalsey(Peek(0)))
                 frame->ip += uOffset;
@@ -910,12 +985,15 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
 
         case OP_LOOP:
         {
+            PROFILE_SCOPE("OP_LOOP");
             uint16_t uOffset = READ_SHORT();
             frame->ip -= uOffset;
             break;
         }
 
-        case OP_CALL: {
+        case OP_CALL:
+        {
+            PROFILE_SCOPE("OP_CALL");
             int iArgCount = READ_BYTE();
             if (!CallValue(Peek(iArgCount), iArgCount))
                 return INTERPRET_RUNTIME_ERROR;
@@ -924,10 +1002,15 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
         }
 
         case OP_CLASS:
+        {
+            PROFILE_SCOPE("OP_CLASS");
             Push(Fox_Object(new_ref<ObjectClass>(READ_STRING())));
             break;
+        }
         
-        case OP_INHERIT: {
+        case OP_INHERIT:
+        {
+            PROFILE_SCOPE("OP_INHERIT");
             Value oSuperclass = Peek(1);
 
             if (!Fox_IsClass(oSuperclass)) {
@@ -945,14 +1028,22 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
         }
 
         case OP_METHOD:
+        {
+            PROFILE_SCOPE("OP_METHOD");
             DefineMethod(READ_STRING());
             break;
+        }
         
         case OP_OPERATOR:
+        {
+            PROFILE_SCOPE("OP_OPERATOR");
             DefineOperator(READ_STRING());
             break;
+        }
 
-        case OP_INVOKE: {
+        case OP_INVOKE:
+        {
+            PROFILE_SCOPE("OP_INVOKE");
             ref<ObjectString> pMethod = READ_STRING();
             int iArgCount = READ_BYTE();
             if (!Invoke(pMethod, iArgCount)) {
@@ -962,7 +1053,9 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
             break;
         }
 
-        case OP_SUPER_INVOKE: {
+        case OP_SUPER_INVOKE:
+        {
+            PROFILE_SCOPE("OP_SUPER_INVOKE");
             ref<ObjectString> pMethod = READ_STRING();
             int iArgCount = READ_BYTE();
             ref<ObjectClass> pSuperclass = Fox_AsClass(Pop());
@@ -973,7 +1066,9 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
             break;
         }
 
-        case OP_CLOSURE: {
+        case OP_CLOSURE:
+        {
+            PROFILE_SCOPE("OP_CLOSURE");
             ref<ObjectFunction> pFunction = Fox_AsFunction(READ_CONSTANT());
             ref<ObjectClosure> pClosure = new_ref<ObjectClosure>(this, pFunction);
             Push(Fox_Object(pClosure));
@@ -990,11 +1085,16 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
         }
 
         case OP_CLOSE_UPVALUE:
+        {
+            PROFILE_SCOPE("OP_CLOSE_UPVALUE");
             CloseUpvalues(m_pCurrentFiber->m_pStackTop - 1);
             Pop();
             break;
+        }
 
-        case OP_GET_SUPER: {
+        case OP_GET_SUPER:
+        {
+            PROFILE_SCOPE("OP_GET_SUPER");
             ref<ObjectString> pName = READ_STRING();
             ref<ObjectClass> pSuperclass = Fox_AsClass(Pop());
             if (!BindMethod(pSuperclass, pName)) {
@@ -1005,6 +1105,7 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
 
         case OP_IMPORT:
         {
+            PROFILE_SCOPE("OP_IMPORT");
             Push(ImportModule(Fox_Object(READ_STRING())));
 
             if (Fox_IsClosure(Peek(0)))
@@ -1024,6 +1125,7 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
 
         case OP_RETURN:
         {
+            PROFILE_SCOPE("OP_RETURN");
             Value oResult = Pop();
             // Close any upvalues still in scope.
             CloseUpvalues(frame->slots);
@@ -1075,16 +1177,21 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
 
         case OP_END:
         {
+            PROFILE_SCOPE("OP_END");
             return INTERPRET_OK;
         }
 
         case OP_END_MODULE:
+        {
+            PROFILE_SCOPE("OP_END_MODULE");
             currentModule = m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1].closure->function->module;
             // Push(Fox_Nil);
             break;
+        }
 
         case OP_CONST:
         {
+            PROFILE_SCOPE("OP_CONST");
             Value oConstant = READ_CONSTANT();
             Push(oConstant);
             break;
@@ -1092,6 +1199,7 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
 
         case OP_SUBSCRIPT:
         {
+            PROFILE_SCOPE("OP_SUBSCRIPT");
             Value oIndexValue = Peek(0);
             Value oSubscriptValue = Peek(1);
 
@@ -1105,14 +1213,14 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
             {
                 case OBJ_ARRAY:
                 {
-                    if (!Fox_IsDouble(oIndexValue) && !Fox_IsInt(oIndexValue))
+                    if (!Fox_IsNumber(oIndexValue) && !Fox_IsNumber(oIndexValue))
                     {
                         RuntimeError("Array index must be a number.");
                         return INTERPRET_RUNTIME_ERROR;
                     }
 
                     ref<ObjectArray> ppArray = Fox_AsArray(oSubscriptValue);
-                    int iIndex = Fox_AsInt(oIndexValue);
+                    int iIndex = Fox_AsNumber(oIndexValue);
 
                     // Allow negative indexes
                     if (iIndex < 0)
@@ -1132,14 +1240,14 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
 
                 case OBJ_STRING:
                 {
-                    if (!Fox_IsDouble(oIndexValue) && !Fox_IsInt(oIndexValue))
+                    if (!Fox_IsNumber(oIndexValue) && !Fox_IsNumber(oIndexValue))
                     {
                         RuntimeError("String index must be a number.");
                         return INTERPRET_RUNTIME_ERROR;
                     }
                     
                     ref<ObjectString> pString = Fox_AsString(oSubscriptValue);
-                    int iIndex = Fox_AsInt(oIndexValue);
+                    int iIndex = Fox_AsNumber(oIndexValue);
 
                     // Allow negative indexes
                     if (iIndex < 0)
@@ -1179,6 +1287,7 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
 
         case OP_SUBSCRIPT_ASSIGN:
         {
+            PROFILE_SCOPE("OP_SUBSCRIPT_ASSIGN");
             Value oValue = Peek(0);
             Value oIndexValue = Peek(1);
             Value oSubscriptValue = Peek(2);
@@ -1193,14 +1302,14 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
             {
                 case OBJ_ARRAY:
                 {
-                    if (!Fox_IsDouble(oIndexValue) && !Fox_IsInt(oIndexValue))
+                    if (!Fox_IsNumber(oIndexValue) && !Fox_IsNumber(oIndexValue))
                     {
                         RuntimeError("pArray index must be a number.");
                         return INTERPRET_RUNTIME_ERROR;
                     }
 
                     ref<ObjectArray> pArray = Fox_AsArray(oSubscriptValue);
-                    int iIndex = Fox_AsInt(oIndexValue);
+                    int iIndex = Fox_AsNumber(oIndexValue);
 
                     // Allow negative indexes
                     if (iIndex < 0)
@@ -1221,7 +1330,7 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
 
                 case OBJ_STRING:
                 {
-                    if (!Fox_IsDouble(oIndexValue) && !Fox_IsInt(oIndexValue))
+                    if (!Fox_IsNumber(oIndexValue) && !Fox_IsNumber(oIndexValue))
                     {
                         RuntimeError("String index must be a number.");
                         return INTERPRET_RUNTIME_ERROR;
@@ -1234,7 +1343,7 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
                     }
 
                     ref<ObjectString> pString = Fox_AsString(oSubscriptValue);
-                    int iIndex = Fox_AsInt(oIndexValue);
+                    int iIndex = Fox_AsNumber(oIndexValue);
                     ref<ObjectString> pValueString = Fox_AsString(oValue);
 
                     // Allow negative indexes
@@ -1272,6 +1381,7 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
 
         case OP_SLICE:
         {
+            PROFILE_SCOPE("OP_SLICE");
             Value sliceEndIndex = Peek(0);
             Value sliceStartIndex = Peek(1);
             Value objectValue = Peek(2);
@@ -1280,7 +1390,7 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
                 RuntimeError("Can only slice on pArrays and strings.");
             }
 
-            if ((!Fox_IsInt(sliceStartIndex) && !Fox_IsNil(sliceStartIndex)) || (!Fox_IsInt(sliceEndIndex) && !Fox_IsNil(sliceEndIndex))) {
+            if ((!Fox_IsNumber(sliceStartIndex) && !Fox_IsNil(sliceStartIndex)) || (!Fox_IsNumber(sliceEndIndex) && !Fox_IsNil(sliceEndIndex))) {
                 RuntimeError("Slice index must be a number.");
             }
 
@@ -1291,7 +1401,7 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
             if (Fox_IsNil(sliceStartIndex)) {
                 indexStart = 0;
             } else {
-                indexStart = Fox_AsInt(sliceStartIndex);
+                indexStart = Fox_AsNumber(sliceStartIndex);
 
                 if (indexStart < 0) {
                     indexStart = 0;
@@ -1309,7 +1419,7 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
                     if (Fox_IsNil(sliceEndIndex)) {
                         indexEnd = pArray->m_vValues.size();
                     } else {
-                        indexEnd = Fox_AsInt(sliceEndIndex);
+                        indexEnd = Fox_AsNumber(sliceEndIndex);
                         if (indexEnd > pArray->m_vValues.size())
                             indexEnd = pArray->m_vValues.size();
                     }
@@ -1329,7 +1439,7 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
                     if (Fox_IsNil(sliceEndIndex)) {
                         indexEnd = pString->string.size();
                     } else {
-                        indexEnd = Fox_AsInt(sliceEndIndex);
+                        indexEnd = Fox_AsNumber(sliceEndIndex);
 
                         if (indexEnd > pString->string.size()) {
                             indexEnd = pString->string.size();
@@ -1360,18 +1470,21 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
 
         case OP_ARRAY:
         {
+            PROFILE_SCOPE("OP_ARRAY");
             Push(Fox_Object(new_ref<ObjectArray>()));
             break;
         }
 
         case OP_MAP:
         {
+            PROFILE_SCOPE("OP_MAP");
             Push(Fox_Object(new_ref<ObjectMap>()));
             break;
         }
 
         case OP_ADD_LIST:
         {
+            PROFILE_SCOPE("OP_ADD_LIST");
             int iArgCount = READ_BYTE();
             Value opArrayValue = Peek(iArgCount);
 
@@ -1390,6 +1503,7 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
 
         case OP_ADD_MAP:
         {
+            PROFILE_SCOPE("OP_ADD_MAP");
             int iArgCount = READ_BYTE();
             iArgCount *= 2;
             Value oMapValue = Peek(iArgCount);
@@ -1419,6 +1533,7 @@ InterpretResult VM::run(ref<ObjectFiber> pFiber)
 }
 
 void VM::Concatenate() {
+    PROFILE_FUNCTION();
     ref<ObjectString> b = Fox_AsString(Peek(0));
     ref<ObjectString> a = Fox_AsString(Peek(1));
     Pop();
@@ -1428,167 +1543,9 @@ void VM::Concatenate() {
     Push(Fox_Object(result));
 }
 
-void VM::AddToRoots()
-{
-    // for (Value *slot = m_pCurrentFiber->m_vStack; slot < m_pCurrentFiber->m_pStackTop; slot++)
-    //     AddValueToRoot(*slot);
-
-    // for (int i = 0; i < m_pCurrentFiber->m_iFrameCount; i++)
-    //     AddObjectToRoot(m_pCurrentFiber->m_vFrames[i].closure);
-
-    // for (ObjectUpvalue *upvalue = m_pCurrentFiber->m_vOpenUpvalues; upvalue != nullptr; upvalue = upvalue->next)
-    //     AddObjectToRoot(upvalue);
-
-    // for (auto& handle : m_vHandles)
-    // {
-    //     AddObjectToRoot(handle);
-    // }
-    
-    // AddTableToRoot(modules);
-    // AddTableToRoot(arrayMethods);
-    // AddCompilerToRoots();
-    // AddObjectToRoot(initString);
-}
-
-void VM::AddTableToRoot(Table &table) {
-    // for (auto& entry : table.m_vEntries) {
-    //     AddObjectToRoot(entry.m_pKey);
-    //     AddValueToRoot(entry.m_oValue);
-    // }
-}
-
-void VM::AddValueToRoot(Value value) {
-    // if (!Fox_IsObject(value))
-    //     return;
-    // AddObjectToRoot(Fox_AsObject(value));
-}
-
-void VM::AddObjectToRoot(Object *object) {
-//     if (object == nullptr)
-//         return;
-// #ifdef DEBUG
-// 	if (IsLogGC()) {
-//         printf("%p added to root ", (void *)object);
-//         PrintValue(Fox_Object(object));
-//         printf("\n");
-//     }
-// #endif
-//     gc.AddRoot(object);
-
-//     BlackenObject(object);
-//     strings.RemoveWhite();
-}
-
-void VM::AddCompilerToRoots()
-{
-    // Compiler *compiler = m_oParser.currentCompiler;
-    // while (compiler != nullptr) {
-    //     AddObjectToRoot((Object *)compiler->function);
-    //     compiler = compiler->enclosing;
-    // }
-}
-
-void VM::AddArrayToRoot(ValueArray *array)
-{
-    for (int i = 0; i < array->m_vValues.size(); i++)
-        AddValueToRoot(array->m_vValues[i]);
-}
-
-void VM::BlackenObject(Object *object)
-{
-#ifdef DEBUG
-	if (IsLogGC()) {
-        printf("%p blacken ", (void *)object);
-        PrintValue(Fox_Object(object));
-        printf("\n");
-    }
-#endif
-    // switch (object->type) {
-    // case OBJ_INSTANCE:
-    // {
-    //     ObjectInstance *instance = (ObjectInstance *)object;
-    //     AddObjectToRoot((Object *)instance->klass);
-    //     AddTableToRoot(instance->fields);
-    //     AddTableToRoot(instance->setters);
-    //     AddTableToRoot(instance->getters);
-    //     break;
-    // }
-    // case OBJ_BOUND_METHOD: {
-    //     ObjectBoundMethod *bound = (ObjectBoundMethod *)object;
-    //     AddValueToRoot(bound->receiver);
-    //     AddObjectToRoot((Object *)bound->method);
-    //     break;
-    // }
-    // case OBJ_CLASS: {
-    //     ObjectClass *klass = (ObjectClass *)object;
-    //     AddObjectToRoot((Object *)klass->name);
-    //     AddTableToRoot(klass->methods);
-    //     break;
-    // }
-    // case OBJ_CLOSURE: {
-    //     ObjectClosure *closure = (ObjectClosure *)object;
-    //     AddObjectToRoot((Object *)closure->function);
-    //     for (int i = 0; i < closure->upvalueCount; i++) {
-    //         AddObjectToRoot((Object *)closure->upValues[i]);
-    //     }
-    //     break;
-    // }
-    // case OBJ_FUNCTION: {
-    //     ObjectFunction *function = (ObjectFunction *)object;
-    //     AddObjectToRoot((Object *)function->name);
-    //     AddArrayToRoot(&function->chunk.m_oConstants);
-    //     break;
-    // }
-    // case OBJ_UPVALUE:
-    //     AddValueToRoot(((ObjectUpvalue *)object)->closed);
-    //     break;
-    // case OBJ_ARRAY:
-    // {
-    //     ObjectArray* pArray = (ObjectArray *) object;
-    //     for (auto& oValue : pArray->m_vValues)
-    //         AddValueToRoot(oValue);
-    //     break;
-    // }
-
-    // case OBJ_MAP:
-    // {
-    //     ObjectMap* pMap = (ObjectMap *) object;
-    //     for (auto& oValue : pMap->m_vValues.m_vEntries)
-    //     {
-    //         AddValueToRoot(oValue.m_oKey);
-    //         AddValueToRoot(oValue.m_oValue);
-    //     }
-    //     break;
-    // }
-    // case OBJ_MODULE:
-    // {
-    //     ObjectModule* pModule = (ObjectModule *) object;
-    //     AddObjectToRoot(pModule->m_strName);
-    //     AddTableToRoot(pModule->m_vVariables);
-    //     break;
-    // }
-
-    // case OBJ_HANDLE:
-    // {
-    //     Handle* pHandle = (Handle *) object;
-    //     AddValueToRoot(pHandle->value);
-    //     break;
-    // }
-    // case OBJ_LIB:
-    // {
-    //     ObjectLib* pLib = (ObjectLib *) object;
-    //     AddTableToRoot(pLib->methods);
-    //     AddObjectToRoot(pLib->name);
-    //     break;
-    // }
-    // case OBJ_NATIVE:
-    // case OBJ_STRING:
-    //     break;
-    // }
-}
-
 void VM::DefineMethod(ref<ObjectString> name)
 {
+    PROFILE_FUNCTION();
     Value method = Peek(0);
     ref<ObjectClass> klass = Fox_AsClass(Peek(1));
     klass->methods.Set(name, method);
@@ -1597,6 +1554,7 @@ void VM::DefineMethod(ref<ObjectString> name)
 
 void VM::DefineOperator(ref<ObjectString> name)
 {
+    PROFILE_FUNCTION();
     Value method = Peek(0);
     ref<ObjectClass> klass = Fox_AsClass(Peek(1));
     klass->operators.Set(name, method);
@@ -1605,6 +1563,7 @@ void VM::DefineOperator(ref<ObjectString> name)
 
 bool VM::BindMethod(ref<ObjectClass> klass, ref<ObjectString> name)
 {
+    PROFILE_FUNCTION();
     Value method;
     if (!klass->methods.Get(name, method)) {
         RuntimeError("Undefined property '%s'.", name->string.c_str());
@@ -1619,6 +1578,7 @@ bool VM::BindMethod(ref<ObjectClass> klass, ref<ObjectString> name)
 
 Value VM::FindVariable(ObjectModule* module, const char* name)
 {
+    PROFILE_FUNCTION();
     Value oValue;
     if (module->m_vVariables.Get(m_oParser.CopyString(name), oValue))
         return oValue;
@@ -1627,6 +1587,7 @@ Value VM::FindVariable(ObjectModule* module, const char* name)
 
 void VM::GetVariable(const char* module, const char* name, int slot)
 {
+    PROFILE_FUNCTION();
     FOX_ASSERT(module != nullptr, "Module cannot be nullptr.");
     FOX_ASSERT(name != nullptr, "Variable name cannot be nullptr.");  
 
@@ -1646,6 +1607,7 @@ void VM::GetVariable(const char* module, const char* name, int slot)
 
 void VM::DefineVariable(const char* strModule, const char* strName, Value oValue)
 {
+    PROFILE_FUNCTION();
     FOX_ASSERT(strModule != nullptr, "Module cannot be nullptr.");
     FOX_ASSERT(strName != nullptr, "Variable name cannot be nullptr.");
 
@@ -1664,6 +1626,7 @@ void VM::DefineVariable(const char* strModule, const char* strName, Value oValue
 // Returns `nullptr` if no module with that name has been loaded.
 ref<ObjectModule> VM::GetModule(Value name)
 {
+    PROFILE_FUNCTION();
     Value moduleValue;
     if (Fox_IsString(name) && modules.Get(Fox_AsString(name), moduleValue))
         return Fox_AsModule(moduleValue);
@@ -1672,6 +1635,7 @@ ref<ObjectModule> VM::GetModule(Value name)
 
 ref<ObjectClosure> VM::CompileInModule(Value name, const std::string& source, bool isExpression, bool printErrors)
 {
+    PROFILE_FUNCTION();
     // See if the module has already been loaded.
     ref<ObjectModule> module = GetModule(name);
     if (module == nullptr)
@@ -1717,6 +1681,7 @@ ref<ObjectClosure> VM::CompileInModule(Value name, const std::string& source, bo
 
 Value VM::ImportModule(Value name)
 {
+    PROFILE_FUNCTION();
     // name = resolveModule(vm, name);
     
     // If the module is already loaded, we don't need to do anything.
@@ -1760,6 +1725,7 @@ Value VM::ImportModule(Value name)
 
 Value VM::GetModuleVariable(ObjectModule* module, Value variableName)
 {
+    PROFILE_FUNCTION();
     ref<ObjectString> variable = Fox_AsString(variableName);
     Value oModule;
 
@@ -1773,6 +1739,7 @@ Value VM::GetModuleVariable(ObjectModule* module, Value variableName)
 
 InterpretResult VM::Call(ref<Handle> pMethod)
 {
+    PROFILE_FUNCTION();
     FOX_ASSERT(pMethod != nullptr, "Method cannot be nullptr.");
     FOX_ASSERT(Fox_IsClosure(pMethod->value), "Method must be a method handle.");
     FOX_ASSERT(m_pApiStack != nullptr, "Must set up arguments for call first.");
@@ -1791,6 +1758,7 @@ InterpretResult VM::Call(ref<Handle> pMethod)
 
 Callable VM::Function(const std::string& strModuleName, const std::string& strSignature)
 {
+    PROFILE_FUNCTION();
     EnsureSlots(1);
     int nameLength = 0;
 
@@ -1812,6 +1780,7 @@ Callable VM::Function(const std::string& strModuleName, const std::string& strSi
 
 ref<Handle> VM::MakeHandle(Value value)
 {
+    PROFILE_FUNCTION();
     if (Fox_IsObject(value)) Push(value);
     
     // Make a handle for it.
@@ -1828,6 +1797,7 @@ ref<Handle> VM::MakeHandle(Value value)
 
 ref<Handle> VM::MakeCallHandle(const char* signature)
 {
+    PROFILE_FUNCTION();
     FOX_ASSERT(signature != nullptr, "Signature cannot be nullptr.");
     
     int signatureLength = std::strlen(signature);
@@ -1872,6 +1842,7 @@ ref<Handle> VM::MakeCallHandle(const char* signature)
 
 void VM::ReleaseHandle(ref<Handle> handle)
 {
+    PROFILE_FUNCTION();
     FOX_ASSERT(handle != nullptr, "Handle cannot be nullptr.");
 
     handle->value = Fox_Nil;
@@ -1882,12 +1853,14 @@ void VM::ReleaseHandle(ref<Handle> handle)
 
 int VM::GetSlotCount()
 {
+    PROFILE_FUNCTION();
     if (m_pApiStack == nullptr) return 0;
     return (int)(m_pCurrentFiber->m_pStackTop - m_pApiStack);
 }
 
 void VM::EnsureSlots(int numSlots)
 {
+    PROFILE_FUNCTION();
     for (int i = 0; i < numSlots; i++)
         Push(Fox_Nil);
 
@@ -1897,6 +1870,7 @@ void VM::EnsureSlots(int numSlots)
 // Ensures that [slot] is a valid index into the API's stack of slots.
 void VM::ValidateApiSlot(int iSlot)
 {
+    PROFILE_FUNCTION();
     FOX_ASSERT(iSlot >= 0, "Slot cannot be negative.");
     FOX_ASSERT(iSlot < GetSlotCount(), "Not that many slots.");
 }
@@ -1905,9 +1879,10 @@ void VM::ValidateApiSlot(int iSlot)
 // Gets the type of the object in [slot].
 ValueType VM::GetSlotType(int iSlot)
 {
+    PROFILE_FUNCTION();
     ValidateApiSlot(iSlot);
     if (Fox_IsBool(m_pApiStack[iSlot])) return VAL_BOOL;
-    if (Fox_IsDouble(m_pApiStack[iSlot])) return VAL_NUMBER;
+    if (Fox_IsNumber(m_pApiStack[iSlot])) return VAL_NUMBER;
 //   if (IS_pArray(m_pApiStack[slot])) return WREN_TYPE_pArray;
 //   if (Fox_IsMap(m_pApiStack[slot])) return WREN_TYPE_MAP;
     if (Fox_IsNil(m_pApiStack[iSlot])) return VAL_NIL;
@@ -1917,6 +1892,7 @@ ValueType VM::GetSlotType(int iSlot)
 
 Value VM::GetSlot(int iSlot)
 {
+    PROFILE_FUNCTION();
     ValidateApiSlot(iSlot);
 
     return m_pApiStack[iSlot];
@@ -1924,6 +1900,7 @@ Value VM::GetSlot(int iSlot)
 
 bool VM::GetSlotBool(int iSlot)
 {
+    PROFILE_FUNCTION();
     ValidateApiSlot(iSlot);
     FOX_ASSERT(Fox_IsBool(m_pApiStack[iSlot]), "Slot must hold a bool.");
 
@@ -1932,14 +1909,16 @@ bool VM::GetSlotBool(int iSlot)
 
 double VM::GetSlotDouble(int iSlot)
 {
+    PROFILE_FUNCTION();
     ValidateApiSlot(iSlot);
-    FOX_ASSERT(Fox_IsDouble(m_pApiStack[iSlot]), "Slot must hold a number.");
+    FOX_ASSERT(Fox_IsNumber(m_pApiStack[iSlot]), "Slot must hold a number.");
 
-    return Fox_AsDouble(m_pApiStack[iSlot]);
+    return Fox_AsNumber(m_pApiStack[iSlot]);
 }
 
 const char* VM::GetSlotString(int iSlot)
 {
+    PROFILE_FUNCTION();
     ValidateApiSlot(iSlot);
     FOX_ASSERT(Fox_IsString(m_pApiStack[iSlot]), "Slot must hold a string.");
 
@@ -1948,6 +1927,7 @@ const char* VM::GetSlotString(int iSlot)
 
 ref<Handle> VM::GetSlotHandle(int iSlot)
 {
+    PROFILE_FUNCTION();
     ValidateApiSlot(iSlot);
     return MakeHandle(m_pApiStack[iSlot]);
 }
@@ -1955,27 +1935,32 @@ ref<Handle> VM::GetSlotHandle(int iSlot)
 // Stores [value] in [slot] in the foreign call stack.
 void VM::SetSlot(int iSlot, Value value)
 {
+    PROFILE_FUNCTION();
     ValidateApiSlot(iSlot);
     m_pApiStack[iSlot] = value;
 }
 
 void VM::SetSlotBool(int iSlot, bool value)
 {
+    PROFILE_FUNCTION();
     SetSlot(iSlot, Fox_Bool(value));
 }
 
 void VM::SetSlotDouble(int iSlot, double value)
 {
-    SetSlot(iSlot, Fox_Double(value));
+    PROFILE_FUNCTION();
+    SetSlot(iSlot, Fox_Number(value));
 }
 
 void VM::SetSlotInteger(int iSlot, int value)
 {
-    SetSlot(iSlot, Fox_Int(value));
+    PROFILE_FUNCTION();
+    SetSlot(iSlot, Fox_Number(value));
 }
 
 void VM::SetSlotNewList(int iSlot)
 {
+    PROFILE_FUNCTION();
     SetSlot(iSlot, Fox_Object(new_ref<ObjectArray>()));
 }
 
@@ -1986,11 +1971,13 @@ void VM::SetSlotNewList(int iSlot)
 
 void VM::SetSlotNull(int iSlot)
 {
+    PROFILE_FUNCTION();
     SetSlot(iSlot, Fox_Nil);
 }
 
 void VM::SetSlotString(int iSlot, const char* text)
 {
+    PROFILE_FUNCTION();
     FOX_ASSERT(text != nullptr, "String cannot be nullptr.\n");
     
     SetSlot(iSlot, NewString(text));
@@ -1998,6 +1985,7 @@ void VM::SetSlotString(int iSlot, const char* text)
 
 void VM::SetSlotHandle(int iSlot, Handle* handle)
 {
+    PROFILE_FUNCTION();
     FOX_ASSERT(handle != nullptr, "Handle cannot be nullptr.");
 
     SetSlot(iSlot, handle->value);
@@ -2005,6 +1993,7 @@ void VM::SetSlotHandle(int iSlot, Handle* handle)
 
 int VM::GetListCount(int iSlot)
 {
+    PROFILE_FUNCTION();
     ValidateApiSlot(iSlot);
     FOX_ASSERT(Fox_IsArray(m_pApiStack[iSlot]), "Slot must hold a pArray.\n");
 
@@ -2013,6 +2002,7 @@ int VM::GetListCount(int iSlot)
 
 void VM::GetListElement(int iSlot, int index, int elementSlot)
 {
+    PROFILE_FUNCTION();
     ValidateApiSlot(iSlot);
     ValidateApiSlot(elementSlot);
     FOX_ASSERT(Fox_IsArray(m_pApiStack[iSlot]), "Slot must hold a pArray.\n");
@@ -2022,6 +2012,7 @@ void VM::GetListElement(int iSlot, int index, int elementSlot)
 
 void VM::SetListElement(int iSlot, int index, int elementSlot)
 {
+    PROFILE_FUNCTION();
     ValidateApiSlot(iSlot);
     ValidateApiSlot(elementSlot);
     FOX_ASSERT(Fox_IsArray(m_pApiStack[iSlot]), "Must insert into a pArray.\n");
@@ -2039,15 +2030,18 @@ void VM::SetListElement(int iSlot, int index, int elementSlot)
 
 bool VM::IsLogToken() const
 {
+    PROFILE_FUNCTION();
     return m_bLogToken;
 }
 
 bool VM::IsLogGC() const
 {
+    PROFILE_FUNCTION();
     return m_bLogGC;
 }
 
 bool VM::IsLogTrace() const
 {
+    PROFILE_FUNCTION();
     return m_bLogTrace;
 }

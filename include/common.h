@@ -9,6 +9,7 @@
 #include <fstream>
 #include <memory>
 #include <sys/stat.h>
+#include "Benchmark.hpp"
 
 inline bool IsRepl;
 // inline bool DEBUG_TRACE_EXECUTION;

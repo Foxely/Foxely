@@ -165,7 +165,7 @@ Value tokenGetTypeNative(int argCount, Value* args)
     Fox_FixArity(argCount, 0);
 	Token* token = (Token *) Fox_GetInstanceCStruct(args[-1]);
 
-    return Fox_Double(token->m_oType.m_id);
+    return Fox_Number(token->m_oType.m_id);
 }
 
 Value tokenGetLineNative(int argCount, Value* args)
@@ -173,7 +173,7 @@ Value tokenGetLineNative(int argCount, Value* args)
     Fox_FixArity(argCount, 0);
 	Token* token = (Token *) Fox_GetInstanceCStruct(args[-1]);
 
-    return Fox_Double(token->m_iLinesTraversed);
+    return Fox_Number(token->m_iLinesTraversed);
 }
 
 Value tokenGetTextNative(int argCount, Value* args)

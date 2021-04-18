@@ -41,8 +41,8 @@ Value exitNative(VM* oVM, int argCount, Value* args)
     Fox_Arity(oVM, argCount, 0, 1);
     if (argCount == 1)
     {
-        if (Fox_IsInt(args[0]))
-            exit(Fox_AsInt(args[0]));
+        if (Fox_IsNumber(args[0]))
+            exit(Fox_AsNumber(args[0]));
         else
             Fox_RuntimeError(oVM, "Expected number");
     }

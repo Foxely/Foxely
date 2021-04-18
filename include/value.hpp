@@ -16,7 +16,7 @@ enum ValueType {
     VAL_BOOL,
     VAL_NIL,
     VAL_NUMBER,
-    VAL_INT,
+    // VAL_INT,
     VAL_OBJ
 };
 
@@ -43,9 +43,10 @@ public:
         type = VAL_NUMBER;
     }
 
-    Value(int value) : val(value)
+    Value(int value) : val(static_cast<double>(value))
     {
-        type = VAL_INT;
+        type = VAL_NUMBER;
+        // type = VAL_INT;
     }
 
     Value(ref<Object> value) : val(value)
@@ -78,6 +79,27 @@ public:
         val = other.val;
         return *this;
     }
+
+    Value& operator=(double value)
+    {
+        type = VAL_NUMBER;
+        val = value;
+        return *this;
+    }
+
+    Value& operator=(bool value)
+    {
+        type = VAL_BOOL;
+        val = value;
+        return *this;
+    }
+
+    Value& operator=(ref<Object> value)
+    {
+        type = VAL_OBJ;
+        val = value;
+        return *this;
+    }
 };
 
 template <>
@@ -86,9 +108,8 @@ bool Value::as<bool>();
 template <>
 double Value::as<double>();
 
-template <>
-int Value::as<int>();
-
+// template <>
+// double Value::as<int>();
 
 bool ValuesEqual(Value a, Value b);
 void PrintValue(Value value, VM* pVm = nullptr);
@@ -112,19 +133,19 @@ public:
 
 #define Fox_IsBool(val)    ((val).type == VAL_BOOL)
 #define Fox_IsNil(val)     ((val).type == VAL_NIL)
-#define Fox_IsDouble(val)  ((val).type == VAL_NUMBER)
-#define Fox_IsInt(val)     ((val).type == VAL_INT)
+#define Fox_IsNumber(val)  ((val).type == VAL_NUMBER)
+// #define Fox_IsInt(val)     ((val).type == VAL_INT)
 #define Fox_IsObject(val)     ((val).type == VAL_OBJ)
 
 #define Fox_AsObject(val)     ((val).as_ref<Object>())
 #define Fox_AsBool(val)    ((val).as<bool>())
-#define Fox_AsDouble(val)  ((val).as<double>())
-#define Fox_AsInt(val)  ((val).as<int>())
+#define Fox_AsNumber(val)  ((val).as<double>())
+// #define Fox_AsInt(val)  ((val).as<int>())
 
 #define Fox_Bool(val)           (Value(val))
 #define Fox_Nil                 (Value())
-#define Fox_Double(val)         (Value(val))
-#define Fox_Int(val)            (Value(val))
+#define Fox_Number(val)         (Value(val))
+// #define Fox_Int(val)            (Value(val))
 #define Fox_Object(object)      (Value(object))
 
 #endif

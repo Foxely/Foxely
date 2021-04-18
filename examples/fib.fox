@@ -4,14 +4,14 @@ import "core";
 start := clock();
 
 fibonacci :: func(n) {
-  if (n <= 1)
+  if (n < 2)
     return n;
   return fibonacci(n - 2) + fibonacci(n - 1);
 }
 
-for (i := 0; i <= 35; ++i)
-{
-    print "%\n", fibonacci(i);
-}
+    fibonacci(35);
+// for (i := 0; i <= 1; ++i)
+// {
+// }
 
 print "Time: %\n", clock() - start;

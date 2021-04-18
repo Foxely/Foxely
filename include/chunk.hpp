@@ -71,7 +71,6 @@ class Chunk
 {
 public:
     int m_iCount;
-    int m_iCapacity;
     std::vector<uint8_t> m_vCode;
     ValueArray m_oConstants;
     std::vector<int> m_vLines;

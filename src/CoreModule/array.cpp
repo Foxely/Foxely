@@ -9,13 +9,13 @@
 
 bool ValidArgs(VM* pVM, int argCount, Value* args)
 {
-    if (!Fox_IsInt(args[0]))
+    if (!Fox_IsNumber(args[0]))
     {
         Fox_RuntimeError(pVM, "Expected index number");
         return false;
     }
 
-    int index = Fox_AsInt(args[0]);
+    int index = Fox_AsNumber(args[0]);
     if (index < 0)
     {
         Fox_RuntimeError(pVM, "Expected positive index");
@@ -28,9 +28,9 @@ bool ValidArgs(VM* pVM, int argCount, Value* args)
 Value getNative(VM* pVM, int argCount, Value* args)
 {
     Fox_FixArity(pVM, argCount, 1);
-    Fox_PanicIfNot(pVM, Fox_IsInt(args[0]), "Expected index number");
+    Fox_PanicIfNot(pVM, Fox_IsNumber(args[0]), "Expected index number");
 
-    int index = Fox_AsInt(args[0]);
+    int index = Fox_AsNumber(args[0]);
     Fox_PanicIfNot(pVM, index >= 0, "Expected positive index");
     ref<ObjectArray> array = Fox_AsArray(args[-1]);
     if (array->m_vValues.empty()) {
@@ -45,9 +45,9 @@ Value getNative(VM* pVM, int argCount, Value* args)
 Value setNative(VM* pVM, int argCount, Value* args)
 {
     Fox_FixArity(pVM, argCount, 2);
-    if (Fox_IsInt(args[0]))
+    if (Fox_IsNumber(args[0]))
     {
-        int index = Fox_IsInt(args[0]);
+        int index = Fox_IsNumber(args[0]);
         ref<ObjectArray> array = Fox_AsArray(args[-1]);
         array->m_vValues[index] = args[1];
     }
@@ -78,7 +78,7 @@ Value sizeNative(VM* pVM, int argCount, Value* args)
 {
     Fox_FixArity(pVM, argCount, 0);
     ref<ObjectArray> array = Fox_AsArray(args[-1]);
-    return Fox_Int((int) array->m_vValues.size());
+    return Fox_Number((int) array->m_vValues.size());
 }
 
 Value containNative(VM* pVM, int argCount, Value* args)
@@ -99,7 +99,7 @@ Value findNative(VM* pVM, int argCount, Value* args)
     std::vector<Value>::iterator it = std::find(array->m_vValues.begin(), array->m_vValues.end(), search);
     int index = distance(array->m_vValues.begin(), it);
 
-    return Fox_Int(index);
+    return Fox_Number(index);
 }
 
 Value toStringNative(VM* pVM, int argCount, Value* args)

@@ -10,6 +10,6 @@ ObjectClosure::ObjectClosure(VM* oVM, ref<ObjectFunction> func)
     func->module = oVM->currentModule;
     upValues = std::vector<ref<ObjectUpvalue>>(func->upValueCount);
     for (int i = 0; i < func->upValueCount; i++) {
-        upValues[i] = NULL;
+        upValues[i] = nullptr;
     }
 }

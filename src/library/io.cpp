@@ -52,8 +52,8 @@ Value readNative(VM* oVM, int argCount, Value* args)
     }
     else
     {
-        Fox_PanicIfNot(oVM, Fox_IsInt(args[0]), "Invalid type, expected number type");
-        int size = Fox_AsInt(args[0]);
+        Fox_PanicIfNot(oVM, Fox_IsNumber(args[0]), "Invalid type, expected number type");
+        int size = Fox_IsNumber(args[0]);
         char chunk[size];
 
         if (fgets(chunk, sizeof(chunk), fp) != NULL)
