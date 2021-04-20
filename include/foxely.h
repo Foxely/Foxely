@@ -39,7 +39,7 @@ extern "C"
 
     static inline Value Fox_Abstract(VM* pVM, void* data, ObjectAbstractType* type)
 	{
-		return Fox_Object(new_ref<ObjectAbstract>(data, type));
+		return Fox_Object(pVM->gc.New<ObjectAbstract>(data, type));
 	}
 
     static inline Value Fox_AbstractToValue(ObjectAbstract* abstract)
@@ -54,14 +54,14 @@ extern "C"
 
     static inline Value Fox_DefineClass(VM* pVM, const char* strModuleName, const char* strClassName, NativeMethods methods)
 	{
-        pVM->DefineClass(strModuleName, strClassName, methods);
+        // pVM->DefineClass(strModuleName, strClassName, methods);
         return Fox_Nil;
 	}
 
     static inline Value Fox_DefineInstanceOf(VM* pVM, const char* strModuleName, const char* strKlassName)
 	{
 		// See if the module has already been loaded.
-		ref<ObjectModule> pModule = pVM->GetModule(Fox_NewString(pVM, strModuleName));
+		ObjectModule* pModule = pVM->GetModule(Fox_NewString(pVM, strModuleName));
 		FOX_ASSERT(pModule != NULL, "Module not found.");
 
 		if (pModule != NULL)
@@ -69,7 +69,7 @@ extern "C"
         	Value oKlass;
 			if (pModule->m_vVariables.Get(Fox_AsString(Fox_NewString(pVM, strKlassName)), oKlass))
 			{
-				return Fox_Object(new_ref<ObjectInstance>(Fox_AsClass(oKlass)));
+				return Fox_Object(pVM->gc.New<ObjectInstance>(pVM, Fox_AsClass(oKlass)));
 			}
 		}
         return Fox_Nil;
@@ -78,13 +78,14 @@ extern "C"
 	static inline Value Fox_DefineInstanceOfCStruct(VM* pVM, const char* strModuleName, const char* strKlassName, void* cStruct)
 	{
         // See if the module has already been loaded.
-		ref<ObjectModule> pModule = pVM->GetModule(Fox_NewString(pVM, strModuleName));
+		ObjectModule* pModule = pVM->GetModule(Fox_NewString(pVM, strModuleName));
 		if (pModule != NULL)
 		{
         	Value oKlass;
 			if (pModule->m_vVariables.Get(Fox_AsString(Fox_NewString(pVM, strKlassName)), oKlass))
 			{
-				ref<ObjectInstance> pInstance = new_ref<ObjectInstance>(Fox_AsClass(oKlass), cStruct);
+				ObjectInstance* pInstance = pVM->gc.New<ObjectInstance>(pVM, Fox_AsClass(oKlass));
+				// ObjectInstance* pInstance = pVM->gc.New<ObjectInstance>(pVM, Fox_AsClass(oKlass), cStruct);
 				pVM->Push(Fox_Object(pInstance));
 				Value oInitializer;
 				if (Fox_AsClass(oKlass)->methods.Get(pVM->initString, oInitializer))
@@ -101,7 +102,7 @@ extern "C"
         // See if the module has already been loaded.
 		if (pInstance != NULL)
 		{
-        	pInstance->setters.Set(Fox_AsString(Fox_NewString(pVM, strFieldName)), Fox_Object(new_ref<ObjectNative>(oSetter)));
+        	pInstance->klass->setters.Set(Fox_AsString(Fox_NewString(pVM, strFieldName)), Fox_Object(pVM->gc.New<ObjectNative>(oSetter)));
 		}
         return Fox_Nil;
 	}
@@ -111,7 +112,7 @@ extern "C"
         // See if the module has already been loaded.
 		if (pInstance != NULL)
 		{
-        	pInstance->getters.Set(Fox_AsString(Fox_NewString(pVM, strFieldName)), Fox_Object(new_ref<ObjectNative>(oSetter)));
+        	pInstance->klass->getters.Set(Fox_AsString(Fox_NewString(pVM, strFieldName)), Fox_Object(pVM->gc.New<ObjectNative>(oSetter)));
 		}
         return Fox_Nil;
 	}
@@ -137,18 +138,20 @@ extern "C"
 
 	static inline void* Fox_GetUserData(Value oInstance)
 	{
-        return Fox_AsInstance(oInstance)->cStruct;
+        // return nullptr;
+        return Fox_AsInstance(oInstance)->user_type;
 	}
 
 	static inline void* Fox_SetUserData(Value oInstance, void* data)
 	{
-		Fox_AsInstance(oInstance)->cStruct = data;
-        return Fox_AsInstance(oInstance)->cStruct;
+        // return nullptr;
+		Fox_AsInstance(oInstance)->user_type = data;
+        return Fox_AsInstance(oInstance)->user_type;
 	}
 
     static inline Value Fox_NewArray(VM* pVM)
 	{
-		return Fox_Object(new_ref<ObjectArray>());
+		return Fox_Object(pVM->gc.New<ObjectArray>());
 	}
 }
 

@@ -35,74 +35,69 @@ void repl(int ac, char** av)
     app.AddSyntax("func", highlight);
 
     app.Run();
-
-    // std::string input;
-    // std::string line;
-    // while(true)
-    // {
-    //     input.clear();
-    //     std::cout << "> ";
-    //     std::getline(std::cin, input);
-
-    //     if (input[input.size() - 1] == '{') {
-    //         std::cout << "| ";
-    //         int refCount = 1;
-    //         while (std::getline(std::cin, line))
-    //         {
-    //             if (line[line.size() - 1] == '{')
-    //                 refCount++;
-    //             if (line == "}")
-    //                 refCount--;
-    //             if (refCount <= 0)
-    //             {
-    //                 input += line;
-    //                 break;
-    //             }
-    //             std::cout << "| ";
-    //             input += line;
-    //         }
-    //         std::cout << "\n";
-    //     }
-
-    //     if (input == "exit")
-    //         break;
-
-    //     if (input[0] != '\n' && input[0] != '\0')
-    //         oVM.Interpret(NULL, input.c_str());
-    //     else {
-    //         std::cout << std::endl;
-    //         break;
-    //     }
-    // }
 }
 
 struct Test
 {
+    Test() {
+        std::cout << "COnstructor no Arguments" << std::endl;
+    }
+
+    void sayHello()
+    {
+        std::cout << "Hello!" << std::endl;
+    }
+
+    void sayAge(int age)
+    {
+        std::cout << "My age is " << age << "!" << std::endl;
+    }
+
+    void between(int min, int max)
+    {
+        std::cout << "min: " << min << ", max: " << max << std::endl;
+    }
+
+    int test(int min, int max)
+    {
+        std::cout << "test(min: " << min << ", max: " << max << ")" << std::endl;
+        return 45;
+    }
+
     int a;
 };
 
-NativeMethods testMethods =
+void ret_void_no_param()
 {
-	std::make_pair<std::string, NativeFn>("init", [](VM* pVM, int argc, Value* args)
-    {
-        ref<ObjectInstance> pInstance = Fox_AsInstance(args[-1]);
-        pInstance->cStruct = new Test;
-        Fox_SetField(pVM, Fox_Object(pInstance), "x", Value(0));
-        
-        Fox_Setter(pVM, pInstance.get(), "x", [](VM* pVM, int argc, Value* args)
-        {
-            Test* pTest = (Test *) Fox_GetUserData(args[-1]);
-            pTest->a = args[0].as<double>();
-            return Value(pTest->a);
-        });
-        Fox_Getter(pVM, pInstance.get(), "x", [](VM* pVM, int argc, Value* args)
-        {
-            Test* pTest = (Test *) Fox_GetUserData(args[-1]);
-            return Value(pTest->a);
-        });
-        return args[-1];
-    }),
-};
+    std::cout << "Test!!!" << std::endl;
+}
+
+void ret_void_int_param(int v1)
+{
+    std::cout << "ret_void_int_param(" << v1 << ")" << std::endl;
+}
+
+void ret_void_int_param_int(int v1, int v2)
+{
+    std::cout << "ret_void_int_param_int(" << v1 << ", " << v2 << ")" << std::endl;
+}
+
+int ret_int_no_param()
+{
+    return 45;
+}
+
+int ret_int_int_param(int v1)
+{
+    std::cout << "ret_int_int_param(" << v1 << ")" << std::endl;
+    return 45;
+}
+
+int ret_int_int_param_int(int v1, int v2)
+{
+    std::cout << "ret_int_int_param_int(" << v1 << ", " << v2 << ")" << std::endl;
+    return 45;
+}
 
 void runFile(int ac, char** av, const std::string& path)
 {
@@ -114,16 +109,28 @@ void runFile(int ac, char** av, const std::string& path)
 	std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
     t.close();
 
-    Test test;
+    auto& time_module = oVM.DefineModule("time");
+    time_module.raw_func("clock", clockNative);
 
-    oVM.DefineFunction("core", "clock", clockNative);
-    oVM.DefineModule("main");
-    oVM.DefineClass("main", "Test", testMethods);
+    auto& test_module = oVM.DefineModule("test");
     DefineIOModule(&oVM);
     DefineOSModule(&oVM);
     DefineMathModule(&oVM);
     DefineModuleModule(&oVM);
     DefinePathModule(&oVM);
+
+    test_module.func("ret_void_no_param", &ret_void_no_param);
+    test_module.func("ret_int_no_param", &ret_int_no_param);
+    test_module.func("ret_void_int_param", &ret_void_int_param);
+    test_module.func("ret_void_int_param_int", &ret_void_int_param_int);
+    test_module.func("ret_int_int_param", &ret_int_int_param);
+    test_module.func("ret_int_int_param_int", &ret_int_int_param_int);
+    Klass<Test>* klass = test_module.klass<Test>("Test");
+
+    klass->func("sayHello", &Test::sayHello);
+    klass->func("sayAge", &Test::sayAge);
+    klass->func("between", &Test::between);
+    klass->func("test", &Test::test);
 
     InterpretResult result = INTERPRET_OK;
     result = oVM.Interpret("main", str.c_str());

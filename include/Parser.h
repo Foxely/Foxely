@@ -126,10 +126,9 @@ public:
 	void SetCurrentChunk(Chunk& chunk);
     void RemoveComment();
 
-	ref<ObjectString> CopyString(const std::string& value);
-	ref<ObjectString> TakeString(const std::string& value);
-	ref<ObjectString> AllocateString(const std::string& str, uint32_t hash);
-	uint32_t hashString(const std::string& str);
+	ObjectString* CopyString(const std::string& value);
+	ObjectString* TakeString(const std::string& value);
+	ObjectString* AllocateString(const std::string& str, uint32_t hash);
 
 
 	void EmitByte(uint8_t byte);
@@ -141,7 +140,7 @@ public:
 	void EmitLoop(int loopStart);
 	uint8_t MakeConstant(Value value);
 
-	ref<ObjectFunction> EndCompiler();
+	ObjectFunction* EndCompiler();
 
 
     bool Match(int type);
@@ -159,7 +158,7 @@ public:
 	Compiler (Parser& parser, FunctionType eType, const std::string& name);
 
     Compiler* enclosing;
-    ref<ObjectFunction> function;
+    ObjectFunction* function;
     FunctionType type;
     Local locals[UINT8_COUNT];
     int localCount;
@@ -167,7 +166,7 @@ public:
     int scopeDepth;
 };
 
-ref<ObjectFunction> Compile(Parser& parser, const std::string &strText, Chunk* chunk);
+ObjectFunction* Compile(Parser& parser, const std::string &strText, Chunk* chunk);
 void Expression(Parser& parser);
 void ParsePrecedence(Parser& parser, Precedence preced);
 void Number(Parser& parser, bool can_assign = false);

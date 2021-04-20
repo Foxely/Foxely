@@ -32,7 +32,7 @@ Value getNative(VM* pVM, int argCount, Value* args)
 
     int index = Fox_AsNumber(args[0]);
     Fox_PanicIfNot(pVM, index >= 0, "Expected positive index");
-    ref<ObjectArray> array = Fox_AsArray(args[-1]);
+    ObjectArray* array = Fox_AsArray(args[-1]);
     if (array->m_vValues.empty()) {
         Fox_RuntimeError(pVM, "Cannot access at index %d because the array is empty", index);
     } else if (index >= 0 && index < array->m_vValues.size()) {
@@ -48,7 +48,7 @@ Value setNative(VM* pVM, int argCount, Value* args)
     if (Fox_IsNumber(args[0]))
     {
         int index = Fox_IsNumber(args[0]);
-        ref<ObjectArray> array = Fox_AsArray(args[-1]);
+        ObjectArray* array = Fox_AsArray(args[-1]);
         array->m_vValues[index] = args[1];
     }
     else
@@ -60,7 +60,7 @@ Value setNative(VM* pVM, int argCount, Value* args)
 Value pushNative(VM* pVM, int argCount, Value* args)
 {
     Fox_FixArity(pVM, argCount, 1);
-    ref<ObjectArray> array = Fox_AsArray(args[-1]);
+    ObjectArray* array = Fox_AsArray(args[-1]);
     array->m_vValues.push_back(args[0]);
     return Fox_Nil;
 }
@@ -68,7 +68,7 @@ Value pushNative(VM* pVM, int argCount, Value* args)
 Value popNative(VM* pVM, int argCount, Value* args)
 {
     Fox_FixArity(pVM, argCount, 0);
-    ref<ObjectArray> array = Fox_AsArray(args[-1]);
+    ObjectArray* array = Fox_AsArray(args[-1]);
 	Value popped = array->m_vValues.back();
     array->m_vValues.pop_back();
     return popped;
@@ -77,14 +77,14 @@ Value popNative(VM* pVM, int argCount, Value* args)
 Value sizeNative(VM* pVM, int argCount, Value* args)
 {
     Fox_FixArity(pVM, argCount, 0);
-    ref<ObjectArray> array = Fox_AsArray(args[-1]);
+    ObjectArray* array = Fox_AsArray(args[-1]);
     return Fox_Number((int) array->m_vValues.size());
 }
 
 Value containNative(VM* pVM, int argCount, Value* args)
 {
     Fox_FixArity(pVM, argCount, 1);
-    ref<ObjectArray> array = Fox_AsArray(args[-1]);
+    ObjectArray* array = Fox_AsArray(args[-1]);
     Value search = args[0];
     std::vector<Value>::iterator it = std::find(array->m_vValues.begin(), array->m_vValues.end(), search);
 
@@ -94,7 +94,7 @@ Value containNative(VM* pVM, int argCount, Value* args)
 Value findNative(VM* pVM, int argCount, Value* args)
 {
     Fox_FixArity(pVM, argCount, 1);
-    ref<ObjectArray> array = Fox_AsArray(args[-1]);
+    ObjectArray* array = Fox_AsArray(args[-1]);
     Value search = args[0];
     std::vector<Value>::iterator it = std::find(array->m_vValues.begin(), array->m_vValues.end(), search);
     int index = distance(array->m_vValues.begin(), it);
@@ -105,7 +105,7 @@ Value findNative(VM* pVM, int argCount, Value* args)
 Value toStringNative(VM* pVM, int argCount, Value* args)
 {
     Fox_FixArity(pVM, argCount, 0);
-    ref<ObjectArray> pArray = Fox_AsArray(args[-1]);
+    ObjectArray* pArray = Fox_AsArray(args[-1]);
 
     std::string string;
 

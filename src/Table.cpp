@@ -26,7 +26,7 @@ Table::Table()
     }
 }
 
-Entry& Table::FindEntry(ref<ObjectString> pKey)
+Entry& Table::FindEntry(ObjectString* pKey)
 {
     uint32_t index = pKey->hash & m_iCapacity;
     Entry* tombstone = NULL;
@@ -72,7 +72,7 @@ void Table::AdjustCapacity(int capacity)
     m_iCapacity = capacity;
 }
 
-bool Table::Set(ref<ObjectString> key, Value value)
+bool Table::Set(ObjectString* key, Value value)
 {
     if (m_iCount + 1 > (m_iCapacity + 1) * TABLE_MAX_LOAD) {
         int capacity = GROW_CAPACITY(m_iCapacity + 1) - 1;
@@ -104,13 +104,13 @@ void Table::Print()
 {
     for (int i = 0; i <= m_iCapacity; i++) {
         Entry& entry = m_vEntries[i];
-        if (entry.m_pKey != NULL) {
+        if (entry.m_pKey != nullptr) {
             std::cout << entry.m_pKey->string << std::endl;
         }
     }
 }
 
-bool Table::Get(ref<ObjectString> key, Value& value)
+bool Table::Get(ObjectString* key, Value& value)
 {
     if (m_iCount == 0)
         return false;
@@ -123,7 +123,7 @@ bool Table::Get(ref<ObjectString> key, Value& value)
     return true;
 }
 
-bool Table::Delete(ref<ObjectString> key)
+bool Table::Delete(ObjectString* key)
 {
     if (m_iCount == 0)
         return false;
@@ -136,7 +136,7 @@ bool Table::Delete(ref<ObjectString> key)
     return true;
 }
 
-ref<ObjectString> Table::FindString(const char *chars, int length, uint32_t hash)
+ObjectString* Table::FindString(const char *chars, int length, uint32_t hash)
 {
     if (m_iCount == 0)
         return NULL;
@@ -155,7 +155,7 @@ ref<ObjectString> Table::FindString(const char *chars, int length, uint32_t hash
     }
 }
 
-ref<ObjectString> Table::FindString(const std::string& string, uint32_t hash)
+ObjectString* Table::FindString(const std::string& string, uint32_t hash)
 {
     if (m_iCount == 0)
         return NULL;

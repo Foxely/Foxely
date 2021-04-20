@@ -12,7 +12,7 @@ Value getMapNative(VM* pVM, int argCount, Value* args)
     Fox_FixArity(pVM, argCount, 1);
 
     Value oValue;
-    ref<ObjectMap> pMap = Fox_AsMap(args[-1]);
+    ObjectMap* pMap = Fox_AsMap(args[-1]);
     
     if (pMap->m_vValues.Get(args[0], oValue))
         return oValue;
@@ -22,7 +22,7 @@ Value getMapNative(VM* pVM, int argCount, Value* args)
 Value setMapNative(VM* pVM, int argCount, Value* args)
 {
     Fox_FixArity(pVM, argCount, 2);
-    ref<ObjectMap> pMap = Fox_AsMap(args[-1]);
+    ObjectMap* pMap = Fox_AsMap(args[-1]);
     pMap->m_vValues.Set(args[0], args[1]);
     return Fox_Nil;
 }
@@ -30,7 +30,7 @@ Value setMapNative(VM* pVM, int argCount, Value* args)
 Value pushMapNative(VM* pVM, int argCount, Value* args)
 {
     Fox_FixArity(pVM, argCount, 2);
-    ref<ObjectMap> pMap = Fox_AsMap(args[-1]);
+    ObjectMap* pMap = Fox_AsMap(args[-1]);
     pMap->m_vValues.Set(args[0], args[1]);
     return Fox_Nil;
 }
@@ -39,7 +39,7 @@ Value popMapNative(VM* pVM, int argCount, Value* args)
 {
     Fox_FixArity(pVM, argCount, 0);
 
-    ref<ObjectMap> pMap1 = Fox_AsMap(args[-1]);
+    ObjectMap* pMap1 = Fox_AsMap(args[-1]);
 
     MapEntry oEntry = pMap1->m_vValues.m_vEntries.back();
 
@@ -51,7 +51,7 @@ Value popMapNative(VM* pVM, int argCount, Value* args)
     pMap1->m_vValues.Delete(oEntry.m_oKey);
     // pMap1->m_vValues.m_iCapacity = pMap1->m_vValues.m_vEntries.size();
 
-    ref<ObjectMap> pMap2 = new_ref<ObjectMap>();
+    ObjectMap* pMap2 = pVM->gc.New<ObjectMap>();
     pMap2->m_vValues.Set(oEntry.m_oKey, oEntry.m_oValue);
 
     return Fox_Object(pMap2);
@@ -60,14 +60,14 @@ Value popMapNative(VM* pVM, int argCount, Value* args)
 Value sizeMapNative(VM* pVM, int argCount, Value* args)
 {
     Fox_FixArity(pVM, argCount, 0);
-    ref<ObjectMap> pMap = Fox_AsMap(args[-1]);
+    ObjectMap* pMap = Fox_AsMap(args[-1]);
     return Fox_Number(pMap->m_vValues.Size());
 }
 
 Value containMapNative(VM* pVM, int argCount, Value* args)
 {
     Fox_FixArity(pVM, argCount, 1);
-    ref<ObjectMap> pMap = Fox_AsMap(args[-1]);
+    ObjectMap* pMap = Fox_AsMap(args[-1]);
     Value search = args[0];
     MapEntry it = pMap->m_vValues.FindEntry(search);
 
@@ -77,7 +77,7 @@ Value containMapNative(VM* pVM, int argCount, Value* args)
 Value toStringMapNative(VM* pVM, int argCount, Value* args)
 {
     Fox_FixArity(pVM, argCount, 0);
-    ref<ObjectMap> pMap = Fox_AsMap(args[-1]);
+    ObjectMap* pMap = Fox_AsMap(args[-1]);
 
     std::string string;
 

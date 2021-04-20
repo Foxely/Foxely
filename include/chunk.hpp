@@ -65,6 +65,8 @@ typedef enum
 
     // CODES for Repl Mode
     OP_PRINT_REPL,
+
+    OP_TOTAL,
 } OpCode;
 
 class Chunk

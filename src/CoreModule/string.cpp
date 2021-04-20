@@ -51,7 +51,7 @@ void DefineCoreString(VM* pVM)
 
             std::string& strObject = Fox_AsString(args[-1])->string;
             std::string& strDelimiter = Fox_AsString(args[0])->string;
-            ref<ObjectArray> pArray = Fox_AsArray(Fox_NewArray(pVM));
+            ObjectArray* pArray = Fox_AsArray(Fox_NewArray(pVM));
 
             Fox_PanicIfNot(pVM, !strDelimiter.empty(), "String delimiter can't be empty.");
 
@@ -112,9 +112,9 @@ void DefineCoreString(VM* pVM)
 	};
 
     pVM->DefineBuiltIn(pVM->stringMethods, methods);
-    pVM->DefineFunction("core", "str", [](VM* pVM, int argCount, Value* args)
-    {
-        Fox_FixArity(pVM, argCount, 1);
-        return Fox_NewString(pVM, ValueToString(args[0]).c_str());
-    });
+    // pVM->DefineFunction("core", "str", [](VM* pVM, int argCount, Value* args)
+    // {
+    //     Fox_FixArity(pVM, argCount, 1);
+    //     return Fox_NewString(pVM, ValueToString(args[0]).c_str());
+    // });
 }

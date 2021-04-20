@@ -11,16 +11,22 @@
 #include <iostream>
 #include <string>
 #include <functional>
+#include <tuple>
 
 #include "chunk.hpp"
 #include "value.hpp"
 #include "Table.hpp"
 #include "Map.hpp"
+#include "gc.hpp"
 
 class VM;
+template<typename T>
+class Klass;
+
+using NativeFn = std::function<Value(VM*, int, Value*)>;
+
 
 #define Fox_ObjectType(val)         (Fox_AsObject(val)->type)
-
 
 #define Fox_IsMap(val)        is_obj_type(val, OBJ_MAP)
 #define Fox_IsArray(val)        is_obj_type(val, OBJ_ARRAY)
@@ -36,20 +42,20 @@ class VM;
 #define Fox_IsModule(val)        is_obj_type(val, OBJ_MODULE)
 #define Fox_IsFiber(val)        is_obj_type(val, OBJ_FIBER)
 
-#define Fox_AsMap(val)              ((val).as_ref<ObjectMap>())
-#define Fox_AsArray(val)            ((val).as_ref<ObjectArray>())
-#define Fox_AsAbstract(val)         ((val).as_ref<ObjectAbstract>())
-#define Fox_AsLib(val)           	((val).as_ref<ObjectLib>())
-#define Fox_AsBoundMethod(val)  	((val).as_ref<ObjectBoundMethod>())
-#define Fox_AsClass(val)         	((val).as_ref<ObjectClass>())
-#define Fox_AsClosure(val)       	((val).as_ref<ObjectClosure>())
-#define Fox_AsFunction(val)      	((val).as_ref<ObjectFunction>())
-#define Fox_AsInstance(val)         ((val).as_ref<ObjectInstance>())
-#define Fox_AsNative(val)        	((val).as_ref<ObjectNative>()->function)
-#define Fox_AsString(val)        	((val).as_ref<ObjectString>())
+#define Fox_AsMap(val)              ((val).as<ObjectMap>())
+#define Fox_AsArray(val)            ((val).as<ObjectArray>())
+#define Fox_AsAbstract(val)         ((val).as<ObjectAbstract>())
+#define Fox_AsLib(val)           	((val).as<ObjectLib>())
+#define Fox_AsBoundMethod(val)  	((val).as<ObjectBoundMethod>())
+#define Fox_AsClass(val)         	((val).as<ObjectClass>())
+#define Fox_AsClosure(val)       	((val).as<ObjectClosure>())
+#define Fox_AsFunction(val)      	((val).as<ObjectFunction>())
+#define Fox_AsInstance(val)         ((val).as<ObjectInstance>())
+#define Fox_AsNative(val)        	((val).as<ObjectNative>()->function)
+#define Fox_AsString(val)        	((val).as<ObjectString>())
 #define Fox_AsCString(val)       	((Fox_AsString(val))->string.c_str())
-#define Fox_AsModule(val)       	((val).as_ref<ObjectModule>())
-#define Fox_AsFiber(val)       	    ((val).as_ref<ObjectFiber>())
+#define Fox_AsModule(val)       	((val).as<ObjectModule>())
+#define Fox_AsFiber(val)       	    ((val).as<ObjectFiber>())
 
 typedef enum {
     OBJ_UNKNOWN,
@@ -61,6 +67,7 @@ typedef enum {
     OBJ_CLOSURE,
     OBJ_FUNCTION,
     OBJ_INSTANCE,
+    OBJ_USER,
     OBJ_NATIVE,
     OBJ_LIB,
     OBJ_STRING,
@@ -70,10 +77,74 @@ typedef enum {
     OBJ_FIBER,
 } ObjType;
 
+struct utils
+{
+    template <class T>
+    static T arg(int ac, Value* av, const int i = 0)
+	{
+		if (i < 0 && i > ac)
+			throw std::runtime_error("csvsdvdsv");
+        // if (std::is_base_of<Object, T>::value)
+		// {
+        //     return *(T *)object(i);
+        // } else {
+        //     return *(T *)userdata(i);
+        // }
+        return T();
+    }
+
+    template <class T>
+    static T* argp(int ac, Value* av, const int i = 0);
+
+	template <typename T, typename T1, typename... Args>
+    static std::tuple<T, T1, Args...> args(int ac, Value* av, const int i = 0)
+	{
+        T t = arg<T>(ac, av, i);
+        return std::tuple_cat(std::make_tuple(t), args<T1, Args...>(ac, av, i + 1));
+    }
+
+    template <typename T>
+    static std::tuple<T> args(int ac, Value* av, const int i = 0)
+	{
+        return std::make_tuple(arg<T>(ac, av, i));
+    }
+
+	template <int N>
+	struct apply_function
+	{
+        template <
+			typename R,
+			typename... FunctionArgs,
+			typename... TupleArgs,
+			typename... Args >
+        static R apply(R (*function)(FunctionArgs...),
+            std::tuple<TupleArgs...>& t, Args... args) {
+            return
+                apply_function<N-1>::apply(function, t, std::get<N-1>(t), args...);
+        }
+    };
+
+    template <int N>
+    struct apply_method
+    {
+        template <
+            class T,
+            typename R,
+            typename... MethodArgs,
+            typename... TupleArgs,
+            typename... Args >
+        static R apply(T* o, R (T::*method)(MethodArgs...),
+            std::tuple<TupleArgs...>& t, Args... args) {
+            return
+                apply_method<N-1>::apply(o, method, t, std::get<N-1>(t), args...);
+        }
+    };
+}; // namespace utils
+
 struct CallFrame;
 
 
-class Object
+class Object : public Traceable
 {
 public:
     Object() { }
@@ -102,10 +173,10 @@ public:
 class ObjectModule : public Object
 {
 public:
-    explicit ObjectModule(ref<ObjectString> strName)
+    explicit ObjectModule(VM& oVM, ObjectString* strName)
+        : m_oVM(oVM), m_strName(strName)
 	{
 		type = OBJ_MODULE;
-        m_strName = strName;
 	}
 
     bool operator==(const ObjectModule& other) const
@@ -113,9 +184,70 @@ public:
         return m_strName == other.m_strName;
     }
 
+    template <typename R, typename... Args>
+    inline void func(const std::string& name, R (*callback)(Args...))
+	{
+		auto function = [this, callback] (VM* vm, int ac, Value* av) -> Value
+		{
+            auto tuple = utils::args<Args...>(ac, av);
+            return Value(
+                utils::apply_function<std::tuple_size<decltype(tuple)>::value>
+                    ::apply(callback, tuple));
+        };
+        define_func(name, function);
+    }
+
+    template <typename... Args>
+    inline void func(const std::string& name, void (*callback)(Args...))
+	{
+		auto function = [this, callback] (VM* vm, int ac, Value* av) -> Value
+		{
+            auto tuple = utils::args<Args...>(ac, av);
+            utils::apply_function<std::tuple_size<decltype(tuple)>::value>::apply(callback, tuple);
+			return Fox_Nil;
+        };
+        define_func(name, function);
+    }
+
+    template <typename R>
+    inline void func(const std::string& name, R (*callback)())
+	{
+		auto function = [callback] (VM* vm, int ac, Value* av) -> Value
+		{
+            return Value((*callback)());
+        };
+        define_func(name, function);
+    }
+
+    inline void func(const std::string& name, void (*callback)())
+	{
+		auto function = [callback] (VM* vm, int ac, Value* av) -> Value
+		{
+			(*callback)();
+			return Fox_Nil;
+		};
+        define_func(name, function);
+	}
+
+    void raw_func(const std::string& name, NativeFn func)
+	{
+        define_func(name, func);
+    }
+
+    template<typename T>
+    inline Klass<T>* klass(const std::string& name);
+
+private:
+
+    void define_func(const std::string& name, NativeFn func);
+
+private:
+    VM& m_oVM;
+
+public:
     Table m_vVariables;
     // The name of the module.
-    ref<ObjectString> m_strName;
+    ObjectString* m_strName;
 };
 
 class ObjectFunction : public Object
@@ -126,8 +258,8 @@ public:
     int iMaxArity;
     int upValueCount;
     Chunk chunk;
-    ref<ObjectString> name;
-    ref<ObjectModule> module;
+    ObjectString* name;
+    ObjectModule* module;
 
 	explicit ObjectFunction()
 	{
@@ -146,7 +278,7 @@ class ObjectUpvalue : public Object
 public:
     Value *location;
     Value closed;
-    ref<ObjectUpvalue> next;
+    ObjectUpvalue* next;
 
     explicit ObjectUpvalue(Value* slot)
     {
@@ -157,7 +289,6 @@ public:
     }
 };
 
-using NativeFn = std::function<Value(VM*, int, Value*)>;
 
 class ObjectNative : public Object
 {
@@ -180,10 +311,10 @@ public:
 class ObjectLib : public Object
 {
 public:
-    ref<ObjectString> name;
+    ObjectString* name;
     Table methods;
 
-	explicit ObjectLib(ref<ObjectString> n)
+	explicit ObjectLib(ObjectString* n)
 	{
 		type = OBJ_LIB;
 		name = NULL;
@@ -195,23 +326,26 @@ public:
 class ObjectClosure : public Object
 {
 public:
-    ref<ObjectFunction> function;
-    std::vector<ref<ObjectUpvalue>> upValues;
+    ObjectFunction* function;
+    std::vector<ObjectUpvalue*> upValues;
     int upvalueCount;
 
-    ObjectClosure(VM* oVM, ref<ObjectFunction> func);
+    ObjectClosure(VM* oVM, ObjectFunction* func);
 };
 
 class ObjectClass : public Object
 {
 public:
-    ref<ObjectClass> superClass;
-    ref<ObjectString> name;
+    ObjectClass* superClass;
+    ObjectString* name;
     Table methods;
     Table operators;
+    Table getters;
+    Table setters;
+    Table fields;
     int derivedCount;
 
-	explicit ObjectClass(ref<ObjectString> n)
+	explicit ObjectClass(ObjectString* n)
 	{
 		type = OBJ_CLASS;
 		name = n;
@@ -230,7 +364,7 @@ public:
             end = (ObjectClass*) this;
         }
         while (cl && !(cl == end))
-            cl = cl->superClass.get();
+            cl = cl->superClass;
         return cl != NULL;
     }
 };
@@ -238,27 +372,21 @@ public:
 class ObjectInstance : public Object
 {
 public:
-    ref<ObjectClass> klass;
+    ObjectClass* klass;
     Table fields;
-    Table getters;
-    Table setters;
-	void* cStruct;
+    VM* m_pVm;
+	void* user_type;
 
-	explicit ObjectInstance(ref<ObjectClass> k)
+	explicit ObjectInstance(VM* pVm, ObjectClass* k)
 	{
 		type = OBJ_INSTANCE;
 		klass = k;
-		fields = Table();
-        cStruct = nullptr;
+		fields.AddAll(klass->fields);
+        m_pVm = pVm;
+        user_type = nullptr;
 	}
 
-    explicit ObjectInstance(ref<ObjectClass> k, void* cS)
-	{
-		type = OBJ_INSTANCE;
-		klass = k;
-		fields = Table();
-        cStruct = cS;
-	}
+    void on_destroy() override;
 
     bool operator==(const ObjectInstance& other) const
     {
@@ -266,13 +394,133 @@ public:
     }
 };
 
+template <typename T>
+class Klass : public ObjectClass
+{
+public:
+    VM& m_oVM;
+    ObjectModule& m_oModule;
+
+	explicit Klass(VM& oVM, ObjectString* n, ObjectModule& module) : ObjectClass(n), m_oVM(oVM), m_oModule(module)
+	{
+        ctor();
+
+        dtor();
+	}
+
+    ~Klass()
+    {
+    }
+
+    /* --------------  DEFINE METHODS API ------------------ */
+    template <typename R, typename... Args>
+    inline void func(const std::string& name, R (T::*callback)(Args...))
+	{
+		auto function = [callback] (VM* vm, int ac, Value* av) -> Value
+		{
+            auto tuple = utils::args<Args...>(ac, av);
+            return Value(
+                utils::apply_method<std::tuple_size<decltype(tuple)>::value>
+                    ::apply(utils::argp<T>(ac, av, -1), callback, tuple));
+        };
+        define_method(name, function);
+    }
+
+    template <typename... Args>
+    inline void func(const std::string& name, void (T::*callback)(Args...))
+	{
+		auto function = [callback] (VM* vm, int ac, Value* av) -> Value
+		{
+            auto tuple = utils::args<Args...>(ac, av);
+            utils::apply_method<std::tuple_size<decltype(tuple)>::value>::apply(utils::argp<T>(ac, av, -1), callback, tuple);
+			return Fox_Nil;
+        };
+        define_method(name, function);
+    }
+
+    template <typename R>
+    inline void func(const std::string& name, R (T::*callback)())
+	{
+		auto function = [callback] (VM* vm, int ac, Value* av) -> Value
+		{
+            return Value((utils::argp<T>(ac, av, -1)->*callback)());
+        };
+        define_method(name, function);
+    }
+
+    inline void func(const std::string& name, void (T::*callback)())
+	{
+		auto function = [callback] (VM* vm, int ac, Value* av) -> Value
+		{
+            (utils::argp<T>(ac, av, -1)->*callback)();
+			return Fox_Nil;
+		};
+        define_method(name, function);
+	}
+
+    void raw_func(const std::string& name, NativeFn func)
+	{
+        define_method(name, func);
+    }
+    /* ------------------------------------------------------ */
+
+    // template <typename... Args>
+    // void init(ObjectInstance* pInstance, Args... args)
+    // {
+    //     std::cout << "Init Args" << std::endl;
+    //     pInstance->user_type = new T(args...);
+    // }
+
+    // template <typename... Args>
+    // void ctor()
+	// {
+    //     auto callback = [this](ObjectInstance* pInstance, Args... args)
+	// 	{
+    //         init(pInstance, args...);
+    //     };
+    //     auto function = [this, callback](VM* vm, int ac, Value* av) -> Value
+	// 	{
+    //         std::cout << "Init Args..." << std::endl;
+    //         auto tuple = utils::args<ObjectInstance*, Args...>(ac, av, -1);
+    //         utils::apply_function<std::tuple_size<decltype(tuple)>::value>::apply(init, tuple);
+    //         return av[-1];
+    //     };
+    //     define_method("init", function);
+    // }
+
+    inline void ctor()
+	{
+		auto callback = [] (ObjectInstance* pInstance) -> void
+		{
+            std::cout << "Init" << std::endl;
+            pInstance->user_type = new T();
+        };
+        auto function = [callback] (VM* vm, int ac, Value* av) -> Value
+		{
+			(*callback)(Fox_AsInstance(av[-1]));
+			return av[-1];
+		};
+        define_method("init", function);
+	}
+
+    // bool operator==(const Klass& other) const
+    // {
+    //     return user_type == other.user_type;
+    // }
+
+private:
+    void define_method(const std::string& name, NativeFn func);
+
+    void dtor();
+};
+
 class ObjectBoundMethod : public Object
 {
 public:
     Value receiver;
-    ref<ObjectClosure> method;
+    ObjectClosure* method;
 
-	explicit ObjectBoundMethod(Value r, ref<ObjectClosure> m)
+	explicit ObjectBoundMethod(Value r, ObjectClosure* m)
 	{
 		type = OBJ_BOUND_METHOD;
 		receiver = r;
@@ -357,7 +605,7 @@ static inline bool is_obj_type(Value val, ObjType type)
 
 struct CallFrame
 {
-	ref<ObjectClosure> closure;
+	ObjectClosure* closure;
 	std::vector<uint8_t>::iterator ip;
 	Value* slots;
 };
@@ -365,7 +613,7 @@ struct CallFrame
 class ObjectFiber : public Object
 {
 public:
-    explicit ObjectFiber(ref<ObjectClosure> pClosure)
+    explicit ObjectFiber(ObjectClosure* pClosure)
 	{
 		type = OBJ_FIBER;
         m_pStackTop = m_vStack;
@@ -384,7 +632,7 @@ public:
             pFrame->ip = pClosure->function->chunk.m_vCode.begin();
 
             // The first slot always holds the closure.
-            *m_pStackTop = Fox_Object(pClosure);
+            *m_pStackTop = pClosure;
             m_pStackTop++;
             pFrame->slots = m_pStackTop - pClosure->function->arity - 1;
         }
@@ -414,11 +662,11 @@ public:
     // Pointer to the first node in the linked list of open upvalues that are
     // pointing to values still on the stack. The head of the list will be the
     // upvalue closest to the top of the stack, and then the list works downwards.
-    ref<ObjectUpvalue> m_vOpenUpvalues;
+    ObjectUpvalue* m_vOpenUpvalues;
     
     // The fiber that ran this one. If this fiber is yielded, control will resume
     // to this one. May be `NULL`.
-    ref<ObjectFiber> m_pCaller;
+    ObjectFiber* m_pCaller;
     
     // If the fiber failed because of a runtime error, this will contain the
     // error object. Otherwise, it will be null.
@@ -426,5 +674,82 @@ public:
     
     // FiberState state;
 };
+
+
+
+/* --------- Utils Impl---------------------------------------------- */
+
+template <>
+struct utils::apply_function<0> {
+    template <typename R, typename... FuncArgs, typename... TupleArgs, typename... Args>
+    static R apply(R (*func)(FuncArgs...), std::tuple<TupleArgs...>& t, Args... args)
+    {    
+		return (*func)(args...);
+    }
+};
+
+template <>
+struct utils::apply_method<0> {
+    template <class T, typename R, typename... MethodArgs, typename... TupleArgs, typename... Args>
+    static R apply(T* o, R (T::*method)(MethodArgs...),
+        std::tuple<TupleArgs...>& t, Args... args) {
+        return (o->*method)(args...);
+    }
+};
+
+template <>
+std::string utils::arg<std::string>(int ac, Value* av, const int i);
+
+template <>
+double utils::arg<double>(int ac, Value* av, const int i);
+
+template <>
+bool utils::arg<bool>(int ac, Value* av, const int i);
+
+template <>
+int utils::arg<int>(int ac, Value* av, const int i);
+
+template <class T>
+T* utils::argp(int ac, Value* av, const int i)
+{
+    if (i < -1 && i > ac)
+        throw std::runtime_error("csvsdvdsv");
+    
+    if (!Fox_IsInstance(av[i]))
+        throw std::runtime_error("Invalid Type");
+    ObjectInstance* user = Fox_AsInstance(av[i]);
+    return static_cast<T*>(user->user_type);
+}
+
+/* ------------------------------------------------------------------- */
+
+/* --------- Value Impl---------------------------------------------- */
+template <typename T,
+    std::enable_if_t<!std::is_base_of<Object, T>::value, bool>>
+T Value::as()
+{
+    if (type != VAL_OBJ)
+        throw std::runtime_error("Invalid Type");
+    if (!is_obj_type(*this, OBJ_INSTANCE))
+        throw std::runtime_error("Invalid Type");
+    ObjectInstance* user = static_cast<ObjectInstance*>(val.obj);
+    return *static_cast<T*>(user->user_type);
+}
+
+template <typename T,
+    std::enable_if_t<std::is_base_of<Object, T>::value, bool>>
+T* Value::as()
+{
+    if (type != VAL_OBJ)
+        throw std::runtime_error("Invalid Type");
+    return static_cast<T*>(val.obj);
+}
+
+template<typename T>
+bool Value::is()
+{
+    return false;
+}
+/* ------------------------------------------------------------------- */
 
 #endif

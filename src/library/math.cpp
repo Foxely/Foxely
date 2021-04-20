@@ -36,5 +36,5 @@ void DefineMathModule(VM* oVM)
 		std::make_pair<std::string, NativeFn>("cos", cosNative),
 	};
     oVM->DefineModule("Math");
-    oVM->DefineClass("Math", "Math", methods);
+    // oVM->DefineClass("Math", "Math", methods);
 }

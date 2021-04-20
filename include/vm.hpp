@@ -11,10 +11,10 @@
 #include "chunk.hpp"
 #include "value.hpp"
 #include "object.hpp"
+#include "gc.hpp"
 
 class Parser;
 class Callable;
-class GC;
 class Table;
 
 // A handle to a value, basically just a linked list of extra GC roots.
@@ -51,7 +51,7 @@ public:
 	Value NewString(const std::string& string);
 
     InterpretResult Interpret(const std::string& module, const std::string& source);
-	ref<ObjectClosure> CompileSource(const std::string& module, const std::string& source, bool isExpression, bool printErrors);
+	ObjectClosure* CompileSource(const std::string& module, const std::string& source, bool isExpression, bool printErrors);
 
     void ResetStack();
     void Push(Value value);
@@ -64,34 +64,41 @@ public:
     void EmitByte(uint8_t byte);
     void Concatenate();
 	bool CallValue(Value callee, int argCount);
-	bool CallFunction(ref<ObjectClosure> closure, int argCount);
+	bool CallFunction(ObjectClosure* closure, int argCount);
 	
-	void DefineFunction(const std::string &strModule, const std::string& name, NativeFn function);
-	void DefineClass(const std::string &strModule, const std::string& name, NativeMethods& functions);
 	void DefineLib(const std::string &strModule, const std::string &name, NativeMethods &functions);
 	void DefineBuiltIn(Table& methods, NativeMethods &functions);
-	void DefineModule(const std::string& strName);
+	ObjectModule& DefineModule(const std::string& strName);
 	void DefineVariable(const char* module, const char* name, Value oValue);
 	
-	InterpretResult Call(ref<Handle> pMethod);
+	InterpretResult Call(Handle* pMethod);
 	// template <typename... Args>
 	// InterpretResult Call(Handle* pMethod, Args&&... args);
-	void ReleaseHandle(ref<Handle> handle);
-	ref<Handle> MakeHandle(Value value);
-    ref<Handle> MakeCallHandle(const char* signature);
+	void ReleaseHandle(Handle* handle);
+	Handle* MakeHandle(Value value);
+    Handle* MakeCallHandle(const char* signature);
 
-	ref<ObjectUpvalue> CaptureUpvalue(Value* local);
+	ObjectUpvalue* CaptureUpvalue(Value* local);
 	void CloseUpvalues(Value* last);
 
-	// Class
-	void DefineOperator(ref<ObjectString> name);
-	void DefineMethod(ref<ObjectString> name);
-	bool BindMethod(ref<ObjectClass> klass, ref<ObjectString> name);
-	bool Invoke(ref<ObjectString> name, int argCount);
-	bool InvokeFromClass(ref<ObjectClass> klass, ref<ObjectString> name, int argCount);
+	// Garbage Collector
+	void AddToRoots();
+	void AddTableToRoot(Table& table);
+	void AddValueToRoot(Value value);
+	void AddObjectToRoot(Object* object);
+	void AddCompilerToRoots();
+	void AddArrayToRoot(ValueArray* array);
+	void BlackenObject(Object* object);
 
-	ref<ObjectModule> GetModule(Value name);
-	ref<ObjectClosure> CompileInModule(Value name, const std::string& source, bool isExpression, bool printErrors);
+	// Class
+	void DefineOperator(ObjectString* name);
+	void DefineMethod(ObjectString* name);
+	bool BindMethod(ObjectClass* klass, ObjectString* name);
+	bool Invoke(ObjectString* name, int argCount);
+	bool InvokeFromClass(ObjectClass* klass, ObjectString* name, int argCount);
+
+	ObjectModule* GetModule(Value name);
+	ObjectClosure* CompileInModule(Value name, const std::string& source, bool isExpression, bool printErrors);
 	Value FindVariable(ObjectModule* module, const char* name);
 	void GetVariable(const char* module, const char* name, int slot);
 	Value ImportModule(Value name);
@@ -108,7 +115,7 @@ public:
     bool GetSlotBool(int slot);
     double GetSlotDouble(int slot);
     const char* GetSlotString(int slot);
-    ref<Handle> GetSlotHandle(int slot);
+    Handle* GetSlotHandle(int slot);
 
 	void SetSlot(int slot, Value value);
 	void SetSlotBool(int slot, bool value);
@@ -122,31 +129,120 @@ public:
 	void GetListElement(int listSlot, int index, int elementSlot);
 	void SetListElement(int listSlot, int index, int elementSlot);
     
-    InterpretResult run(ref<ObjectFiber> pFiber);
+    InterpretResult run(ObjectFiber* pFiber);
 
 	bool IsLogToken() const;
 	bool IsLogGC() const;
 	bool IsLogTrace() const;
 
+// 	template <typename R, typename... Args>
+//     void def_func(const std::string& module, const std::string& name, R (*callback)(Args...))
+// 	{
+// 		auto function = [callback] (VM* vm, int ac, Value* av) -> Value
+// 		{
+//             auto tuple = vm->args<Args...>(ac, av);
+//             return Value(
+//                 apply_function<std::tuple_size<decltype(tuple)>::value>
+//                     ::apply(callback, tuple));
+//         };
+// 		DefineFunction(module, name, function);
+//     }
+
+//     template <typename... Args>
+//     void def_func(const std::string& module, const std::string& name, void (*callback)(Args...))
+// 	{
+// 		auto function = [callback] (VM* vm, int ac, Value* av) -> Value
+// 		{
+//             auto tuple = vm->args<Args...>(ac, av);
+//             apply_function<std::tuple_size<decltype(tuple)>::value>::apply(callback, tuple);
+// 			return Fox_Nil;
+//         };
+// 		DefineFunction(module, name, function);
+//     }
+
+//     template <typename R>
+//     void def_func(const std::string& module, const std::string& name, R (*callback)())
+// 	{
+// 		auto function = [callback] (VM* vm, int ac, Value* av) -> Value
+// 		{
+//             return Value((*callback)());
+//         };
+// 		DefineFunction(module, name, function);
+//     }
+
+//     void def_func(const std::string& module, const std::string& name, void (*callback)())
+// 	{
+// 		auto function = [callback] (VM* vm, int ac, Value* av) -> Value
+// 		{
+// 			(*callback)();
+// 			return Fox_Nil;
+// 		};
+// 		DefineFunction(module, name, function);
+// 	}
+
+// private:
+// 	template <class T>
+//     T arg(int ac, Value* av, const int i = 0)
+// 	{
+// 		if (i < 0 && i > ac)
+// 			throw std::runtime_error("csvsdvdsv");
+//         // if (std::is_base_of<Object, T>::value)
+// 		// {
+//         //     return *(T *)object(i);
+//         // } else {
+//         //     return *(T *)userdata(i);
+//         // }
+//     }
+
+// 	template <typename T, typename T1, typename... Args>
+//     std::tuple<T, T1, Args...> args(int ac, Value* av, const int i = 0)
+// 	{
+//         T t = arg<T>(ac, av, i);
+//         return std::tuple_cat(std::make_tuple(t), args<T1, Args...>(ac, av, i + 1));
+//     }
+
+//     template <typename T>
+//     std::tuple<T> args(int ac, Value* av, const int i = 0)
+// 	{
+//         return std::make_tuple(arg<T>(ac, av, i));
+//     }
+
+// 	template <int N>
+// 	struct apply_function
+// 	{
+//         template <
+// 			typename R,
+// 			typename... FunctionArgs,
+// 			typename... TupleArgs,
+// 			typename... Args >
+//         static R apply(R (*function)(FunctionArgs...),
+//             std::tuple<TupleArgs...>& t, Args... args) {
+//             return
+//                 apply_function<N-1>::apply(function, t, std::get<N-1>(t), args...);
+//         }
+//     };
+
 public:
 	InterpretResult result;
 
     Chunk m_oChunk;
-    ref<ObjectFiber> m_pCurrentFiber;
+    ObjectFiber* m_pCurrentFiber;
     Value* m_pApiStack;
     Parser m_oParser;
 	Table strings;
 	Table modules;
-	ref<ObjectString> initString;
-	ref<ObjectString> stringString;
-	ref<ObjectModule> currentModule;
-	std::vector<ref<Handle>> m_vHandles;
+	ObjectString* initString;
+	ObjectString* stringString;
+	ObjectModule* currentModule;
+	std::vector<Handle*> m_vHandles;
 
     Table arrayMethods;
     Table stringMethods;
     Table mapMethods;
     Table fiberMethods;
     Table builtConvMethods;
+
+	GC gc;
 
 	int argc;
 	char** argv;
@@ -171,8 +267,8 @@ struct ExpandType
 class Callable
 {
 public:
-    ref<Handle> m_pVariable;
-    ref<Handle> m_pMethod;
+    Handle* m_pVariable;
+    Handle* m_pMethod;
     VM* m_pVM;
 
 	template<typename... Args>
@@ -182,7 +278,7 @@ public:
 		
 		m_pVM->ResetStack();
         m_pVM->EnsureSlots(iArity + 1);
-        m_pVM->SetSlotHandle(0, m_pVariable.get());
+        m_pVM->SetSlotHandle(0, m_pVariable);
 
         std::tuple<Args...> tuple = std::make_tuple(args...);
         passArguments(tuple, std::make_index_sequence<iArity>{});
@@ -204,7 +300,8 @@ public:
 		// m_pVM->ReleaseHandle(m_pMethod);
     }
 
-    template <typename T, std::size_t index> void read(T value)
+    template <typename T, std::size_t index>
+	void read(T value)
     {
         if (typeid(T) == typeid(int) || typeid(T) == typeid(unsigned int))
             m_pVM->SetSlotInteger(index + 1, value);
@@ -237,5 +334,80 @@ public:
 // }
 
 Value clockNative(VM* oVM, int argCount, Value* args);
+
+
+// template <>
+// std::string VM::arg<std::string>(int ac, Value* av, const int i);
+
+// template <>
+// double VM::arg<double>(int ac, Value* av, const int i);
+
+// template <>
+// bool VM::arg<bool>(int ac, Value* av, const int i);
+
+// template <>
+// int VM::arg<int>(int ac, Value* av, const int i);
+
+// template <>
+// lua_Integer VM::arg<lua_Integer>(int ac, Value* av, const int i) {
+//     if (i < 0 && i > ac)
+// 		throw std::runtime_error("csvsdvdsv");
+//     return av[i].as<bool>();
+// }
+
+// template <>
+// struct VM::apply_function<0> {
+//     template <typename R, typename... FuncArgs, typename... TupleArgs, typename... Args>
+//     static R apply(R (*func)(FuncArgs...), std::tuple<TupleArgs...>& t, Args... args) {
+        
+// 		return (*func)(args...);
+//     }
+// };
+
+/* ---------Module Impl---------------------------------------------- */
+template<typename T>
+inline Klass<T>* ObjectModule::klass(const std::string& name)
+{
+    m_oVM.Push(Fox_Object(m_oVM.m_oParser.CopyString(name)));
+    m_oVM.Push(Fox_Object(m_oVM.gc.New<Klass<T>>(m_oVM, Fox_AsString(m_oVM.PeekStart(0)), *this)));
+    m_vVariables.Set(Fox_AsString(m_oVM.PeekStart(0)), m_oVM.PeekStart(1));
+    Klass<T>* pKlass = m_oVM.Pop().as<Klass<T>>();
+    m_oVM.Pop();
+    return pKlass;
+}
+/* -------------------------------------------------------------------- */
+
+/* ---------Klass<T> Impl---------------------------------------------- */
+
+template<typename T>
+void Klass<T>::define_method(const std::string& name, NativeFn func)
+{
+    m_oVM.Push(m_oVM.NewString(name));
+    m_oVM.Push(Fox_Object(m_oVM.gc.New<ObjectNative>(func)));
+    methods.Set(Fox_AsString(m_oVM.PeekStart(0)), m_oVM.PeekStart(1));
+    m_oVM.Pop();
+    m_oVM.Pop();
+}
+
+
+template<typename T>
+void Klass<T>::dtor()
+{
+	auto destructor = [](VM* pVM, int argc, Value* args)
+	{
+		ObjectInstance* pInstance = Fox_AsInstance(args[-1]);
+		delete static_cast<T*>(pInstance->user_type);
+		return Fox_Nil;
+	};
+
+	// Define the default destructor
+	m_oVM.Push(m_oVM.NewString("destroy"));
+	m_oVM.Push(Fox_Object(m_oVM.gc.New<ObjectNative>(destructor)));
+	methods.Set(Fox_AsString(m_oVM.PeekStart(1)), m_oVM.PeekStart(2));
+	m_oVM.Pop();
+	m_oVM.Pop();
+}
+
+/* -------------------------------------------------------------------- */
 
 #endif

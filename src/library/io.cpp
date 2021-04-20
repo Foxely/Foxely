@@ -116,5 +116,5 @@ void DefineIOModule(VM* oVM)
 {
     oVM->DefineModule("io");
     oVM->DefineLib("io", "io", methods);
-    oVM->DefineClass("io", "File", fileMethods);
+    // oVM->DefineClass("io", "File", fileMethods);
 }

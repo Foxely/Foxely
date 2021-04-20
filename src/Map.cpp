@@ -49,7 +49,7 @@ static uint32_t hashObject(Object* pObject)
     {
         case OBJ_CLASS:
         // Classes just use their name.
-        return hashObject(((ObjectClass *) pObject)->name.get());
+        return hashObject(((ObjectClass *) pObject)->name);
         
         // Allow bare (non-closure) functions so that we can use a map to find
         // existing constants in a function's constant table. This is only used
@@ -82,7 +82,7 @@ static uint32_t hashValue(Value value)
         case VAL_NIL:       return 1;
         // case VAL_INT:       return hashInt(Fox_AsInt(value));
         case VAL_NUMBER:    return hashNumber(Fox_AsNumber(value));
-        case VAL_OBJ:       return hashObject(Fox_AsObject(value).get());
+        case VAL_OBJ:       return hashObject(Fox_AsObject(value));
         default:            return -1;
     }
     

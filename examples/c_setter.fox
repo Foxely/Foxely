@@ -1,5 +1,18 @@
 
+import "test";
+
+
+// print "%\n", teste.x = 11;
+ret_void_no_param();
+print "ret_int_no_param = %\n", ret_int_no_param();
+ret_void_int_param(14);
+ret_void_int_param_int(45, 54);
+
+print "ret_int_int_param = %\n", ret_int_int_param(74);
+print "ret_int_int_param_int = %\n", ret_int_int_param_int(74, 52);
 
 test := Test();
-
-print "%\n", test.x = 11;
+test.sayHello();
+test.sayAge(18);
+test.between(17, 45);
+test.test(74, 55);

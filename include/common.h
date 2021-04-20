@@ -36,6 +36,14 @@ inline bool IsRepl;
 //     }
 // }
 
+/*
+* @brief Cette fonction permet de hasher la string passé en paramètre
+* @param str la chaine de caractère qui sera hasher
+* @return un nombre unique qui correspond à la position de la string dans le tableau
+* @note Hasher veut dire produire un identifiant unique crypté
+*/
+uint32_t hashString(const std::string& str);
+
 
 // Assertions are used to validate program invariants. They indicate things the
 // program expects to be true about its internal state during execution. If an
