@@ -1,8 +1,16 @@
 
 import "test";
 
+sayHello :: func()
+{
+    print "sayHello\n";
+}
 
-// print "%\n", teste.x = 11;
+add :: func(a, b)
+{
+    print "a = %, b = %\n", a, b;
+}
+
 ret_void_no_param();
 print "ret_int_no_param = %\n", ret_int_no_param();
 ret_void_int_param(14);
@@ -15,4 +23,8 @@ test := Test();
 test.sayHello();
 test.sayAge(18);
 test.between(17, 45);
-test.test(74, 55);
+print "test = %\n", test.test(74, 55);
+
+print "test.a = %\n", test.a;
+test.a = 84;
+print "test.a = %\n", test.a;

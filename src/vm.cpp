@@ -685,24 +685,26 @@ InterpretResult VM::run(ObjectFiber* pFiber)
             }
 
             ObjectInstance* pInstance = Fox_AsInstance(Peek(0));
-            ObjectString* pName = READ_STRING();
 
-            Value value;
             if (pInstance->user_type != nullptr)
             {
                 Value oGetterFunc;
-                if (pInstance->klass->getters.Get(pName, oGetterFunc)) {
+                if (pInstance->klass->getters.Get(READ_STRING(), oGetterFunc)) {
                     CallValue(oGetterFunc, 0);
                 }
                 break;
             }
-            if (pInstance->fields.Get(pName, value)) {
-                Pop(); // Instance.
-                Push(value);
-                break;
+            else
+            {
+                Value value;
+                if (pInstance->fields.Get(READ_STRING(), value)) {
+                    Pop(); // Instance.
+                    Push(value);
+                    break;
+                }
             }
 
-            if (!BindMethod(pInstance->klass, pName)) {
+            if (!BindMethod(pInstance->klass, READ_STRING())) {
                 return INTERPRET_RUNTIME_ERROR;
             }
             break;

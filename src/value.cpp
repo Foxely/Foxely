@@ -92,11 +92,13 @@ double Value::as<double>()
     return val.number;
 }
 
-// template <>
-// double Value::as<int>()
-// {
-//     return std::get<double>(val);
-// }
+template <>
+int Value::as<int>()
+{
+    if (type != VAL_NUMBER)
+        throw std::runtime_error("Invalid Type");
+    return static_cast<int>(val.number);
+}
 
 std::string FunctionToString(ObjectFunction* function)
 {

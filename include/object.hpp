@@ -462,6 +462,12 @@ public:
 	{
         define_method(name, func);
     }
+
+    template<typename varType>
+    void prop(const std::string& name, varType (T::*gettter)() const);
+    template<typename varType>
+    void var(const std::string& name, varType T::*variable);
+
     /* ------------------------------------------------------ */
 
     // template <typename... Args>
@@ -488,21 +494,6 @@ public:
     //     define_method("init", function);
     // }
 
-    inline void ctor()
-	{
-		auto callback = [] (ObjectInstance* pInstance) -> void
-		{
-            std::cout << "Init" << std::endl;
-            pInstance->user_type = new T();
-        };
-        auto function = [callback] (VM* vm, int ac, Value* av) -> Value
-		{
-			(*callback)(Fox_AsInstance(av[-1]));
-			return av[-1];
-		};
-        define_method("init", function);
-	}
-
     // bool operator==(const Klass& other) const
     // {
     //     return user_type == other.user_type;
@@ -511,7 +502,8 @@ public:
 private:
     void define_method(const std::string& name, NativeFn func);
 
-    void dtor();
+    void ctor(); // default constructor
+    void dtor(); // default destructor
 };
 
 class ObjectBoundMethod : public Object

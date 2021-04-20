@@ -191,8 +191,8 @@ bool Value::as<bool>();
 template <>
 double Value::as<double>();
 
-// template <>
-// double Value::as<int>();
+template <>
+int Value::as<int>();
 
 bool ValuesEqual(Value a, Value b);
 void PrintValue(Value value, VM* pVm = nullptr);

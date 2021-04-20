@@ -45,9 +45,6 @@ public:
 	VM(int ac, char** av);
 	~VM() = default;
 
-	void Load();
-	void LoadStandard(const std::string& name);
-
 	Value NewString(const std::string& string);
 
     InterpretResult Interpret(const std::string& module, const std::string& source);
@@ -72,8 +69,6 @@ public:
 	void DefineVariable(const char* module, const char* name, Value oValue);
 	
 	InterpretResult Call(Handle* pMethod);
-	// template <typename... Args>
-	// InterpretResult Call(Handle* pMethod, Args&&... args);
 	void ReleaseHandle(Handle* handle);
 	Handle* MakeHandle(Value value);
     Handle* MakeCallHandle(const char* signature);
@@ -134,93 +129,6 @@ public:
 	bool IsLogToken() const;
 	bool IsLogGC() const;
 	bool IsLogTrace() const;
-
-// 	template <typename R, typename... Args>
-//     void def_func(const std::string& module, const std::string& name, R (*callback)(Args...))
-// 	{
-// 		auto function = [callback] (VM* vm, int ac, Value* av) -> Value
-// 		{
-//             auto tuple = vm->args<Args...>(ac, av);
-//             return Value(
-//                 apply_function<std::tuple_size<decltype(tuple)>::value>
-//                     ::apply(callback, tuple));
-//         };
-// 		DefineFunction(module, name, function);
-//     }
-
-//     template <typename... Args>
-//     void def_func(const std::string& module, const std::string& name, void (*callback)(Args...))
-// 	{
-// 		auto function = [callback] (VM* vm, int ac, Value* av) -> Value
-// 		{
-//             auto tuple = vm->args<Args...>(ac, av);
-//             apply_function<std::tuple_size<decltype(tuple)>::value>::apply(callback, tuple);
-// 			return Fox_Nil;
-//         };
-// 		DefineFunction(module, name, function);
-//     }
-
-//     template <typename R>
-//     void def_func(const std::string& module, const std::string& name, R (*callback)())
-// 	{
-// 		auto function = [callback] (VM* vm, int ac, Value* av) -> Value
-// 		{
-//             return Value((*callback)());
-//         };
-// 		DefineFunction(module, name, function);
-//     }
-
-//     void def_func(const std::string& module, const std::string& name, void (*callback)())
-// 	{
-// 		auto function = [callback] (VM* vm, int ac, Value* av) -> Value
-// 		{
-// 			(*callback)();
-// 			return Fox_Nil;
-// 		};
-// 		DefineFunction(module, name, function);
-// 	}
-
-// private:
-// 	template <class T>
-//     T arg(int ac, Value* av, const int i = 0)
-// 	{
-// 		if (i < 0 && i > ac)
-// 			throw std::runtime_error("csvsdvdsv");
-//         // if (std::is_base_of<Object, T>::value)
-// 		// {
-//         //     return *(T *)object(i);
-//         // } else {
-//         //     return *(T *)userdata(i);
-//         // }
-//     }
-
-// 	template <typename T, typename T1, typename... Args>
-//     std::tuple<T, T1, Args...> args(int ac, Value* av, const int i = 0)
-// 	{
-//         T t = arg<T>(ac, av, i);
-//         return std::tuple_cat(std::make_tuple(t), args<T1, Args...>(ac, av, i + 1));
-//     }
-
-//     template <typename T>
-//     std::tuple<T> args(int ac, Value* av, const int i = 0)
-// 	{
-//         return std::make_tuple(arg<T>(ac, av, i));
-//     }
-
-// 	template <int N>
-// 	struct apply_function
-// 	{
-//         template <
-// 			typename R,
-// 			typename... FunctionArgs,
-// 			typename... TupleArgs,
-// 			typename... Args >
-//         static R apply(R (*function)(FunctionArgs...),
-//             std::tuple<TupleArgs...>& t, Args... args) {
-//             return
-//                 apply_function<N-1>::apply(function, t, std::get<N-1>(t), args...);
-//         }
-//     };
 
 public:
 	InterpretResult result;
@@ -389,6 +297,69 @@ void Klass<T>::define_method(const std::string& name, NativeFn func)
     m_oVM.Pop();
 }
 
+template<typename T>
+template<typename varType>
+void Klass<T>::prop(const std::string& name, varType (T::*gettter)() const)
+{
+	// auto function = [gettter] (VM* vm, int ac, Value* av) -> Value
+	// {
+	// 	std::cerr << "dvdvdv" << std::endl;
+	// 	varType v = (utils::argp<T>(ac, av, -1)->*gettter)();
+	// 	std::cerr << v << std::endl;
+	// 	return Fox_Nil;
+	// };
+	// getters.Set(Fox_AsString(m_oVM.NewString(name)), Fox_Object(m_oVM.gc.New<ObjectNative>(function)));
+}
+
+template<typename T>
+template<typename TVar>
+void Klass<T>::var(const std::string& name, TVar T::*variable)
+{
+	auto getter = [variable](VM* vm, int ac, Value* av) -> Value
+	{
+		T* obj = utils::argp<T>(ac, av, -1);
+		if (obj) {
+			TVar v = (obj->*variable);
+			return v;
+		}
+		return Fox_Nil;
+	};
+
+	auto setter = [variable](VM* vm, int ac, Value* av) -> Value
+	{
+		T* obj = utils::argp<T>(ac, av, -1);
+		if (obj) {
+			(obj->*variable) = av[0].as<TVar>();
+			return (obj->*variable);
+		}
+		return Fox_Nil;
+	};
+	fields.Set(Fox_AsString(m_oVM.NewString(name)), Value(0));
+	getters.Set(Fox_AsString(m_oVM.NewString(name)), Fox_Object(m_oVM.gc.New<ObjectNative>(getter)));
+	setters.Set(Fox_AsString(m_oVM.NewString(name)), Fox_Object(m_oVM.gc.New<ObjectNative>(setter)));
+	
+}
+
+template<typename T>
+void Klass<T>::ctor()
+{
+	auto callback = [](ObjectInstance* pInstance) -> void
+	{
+		pInstance->user_type = new T();
+	};
+	auto constructor = [callback](VM* pVM, int ac, Value* av)
+	{
+		(*callback)(Fox_AsInstance(av[-1]));
+		return av[-1];
+	};
+
+	// Define the default destructor
+	m_oVM.Push(m_oVM.NewString("init"));
+	m_oVM.Push(Fox_Object(m_oVM.gc.New<ObjectNative>(constructor)));
+	methods.Set(Fox_AsString(m_oVM.PeekStart(1)), m_oVM.PeekStart(2));
+	m_oVM.Pop();
+	m_oVM.Pop();
+}
 
 template<typename T>
 void Klass<T>::dtor()

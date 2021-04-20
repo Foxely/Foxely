@@ -41,6 +41,7 @@ struct Test
 {
     Test() {
         std::cout << "COnstructor no Arguments" << std::endl;
+        a = 10;
     }
 
     void sayHello()
@@ -65,6 +66,12 @@ struct Test
     }
 
     int a;
+
+    int getA() const
+    {
+        std::cout << "Getter" << std::endl;
+        return a;
+    }
 };
 
 void ret_void_no_param()
@@ -99,6 +106,7 @@ int ret_int_int_param_int(int v1, int v2)
     return 45;
 }
 
+
 void runFile(int ac, char** av, const std::string& path)
 {
 #if PROFILING
@@ -132,16 +140,19 @@ void runFile(int ac, char** av, const std::string& path)
     klass->func("between", &Test::between);
     klass->func("test", &Test::test);
 
+    klass->var("a", &Test::a);
+    // klass->prop("a", &Test::getA);
+
     InterpretResult result = INTERPRET_OK;
     result = oVM.Interpret("main", str.c_str());
 
-    // Callable say = oVM.Function("main", "sayHello()");
-    // if (say.IsValid())
-        // say.Call();
+    Callable say = oVM.Function("main", "sayHello()");
+    if (say.IsValid())
+        say.Call();
 
-    // Callable add = oVM.Function("main", "add(_,_)");
-    // if (add.IsValid())
-    //     add.Call(1, 2);
+    Callable add = oVM.Function("main", "add(_,_)");
+    if (add.IsValid())
+        add.Call(1, 2);
 
     // if (result == INTERPRET_COMPILE_ERROR) exit(65);
     // if (result == INTERPRET_RUNTIME_ERROR) exit(70);
