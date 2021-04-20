@@ -28,3 +28,8 @@ print "test = %\n", test.test(74, 55);
 print "test.a = %\n", test.a;
 test.a = 84;
 print "test.a = %\n", test.a;
+
+print "test.bar = %\n", test.bar;
+test.bar = 78;
+print "test.bar = %\n", test.bar;
+

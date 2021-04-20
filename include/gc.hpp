@@ -5,6 +5,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <unordered_map>
 
 #define GC_HEAP_GROW_FACTOR 2
 

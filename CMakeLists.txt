@@ -10,10 +10,12 @@ include_directories(
 
 file(GLOB_RECURSE SRCS "src/*.cpp")
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_SOURCE_DIR})
+set(LEXER_LIB "lib/Lexer/liblixer.a")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
-add_library(foxely STATIC ${SRCS} ${CMAKE_DL_LIBS})
+add_subdirectory(lib)
+
+add_library(foxely STATIC ${SRCS})
+target_link_libraries(foxely ${CMAKE_DL_LIBS} lexer)
 
 add_subdirectory(examples)

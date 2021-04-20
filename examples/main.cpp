@@ -72,6 +72,12 @@ struct Test
         std::cout << "Getter" << std::endl;
         return a;
     }
+
+    void setA(int b)
+    {
+        std::cout << "Setter" << std::endl;
+        a = b;
+    }
 };
 
 void ret_void_no_param()
@@ -141,7 +147,7 @@ void runFile(int ac, char** av, const std::string& path)
     klass->func("test", &Test::test);
 
     klass->var("a", &Test::a);
-    // klass->prop("a", &Test::getA);
+    klass->prop("bar", &Test::getA, &Test::setA);
 
     InterpretResult result = INTERPRET_OK;
     result = oVM.Interpret("main", str.c_str());

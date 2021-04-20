@@ -465,6 +465,8 @@ public:
 
     template<typename varType>
     void prop(const std::string& name, varType (T::*gettter)() const);
+    template<typename TVar>
+    void prop(const std::string& name, TVar (T::*gettter)() const, void (T::*settter)(TVar));
     template<typename varType>
     void var(const std::string& name, varType T::*variable);
 

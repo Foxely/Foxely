@@ -298,17 +298,45 @@ void Klass<T>::define_method(const std::string& name, NativeFn func)
 }
 
 template<typename T>
-template<typename varType>
-void Klass<T>::prop(const std::string& name, varType (T::*gettter)() const)
+template<typename TVar>
+void Klass<T>::prop(const std::string& name, TVar (T::*gettter)() const)
 {
-	// auto function = [gettter] (VM* vm, int ac, Value* av) -> Value
-	// {
-	// 	std::cerr << "dvdvdv" << std::endl;
-	// 	varType v = (utils::argp<T>(ac, av, -1)->*gettter)();
-	// 	std::cerr << v << std::endl;
-	// 	return Fox_Nil;
-	// };
-	// getters.Set(Fox_AsString(m_oVM.NewString(name)), Fox_Object(m_oVM.gc.New<ObjectNative>(function)));
+	auto getter_func = [gettter](VM* vm, int ac, Value* av) -> Value
+	{
+		T* obj = utils::argp<T>(ac, av, -1);
+		if (obj) {
+			TVar v = (obj->*gettter)();
+			return v;
+		}
+		return Fox_Nil;
+	};
+	getters.Set(Fox_AsString(m_oVM.NewString(name)), Fox_Object(m_oVM.gc.New<ObjectNative>(getter_func)));
+}
+
+template<typename T>
+template<typename TVar>
+void Klass<T>::prop(const std::string& name, TVar (T::*gettter)() const, void (T::*settter)(TVar))
+{
+	auto getter_func = [gettter](VM* vm, int ac, Value* av) -> Value
+	{
+		T* obj = utils::argp<T>(ac, av, -1);
+		if (obj) {
+			TVar v = (obj->*gettter)();
+			return v;
+		}
+		return Fox_Nil;
+	};
+
+	auto setter_func = [settter](VM* vm, int ac, Value* av) -> Value
+	{
+		T* obj = utils::argp<T>(ac, av, -1);
+		if (obj) {
+			(obj->*settter)(av[0].as<TVar>());
+		}
+		return Fox_Nil;
+	};
+	getters.Set(Fox_AsString(m_oVM.NewString(name)), Fox_Object(m_oVM.gc.New<ObjectNative>(getter_func)));
+	setters.Set(Fox_AsString(m_oVM.NewString(name)), Fox_Object(m_oVM.gc.New<ObjectNative>(setter_func)));
 }
 
 template<typename T>

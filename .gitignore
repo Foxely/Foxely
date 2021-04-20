@@ -1,6 +1,8 @@
 
 #vs code folder
 .vscode
+build
+history.txt
 
 # Prerequisites
 *.d
