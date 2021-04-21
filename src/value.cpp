@@ -93,6 +93,14 @@ double Value::as<double>()
 }
 
 template <>
+float Value::as<float>()
+{
+    if (type != VAL_NUMBER)
+        throw std::runtime_error("Invalid Type");
+    return static_cast<int>(val.number);
+}
+
+template <>
 int Value::as<int>()
 {
     if (type != VAL_NUMBER)

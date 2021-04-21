@@ -31,7 +31,7 @@ void ObjectInstance::on_destroy()
 void ObjectModule::define_func(const std::string& name, NativeFn func)
 {
     m_oVM.Push(m_oVM.NewString(name));
-    m_oVM.Push(Fox_Object(m_oVM.gc.New<ObjectNative>(func)));
+    m_oVM.Push(Fox_Object(m_oVM.new_value<ObjectNative>(func)));
     m_vVariables.Set(Fox_AsString(m_oVM.PeekStart(0)), m_oVM.PeekStart(1));
     m_oVM.Pop();
     m_oVM.Pop();

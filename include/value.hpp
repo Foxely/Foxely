@@ -6,6 +6,7 @@
 #include <string>
 #include <variant>
 #include "common.h"
+#include "NameUtils.hpp"
 
 // typedef double Value;
 
@@ -32,6 +33,7 @@ enum ValueType {
     VAL_NIL,
     VAL_NUMBER,
     // VAL_INT,
+    VAL_USER,
     VAL_OBJ,
     // VAL_STRING,
     // VAL_CLOSURE,
@@ -57,6 +59,16 @@ public:
         type = VAL_NIL;
     }
 
+    template<typename T,
+        std::enable_if_t<!std::is_base_of<Object, std::remove_pointer_t<T>>::value, bool> = true>
+    Value(T te) // : userdata(foxely::Any::from<T>())
+    {
+        // std::swap(userdata.as<T>(), te);
+        std::cerr << "Object" << std::endl;
+        val.userdata = &te;
+        type = VAL_USER;
+    }
+
     Value(const Value& other) : type(other.type), val(other.val)
     {
     }
@@ -71,6 +83,24 @@ public:
     {
         type = VAL_NUMBER;
         val.number = value;
+    }
+
+    Value(float value)
+    {
+        type = VAL_NUMBER;
+        val.number = static_cast<double>(value);
+    }
+    
+    Value(std::uint32_t value)
+    {
+        type = VAL_NUMBER;
+        val.number = static_cast<double>(value);
+    }
+
+    Value(std::size_t value)
+    {
+        type = VAL_NUMBER;
+        val.number = static_cast<double>(value);
     }
 
     Value(int value)
@@ -89,11 +119,13 @@ public:
     ~Value() = default;
     
     ValueType type;
+    // foxely::Any userdata;
     union {
         bool boolean;
         double number;
         int integer;
         Object* obj;
+        void* userdata;
         // ObjectString* string;
         // ObjectArray* array;
         // ObjectClosure* closure;
@@ -132,13 +164,13 @@ public:
     //     return std::get<ref<T>>(val);
     // }
 
-    template <typename T>
-    T* as_ptr()
-    {
-        if (type != VAL_OBJ)
-            throw std::runtime_error("Invalid Type");
-        return static_cast<T*>(val.obj);
-    }
+    // template <typename T>
+    // T* as_ptr()
+    // {
+    //     if (type != VAL_OBJ)
+    //         throw std::runtime_error("Invalid Type");
+    //     return static_cast<T*>(val.obj);
+    // }
 
     template <typename T,
     std::enable_if_t<!std::is_base_of<Object, T>::value, bool> = true>
@@ -192,6 +224,9 @@ template <>
 double Value::as<double>();
 
 template <>
+float Value::as<float>();
+
+template <>
 int Value::as<int>();
 
 bool ValuesEqual(Value a, Value b);
@@ -220,8 +255,10 @@ public:
 // #define Fox_IsInt(val)     ((val).type == VAL_INT)
 #define Fox_IsObject(val)     ((val).type != VAL_BOOL &&    \
                                 (val).type != VAL_NIL &&    \
+                                (val).type != VAL_USER &&    \
                                 (val).type != VAL_NUMBER )
 
+#define Fox_IsUserData(val)     ((val).type == VAL_USER)
 #define Fox_AsObject(val)     ((val).as<Object>())
 #define Fox_AsBool(val)    ((val).as<bool>())
 #define Fox_AsNumber(val)  ((val).as<double>())
