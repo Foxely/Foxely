@@ -25,9 +25,10 @@ Value whichNative(VM* oVM, int argCount, Value* args)
 Value shellNative(VM* oVM, int argCount, Value* args)
 {
     Fox_FixArity(oVM, argCount, 1);
+    int ret;
     if (argCount == 1)
-        system(Fox_AsCString(args[0]));
-    return Fox_Nil;
+        ret = system(Fox_AsCString(args[0]));
+    return ret;
 }
 
 Value getEnvNative(VM* oVM, int argCount, Value* args)
