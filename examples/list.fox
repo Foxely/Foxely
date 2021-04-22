@@ -11,7 +11,7 @@ list.push(4);
 print "list.get(1) = %\n", list.get(1);
 
 
-print "\n-- Pop --\n";
+print "\n-- pop --\n";
 print "Before = %\n", list;
 list.pop();
 print "After = %\n", list;

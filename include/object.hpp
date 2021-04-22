@@ -23,8 +23,6 @@ class VM;
 template<typename T>
 class Klass;
 
-using NativeFn = std::function<Value(VM*, int, Value*)>;
-
 
 #define Fox_ObjectType(val)         (Fox_AsObject(val)->type)
 
@@ -236,6 +234,8 @@ public:
 
     template<typename T>
     inline Klass<T>* klass(const std::string& name);
+
+    void raw_klass(const std::string& name, NativeMethods& methods);
 
 private:
 
@@ -590,7 +590,8 @@ public:
 
 static inline bool is_obj_type(Value val, ObjType type)
 {
-    return Fox_IsObject(val) && Fox_AsObject(val)->type == type;
+    return Fox_IsObject(val) &&
+            Fox_AsObject(val)->type == type;
 }
 
 #define UINT8_COUNT (UINT8_MAX + 1)

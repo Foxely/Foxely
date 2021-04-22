@@ -33,7 +33,6 @@ enum ValueType {
     VAL_NIL,
     VAL_NUMBER,
     // VAL_INT,
-    VAL_USER,
     VAL_OBJ,
     // VAL_STRING,
     // VAL_CLOSURE,
@@ -57,60 +56,65 @@ public:
     Value()
     {
         type = VAL_NIL;
+        val.obj = nullptr;
+        val.boolean = false;
+        val.number = 0;
     }
 
-    template<typename T,
-        std::enable_if_t<!std::is_base_of<Object, std::remove_pointer_t<T>>::value, bool> = true>
-    Value(T te) // : userdata(foxely::Any::from<T>())
+    // template<typename T,
+    //     std::enable_if_t<!std::is_base_of<Object, std::remove_pointer_t<T>>::value, bool> = true>
+    // Value(T te) // : userdata(foxely::Any::from<T>())
+    // {
+    //     // std::swap(userdata.as<T>(), te);
+    //     std::cerr << "Object" << std::endl;
+    //     val.userdata = &te;
+    //     type = VAL_USER;
+    // }
+
+    Value(const Value& other) : Value()
     {
-        // std::swap(userdata.as<T>(), te);
-        std::cerr << "Object" << std::endl;
-        val.userdata = &te;
-        type = VAL_USER;
+        type = other.type;
+        val = other.val;
     }
 
-    Value(const Value& other) : type(other.type), val(other.val)
-    {
-    }
-
-    Value(bool value)
+    Value(bool value) : Value()
     {
         type = VAL_BOOL;
         val.boolean = value;
     }
 
-    Value(double value)
+    Value(double value) : Value()
     {
         type = VAL_NUMBER;
         val.number = value;
     }
 
-    Value(float value)
+    Value(float value) : Value()
     {
         type = VAL_NUMBER;
         val.number = static_cast<double>(value);
     }
     
-    Value(std::uint32_t value)
+    Value(std::uint32_t value) : Value()
     {
         type = VAL_NUMBER;
         val.number = static_cast<double>(value);
     }
 
-    Value(std::size_t value)
+    Value(std::size_t value) : Value()
     {
         type = VAL_NUMBER;
         val.number = static_cast<double>(value);
     }
 
-    Value(int value)
+    Value(int value) : Value()
     {
         type = VAL_NUMBER;
         val.number = static_cast<double>(value);
         // type = VAL_INT;
     }
 
-    Value(Object* value)
+    Value(Object* value) : Value()
     {
         type = VAL_OBJ;
         val.obj = value;
@@ -125,7 +129,6 @@ public:
         double number;
         int integer;
         Object* obj;
-        void* userdata;
         // ObjectString* string;
         // ObjectArray* array;
         // ObjectClosure* closure;
@@ -253,12 +256,9 @@ public:
 #define Fox_IsNil(val)     ((val).type == VAL_NIL)
 #define Fox_IsNumber(val)  ((val).type == VAL_NUMBER)
 // #define Fox_IsInt(val)     ((val).type == VAL_INT)
-#define Fox_IsObject(val)     ((val).type != VAL_BOOL &&    \
-                                (val).type != VAL_NIL &&    \
-                                (val).type != VAL_USER &&    \
-                                (val).type != VAL_NUMBER )
+#define Fox_IsObject(val)     ((val).type == VAL_OBJ)
 
-#define Fox_IsUserData(val)     ((val).type == VAL_USER)
+// #define Fox_IsUserData(val)     ((val).type == VAL_USER)
 #define Fox_AsObject(val)     ((val).as<Object>())
 #define Fox_AsBool(val)    ((val).as<bool>())
 #define Fox_AsNumber(val)  ((val).as<double>())

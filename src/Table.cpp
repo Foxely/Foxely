@@ -92,9 +92,9 @@ bool Table::Set(ObjectString* key, Value value)
 
 void Table::AddAll(Table& from)
 {
-    for (int i = 0; i <= from.m_iCapacity; i++) {
+    for (int i = 0; i <= from.m_iCapacity; ++i) {
         Entry& entry = from.m_vEntries[i];
-        if (entry.m_pKey != NULL) {
+        if (entry.m_pKey != nullptr) {
             Set(entry.m_pKey, entry.m_oValue);
         }
     }
@@ -186,11 +186,11 @@ void Table::MarkTable()
 
 void Table::RemoveWhite()
 {
-    // for (int i = 0; i <= m_iCapacity; i++)
-	// {
-    //     Entry& entry = m_vEntries[i];
-    //     if (entry.m_pKey != NULL && !entry.m_pKey->mMarked) {
-    //         Delete(entry.m_pKey);
-    //     }
-    // }
+    for (int i = 0; i <= m_iCapacity; i++)
+	{
+        Entry& entry = m_vEntries[i];
+        if (entry.m_pKey != NULL && !entry.m_pKey->mMarked) {
+            Delete(entry.m_pKey);
+        }
+    }
 }

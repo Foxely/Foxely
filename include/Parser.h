@@ -127,9 +127,6 @@ public:
     void RemoveComment();
 
 	ObjectString* CopyString(const std::string& value);
-	ObjectString* TakeString(const std::string& value);
-	ObjectString* AllocateString(const std::string& str, uint32_t hash);
-
 
 	void EmitByte(uint8_t byte);
 	void EmitBytes(uint8_t byte1, uint8_t byte2);

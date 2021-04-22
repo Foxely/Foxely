@@ -1097,54 +1097,13 @@ void AddLocal(Parser& parser, Token name)
 // -----------------------------------------
 
 /*
-* @brief Cette fonction permet de transformer la string passé en param en ObjectString compréhensible par le langage
-* @param str la chaine de caractère qui sera stocker
-* @param hash l'identifiant unique de la string après un hashage (passage dans une fonction de hashage comme 'hashString')
-* @return un pointeur ObjectString alloué dans le garbage Collector
-*/
-ObjectString* Parser::AllocateString(const std::string& str, uint32_t hash)
-{
-	ObjectString* string = m_pVm->gc.New<ObjectString>(str);
-	string->type = OBJ_STRING;
-	string->hash = hash;
-
-	m_pVm->Push(Fox_Object(string));
-	m_pVm->strings.Set(string, Fox_Nil);
-	m_pVm->Pop();
-	return string;
-}
-
-/*
 * @brief Cette fonction permet de copier une string passé en param et return un ObjectString compréhensible par le langage
 * @param value la chaine de caractère qui sera copier
 * @return une copie de la string sous un pointeur ObjectString alloué dans le garbage Collector
 */
 ObjectString* Parser::CopyString(const std::string& value)
 {
-	uint32_t hash = hashString(value);
-	ObjectString* interned = nullptr;
-
-	interned = m_pVm->strings.FindString(value, hash);
-
-	if (interned != nullptr)
-		return interned;
-
-	return AllocateString(value, hash);
-}
-
-/*
-* @brief Cette fonction fait la même chose que 'CopyString'
-*/
-ObjectString* Parser::TakeString(const std::string& value)
-{
-	uint32_t hash = hashString(value);
-	ObjectString* interned = NULL;
-
-	interned = m_pVm->strings.FindString(value, hash);
-	if (interned != NULL)
-		return interned;
-
-	return AllocateString(value, hash);
+	return m_pVm->new_string(value);
 }
 
 /*

@@ -30,11 +30,33 @@ void ObjectInstance::on_destroy()
 
 void ObjectModule::define_func(const std::string& name, NativeFn func)
 {
-    m_oVM.Push(m_oVM.NewString(name));
-    m_oVM.Push(Fox_Object(m_oVM.new_value<ObjectNative>(func)));
+    m_oVM.Push(m_oVM.new_string(name));
+    m_oVM.Push(m_oVM.new_object<ObjectNative>(func));
     m_vVariables.Set(Fox_AsString(m_oVM.PeekStart(0)), m_oVM.PeekStart(1));
     m_oVM.Pop();
     m_oVM.Pop();
+}
+
+void ObjectModule::raw_klass(const std::string& name, NativeMethods& methods)
+{
+	m_oVM.Push(m_oVM.new_string(name));
+	m_oVM.Push(m_oVM.new_object<ObjectClass>(Fox_AsString(m_oVM.PeekStart(0))));
+	m_vVariables.Set(m_oVM.new_string(name), m_oVM.PeekStart(1));
+	ObjectClass *pKlass = Fox_AsClass(m_oVM.Pop());
+	m_oVM.Pop();
+	m_oVM.Push(pKlass);
+	for (auto &it : methods) {
+		NativeFn func = it.second;
+
+        m_oVM.Push(m_oVM.new_string(it.first));
+		m_oVM.Push(m_oVM.new_object<ObjectNative>(func));
+
+		pKlass->methods.Set(Fox_AsString(m_oVM.PeekStart(1)), m_oVM.PeekStart(2));
+
+		m_oVM.Pop();
+		m_oVM.Pop();
+	}
+	m_oVM.Pop();
 }
 
 /* ------------------------------------------------------------------- */

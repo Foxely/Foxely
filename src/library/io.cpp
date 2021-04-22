@@ -6,11 +6,6 @@
 #include "library/library.h"
 #include "foxely.h"
 
-ObjectAbstractType foxely_file_type =
-{
-    "core/file"
-};
-
 Value openNative(VM* oVM, int argCount, Value* args)
 {
     Fox_FixArity(oVM, argCount, 2);
@@ -40,15 +35,15 @@ Value readNative(VM* oVM, int argCount, Value* args)
         len = ftell(fp);
         rewind(fp);
 
-        char fcontent[len];
+        char fcontent[len] = "";
+        std::memset(fcontent, 0, len);
         size_t lBytes = fread(fcontent, 1, len, fp);
 
         if (lBytes < 0)
             return Fox_Nil;
 
         fcontent[len] = 0;
-
-        return Fox_NewString(oVM, fcontent);
+        return oVM->new_string(fcontent);
     }
     else
     {
@@ -114,7 +109,7 @@ NativeMethods fileMethods =
 
 void DefineIOModule(VM* oVM)
 {
-    oVM->DefineModule("io");
+    auto& io_mod = oVM->DefineModule("io");
     oVM->DefineLib("io", "io", methods);
-    // oVM->DefineClass("io", "File", fileMethods);
+    io_mod.raw_klass("File", fileMethods);
 }

@@ -16,6 +16,7 @@
 #include "object.hpp"
 #include "Table.hpp"
 #include "Utility.hpp"
+#include "Exceptions/RuntimeException.hpp"
 
 Value clockNative(VM* pVM, int argCount, Value* args)
 {
@@ -44,14 +45,13 @@ VM::VM(int ac, char** av) : argc(ac), argv(av), m_oParser(this), modules()
     }
     gc.add_callback(GC_OnMark, std::bind(&VM::AddToRoots, this));
     // ResetStack();
-    m_pCurrentFiber = nullptr;
     isInit = false;
     currentModule = nullptr;
     m_pApiStack = nullptr;
     m_pCurrentFiber = gc.New<ObjectFiber>(nullptr);
     DefineModule("core");
-    initString = NewString("init").as<ObjectString>();
-    stringString = NewString("string").as<ObjectString>();
+    initString = new_string("init");
+    stringString = new_string("string");
     DefineCoreArray(this);
     DefineCoreString(this);
     DefineCoreMap(this);
@@ -156,6 +156,7 @@ void VM::RuntimeError(const char *format, ...)
 
     // ResetStack();
     result = InterpretResult::INTERPRET_RUNTIME_ERROR;
+    throw RuntimeException("");
 }
 
 void VM::PrintError(ObjectFiber* pFiber, const char *format, ...)
@@ -169,7 +170,7 @@ void VM::PrintError(ObjectFiber* pFiber, const char *format, ...)
     }
 
     va_list args;
-    va_start(args, strMsg.c_str());
+    va_start(args, format);
     vfprintf(stderr, strMsg.c_str(), args);
     va_end(args);
     fputs("\n", stderr);
@@ -314,13 +315,13 @@ void VM::CloseUpvalues(Value *last)
 void VM::DefineLib(const std::string &strModule, const std::string &strName, NativeMethods &functions)
 {
     PROFILE_FUNCTION();
-    Value oStrModuleName = NewString(strModule.c_str());
+    Value oStrModuleName = new_string(strModule);
 
     // See if the module has already been loaded.
     ObjectModule* pModule = GetModule(oStrModuleName);
     if (pModule != nullptr)
     {
-        Push(Fox_Object(m_oParser.CopyString(strName)));
+        Push(Fox_Object(new_string(strName)));
         Push(Fox_Object(gc.New<ObjectLib>(Fox_AsString(PeekStart(0)))));
         pModule->m_vVariables.Set(Fox_AsString(PeekStart(0)), PeekStart(1));
         ObjectLib* pKlass = Fox_AsLib(Pop());
@@ -328,7 +329,7 @@ void VM::DefineLib(const std::string &strModule, const std::string &strName, Nat
         Push(Fox_Object(pKlass));
         for (auto &it : functions)
         {
-            Push(Fox_Object(m_oParser.CopyString(it.first)));
+            Push(Fox_Object(new_string(it.first)));
             Push(Fox_Object(gc.New<ObjectNative>(it.second)));
 
             pKlass->methods.Set(Fox_AsString(PeekStart(1)), PeekStart(2));
@@ -343,13 +344,14 @@ void VM::DefineLib(const std::string &strModule, const std::string &strName, Nat
 ObjectModule& VM::DefineModule(const std::string& strName)
 {
     PROFILE_FUNCTION();
-    Value oStrName = NewString(strName.c_str());
+    ObjectString* oStrName = new_string(strName);
 
     // See if the module has already been loaded.
     ObjectModule* pModule = GetModule(oStrName);
     if (pModule == nullptr)
     {
-        pModule = gc.New<ObjectModule>(*this, Fox_AsString(oStrName));
+        pModule = new_object<ObjectModule>(*this, oStrName);
+        FOX_ASSERT(pModule, "Allocation module failed");
 
         // It's possible for the wrenMapSet below to resize the modules map,
         // and trigger a GC while doing so. When this happens it will collect
@@ -358,16 +360,19 @@ ObjectModule& VM::DefineModule(const std::string& strName)
 
         // Store it in the VM's module registry so we don't load the same module
         // multiple times.
-        modules.Set(Fox_AsString(oStrName), Fox_Object(pModule));
+        modules.Set(oStrName, pModule);
 
         Pop();
 
-        if (Fox_AsString(oStrName)->string != "core")
+        if (strName != "core")
         {
             // Implicitly import the core module.
-            ObjectModule* coreModule = GetModule(NewString("core"));
-            for (int i = 0; i < coreModule->m_vVariables.m_iCount; i++)
+            ObjectModule* coreModule = GetModule(new_string("core"));
+            if (coreModule) {
+
+                FOX_ASSERT(coreModule, "Allocation core module failed");
                 pModule->m_vVariables.AddAll(coreModule->m_vVariables);
+            }
         }
     }
     else
@@ -382,7 +387,7 @@ void VM::DefineBuiltIn(Table& methods, NativeMethods& functions)
     {
         NativeFn func = it.second;
 
-        Push(Fox_Object(m_oParser.CopyString(it.first)));
+        Push(Fox_Object(new_string(it.first)));
         Push(Fox_Object(gc.New<ObjectNative>(func)));
 
         methods.Set(Fox_AsString(PeekStart(0)), PeekStart(1));
@@ -521,10 +526,10 @@ InterpretResult VM::Interpret(const std::string& strModule, const std::string& s
 ObjectClosure* VM::CompileSource(const std::string& strModule, const std::string& strSource, bool bIsExpression, bool bPrintErrors)
 {
     PROFILE_FUNCTION();
-    Value oNameValue = NewString("core");
+    Value oNameValue = new_string("core");
     if (!strModule.empty())
     {
-        oNameValue = NewString(strModule);
+        oNameValue = new_string(strModule);
         Push(oNameValue);
     }
     
@@ -534,10 +539,25 @@ ObjectClosure* VM::CompileSource(const std::string& strModule, const std::string
     return pClosure;
 }
 
-Value VM::NewString(const std::string& strString)
+ObjectString* VM::new_string(const std::string& strString)
 {
-    PROFILE_FUNCTION();
-    return Fox_Object(m_oParser.TakeString(strString));
+	uint32_t hash = hashString(strString);
+	ObjectString* interned = nullptr;
+
+	interned = strings.FindString(strString, hash);
+	if (interned != nullptr)
+		return interned;
+
+	ObjectString* string = gc.New<ObjectString>(strString);
+    if (!string)
+        throw std::runtime_error("Allocation failed.");
+	string->type = OBJ_STRING;
+	string->hash = hash;
+
+	Push(string);
+	strings.Set(string, Fox_Nil);
+	Pop();
+	return string;
 }
 
 static bool ValueIsNumber(Value oNumber)
@@ -574,14 +594,10 @@ InterpretResult VM::run(ObjectFiber* pFiber)
         Push(Fox_##ValueType(a op b));                                       \
     } while (false)
 
+    try {
     while (true)
     {
-        if (result == INTERPRET_RUNTIME_ERROR)
-            return result;
-        if (result == INTERPRET_ABORT)
-            return result;
-#ifdef DEBUG
-        if (IsLogTrace()) {
+#ifdef DEBUG_LOG_TRACE
             printf("          ");
             for (Value *pSlot = m_pCurrentFiber->m_vStack; pSlot < m_pCurrentFiber->m_pStackTop; ++pSlot) {
                 printf("[ ");
@@ -592,7 +608,6 @@ InterpretResult VM::run(ObjectFiber* pFiber)
             disassembleInstruction(
                 frame->closure->function->chunk,
                 (int)(frame->ip - frame->closure->function->chunk.m_vCode.begin()));
-        }
 #endif
         uint8_t instruction = READ_BYTE();
         switch (instruction)
@@ -773,7 +788,7 @@ InterpretResult VM::run(ObjectFiber* pFiber)
                 ObjectInstance* pInst = Fox_AsInstance(Peek(1));
                 Value oMethod;
                 // If we found the + operator so call it
-                if (pInst->klass->operators.Get(m_oParser.TakeString("+"), oMethod)) {
+                if (pInst->klass->operators.Get(new_string("+"), oMethod)) {
                     if (CallValue(oMethod, 1))
                         frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
                 }
@@ -791,7 +806,7 @@ InterpretResult VM::run(ObjectFiber* pFiber)
                 ObjectInstance* pInst = Fox_AsInstance(Peek(1));
                 Value oMethod;
                 // If we found the + operator so call it
-                if (pInst->klass->operators.Get(m_oParser.TakeString("-"), oMethod)) {
+                if (pInst->klass->operators.Get(new_string("-"), oMethod)) {
                     CallValue(oMethod, 1);
                     frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
                 }
@@ -810,7 +825,7 @@ InterpretResult VM::run(ObjectFiber* pFiber)
                 ObjectInstance* pInst = Fox_AsInstance(Peek(1));
                 Value oMethod;
                 // If we found the + operator so call it
-                if (pInst->klass->operators.Get(m_oParser.TakeString("*"), oMethod)) {
+                if (pInst->klass->operators.Get(new_string("*"), oMethod)) {
                     CallValue(oMethod, 1);
                     frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
                 }
@@ -829,7 +844,7 @@ InterpretResult VM::run(ObjectFiber* pFiber)
                 ObjectInstance* pInst = Fox_AsInstance(Peek(1));
                 Value oMethod;
                 // If we found the + operator so call it
-                if (pInst->klass->operators.Get(m_oParser.TakeString("/"), oMethod)) {
+                if (pInst->klass->operators.Get(new_string("/"), oMethod)) {
                     CallValue(oMethod, 1);
                     frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
                 }
@@ -1164,7 +1179,7 @@ InterpretResult VM::run(ObjectFiber* pFiber)
                 return INTERPRET_RUNTIME_ERROR;
             }
 
-            switch (oSubscriptValue.type)
+            switch (Fox_AsObject(oSubscriptValue)->type)
             {
                 case OBJ_ARRAY:
                 {
@@ -1211,7 +1226,7 @@ InterpretResult VM::run(ObjectFiber* pFiber)
                     if (iIndex >= 0 && iIndex < pString->string.size()) {
                         Pop();
                         Pop();
-                        Push(Fox_Object(m_oParser.CopyString(std::string(1, pString->string[iIndex]))));
+                        Push(Fox_Object(new_string(std::string(1, pString->string[iIndex]))));
                         break;
                     }
 
@@ -1253,7 +1268,7 @@ InterpretResult VM::run(ObjectFiber* pFiber)
                 return INTERPRET_RUNTIME_ERROR;
             }
 
-            switch (oSubscriptValue.type)
+            switch (Fox_AsObject(oSubscriptValue)->type)
             {
                 case OBJ_ARRAY:
                 {
@@ -1328,7 +1343,6 @@ InterpretResult VM::run(ObjectFiber* pFiber)
                 default:
                 {
                     RuntimeError("Can only subscript on Arrays, strings or dictionaries.");
-                    return INTERPRET_RUNTIME_ERROR;
                 }
             }
             break;
@@ -1363,7 +1377,7 @@ InterpretResult VM::run(ObjectFiber* pFiber)
                 }
             }
 
-            switch (objectValue.type)
+            switch (Fox_AsObject(objectValue)->type)
             {
                 case OBJ_ARRAY:
                 {
@@ -1403,9 +1417,9 @@ InterpretResult VM::run(ObjectFiber* pFiber)
 
                     // Ensure the start index is below the end index
                     if (indexStart > indexEnd) {
-                        returnVal = Fox_Object(m_oParser.CopyString(""));
+                        returnVal = Fox_Object(new_string(""));
                     } else {
-                        returnVal = Fox_Object(m_oParser.CopyString(pString->string.substr(indexStart, indexEnd - indexStart)));
+                        returnVal = Fox_Object(new_string(pString->string.substr(indexStart, indexEnd - indexStart)));
                     }
                     break;
                 }
@@ -1479,6 +1493,13 @@ InterpretResult VM::run(ObjectFiber* pFiber)
         }
         }
     }
+    } catch (const RuntimeException& e) {
+        std::cerr << e.what() << std::endl;
+        return INTERPRET_RUNTIME_ERROR;
+    } catch (const std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        return INTERPRET_COMPILE_ERROR;
+    }
 
 #undef READ_BYTE
 #undef READ_SHORT
@@ -1495,7 +1516,7 @@ void VM::Concatenate()
     Pop();
     Pop();
 
-    ObjectString* result = m_oParser.TakeString(a->string + b->string);
+    ObjectString* result = new_string(a->string + b->string);
     Push(Fox_Object(result));
 }
 
@@ -1698,7 +1719,7 @@ Value VM::FindVariable(ObjectModule* module, const char* name)
 {
     PROFILE_FUNCTION();
     Value oValue;
-    if (module->m_vVariables.Get(m_oParser.CopyString(name), oValue))
+    if (module->m_vVariables.Get(new_string(name), oValue))
         return oValue;
     return Fox_Nil;
 }
@@ -1709,7 +1730,7 @@ void VM::GetVariable(const char* module, const char* name, int slot)
     FOX_ASSERT(module != nullptr, "Module cannot be nullptr.");
     FOX_ASSERT(name != nullptr, "Variable name cannot be nullptr.");  
 
-    Value moduleName = NewString(module);
+    Value moduleName = new_string(module);
     Push(moduleName);
     
     ObjectModule* moduleObj = GetModule(moduleName);
@@ -1730,12 +1751,12 @@ void VM::DefineVariable(const char* strModule, const char* strName, Value oValue
     FOX_ASSERT(strName != nullptr, "Variable name cannot be nullptr.");
 
     // See if the module has already been loaded.
-    ObjectModule* pModule = GetModule(NewString(strModule));
+    ObjectModule* pModule = GetModule(new_string(strModule));
     FOX_ASSERT(pModule != nullptr, "Could not find module.");
 
     if (pModule != nullptr)
     {
-        pModule->m_vVariables.Set(Fox_AsString(NewString(strName)), oValue);
+        pModule->m_vVariables.Set(new_string(strName), oValue);
     }
 }
 
@@ -1746,8 +1767,11 @@ ObjectModule* VM::GetModule(Value name)
 {
     PROFILE_FUNCTION();
     Value moduleValue;
-    if (Fox_IsString(name) && modules.Get(Fox_AsString(name), moduleValue))
-        return Fox_AsModule(moduleValue);
+    if (Fox_IsString(name)) {
+        ObjectString* str = Fox_AsString(name);
+        if (str && modules.Get(str, moduleValue))
+            return Fox_AsModule(moduleValue);
+    }
     return nullptr;
 }
 
@@ -1772,10 +1796,10 @@ ObjectClosure* VM::CompileInModule(Value name, const std::string& source, bool i
         Pop();
 
         // Implicitly import the core module.
-        ObjectModule* coreModule = GetModule(NewString("core"));
-        for (int i = 0; i < coreModule->m_vVariables.m_iCount; i++)
-        {
-            module->m_vVariables.AddAll(coreModule->m_vVariables);
+        ObjectModule* coreModule = GetModule(new_string("core"));
+        if (coreModule) {
+            for (int i = 0; i < coreModule->m_vVariables.m_iCount; i++)
+                module->m_vVariables.AddAll(coreModule->m_vVariables);
         }
     }
 
@@ -1954,7 +1978,7 @@ Handle* VM::MakeCallHandle(const char* signature)
     fn->chunk.WriteChunk((uint8_t)OP_CALL, 0);
     fn->chunk.WriteChunk((uint8_t)numParams, 0);
     fn->chunk.WriteChunk((uint8_t)OP_RETURN, 0);
-    fn->name = Fox_AsString(NewString(signature));
+    fn->name = new_string(signature);
     return value;
 }
 
@@ -2098,7 +2122,7 @@ void VM::SetSlotString(int iSlot, const char* text)
     PROFILE_FUNCTION();
     FOX_ASSERT(text != nullptr, "String cannot be nullptr.\n");
     
-    SetSlot(iSlot, NewString(text));
+    SetSlot(iSlot, new_string(text));
 }
 
 void VM::SetSlotHandle(int iSlot, Handle* handle)

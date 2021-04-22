@@ -37,15 +37,11 @@ typedef enum
 	INTERPRET_ABORT
 } InterpretResult;
 
-using NativeMethods = std::map<std::string, NativeFn>;
-
 class VM
 {
 public:
 	VM(int ac, char** av);
 	~VM() = default;
-
-	Value NewString(const std::string& string);
 
     InterpretResult Interpret(const std::string& module, const std::string& source);
 	ObjectClosure* CompileSource(const std::string& module, const std::string& source, bool isExpression, bool printErrors);
@@ -131,10 +127,12 @@ public:
 	bool IsLogTrace() const;
 
 	template<typename T, typename... Args>
-	T* new_value(Args&&... args)
+	T* new_object(Args&&... args)
 	{
 		return gc.New<T>(std::forward<Args>(args)...);
 	}
+
+	ObjectString* new_string(const std::string& strString);
 
 public:
 	InterpretResult result;
@@ -283,12 +281,13 @@ template<typename T>
 inline Klass<T>* ObjectModule::klass(const std::string& name)
 {
     m_oVM.Push(Fox_Object(m_oVM.m_oParser.CopyString(name)));
-    m_oVM.Push(Fox_Object(m_oVM.new_value<Klass<T>>(m_oVM, Fox_AsString(m_oVM.PeekStart(0)), *this)));
+    m_oVM.Push(Fox_Object(m_oVM.new_object<Klass<T>>(m_oVM, Fox_AsString(m_oVM.PeekStart(0)), *this)));
     m_vVariables.Set(Fox_AsString(m_oVM.PeekStart(0)), m_oVM.PeekStart(1));
     Klass<T>* pKlass = m_oVM.Pop().as<Klass<T>>();
     m_oVM.Pop();
     return pKlass;
 }
+
 /* -------------------------------------------------------------------- */
 
 /* ---------Klass<T> Impl---------------------------------------------- */
@@ -296,11 +295,8 @@ inline Klass<T>* ObjectModule::klass(const std::string& name)
 template<typename T>
 void Klass<T>::define_method(const std::string& name, NativeFn func)
 {
-    m_oVM.Push(m_oVM.NewString(name));
-    m_oVM.Push(Fox_Object(m_oVM.new_value<ObjectNative>(func)));
-    methods.Set(Fox_AsString(m_oVM.PeekStart(0)), m_oVM.PeekStart(1));
-    m_oVM.Pop();
-    m_oVM.Pop();
+    methods.Set(m_oVM.new_string(name),
+				m_oVM.new_object<ObjectNative>(func));
 }
 
 template<typename T>
@@ -316,7 +312,7 @@ void Klass<T>::prop(const std::string& name, TVar (T::*gettter)() const)
 		}
 		return Fox_Nil;
 	};
-	getters.Set(Fox_AsString(m_oVM.NewString(name)), Fox_Object(m_oVM.new_value<ObjectNative>(getter_func)));
+	getters.Set(m_oVM.new_string(name), m_oVM.new_object<ObjectNative>(getter_func));
 }
 
 template<typename T>
@@ -341,8 +337,8 @@ void Klass<T>::prop(const std::string& name, TVar (T::*gettter)() const, void (T
 		}
 		return Fox_Nil;
 	};
-	getters.Set(Fox_AsString(m_oVM.NewString(name)), Fox_Object(m_oVM.new_value<ObjectNative>(getter_func)));
-	setters.Set(Fox_AsString(m_oVM.NewString(name)), Fox_Object(m_oVM.new_value<ObjectNative>(setter_func)));
+	getters.Set(m_oVM.new_string(name), m_oVM.new_object<ObjectNative>(getter_func));
+	setters.Set(m_oVM.new_string(name), m_oVM.new_object<ObjectNative>(setter_func));
 }
 
 template<typename T>
@@ -368,9 +364,9 @@ void Klass<T>::var(const std::string& name, TVar T::*variable)
 		}
 		return Fox_Nil;
 	};
-	fields.Set(Fox_AsString(m_oVM.NewString(name)), Value(0));
-	getters.Set(Fox_AsString(m_oVM.NewString(name)), Fox_Object(m_oVM.new_value<ObjectNative>(getter)));
-	setters.Set(Fox_AsString(m_oVM.NewString(name)), Fox_Object(m_oVM.new_value<ObjectNative>(setter)));
+	fields.Set(m_oVM.new_string(name), 0);
+	getters.Set(m_oVM.new_string(name), m_oVM.new_object<ObjectNative>(getter));
+	setters.Set(m_oVM.new_string(name), m_oVM.new_object<ObjectNative>(setter));
 	
 }
 
@@ -388,8 +384,8 @@ void Klass<T>::ctor()
 	};
 
 	// Define the default destructor
-	m_oVM.Push(m_oVM.NewString("init"));
-	m_oVM.Push(Fox_Object(m_oVM.new_value<ObjectNative>(constructor)));
+	m_oVM.Push(m_oVM.new_string("init"));
+	m_oVM.Push(m_oVM.new_object<ObjectNative>(constructor));
 	methods.Set(Fox_AsString(m_oVM.PeekStart(1)), m_oVM.PeekStart(2));
 	m_oVM.Pop();
 	m_oVM.Pop();
@@ -406,8 +402,8 @@ void Klass<T>::dtor()
 	};
 
 	// Define the default destructor
-	m_oVM.Push(m_oVM.NewString("destroy"));
-	m_oVM.Push(Fox_Object(m_oVM.new_value<ObjectNative>(destructor)));
+	m_oVM.Push(m_oVM.new_string("destroy"));
+	m_oVM.Push(m_oVM.new_object<ObjectNative>(destructor));
 	methods.Set(Fox_AsString(m_oVM.PeekStart(1)), m_oVM.PeekStart(2));
 	m_oVM.Pop();
 	m_oVM.Pop();

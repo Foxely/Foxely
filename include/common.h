@@ -9,7 +9,15 @@
 #include <fstream>
 #include <memory>
 #include <sys/stat.h>
+#include <functional>
+#include <map>
 #include "Benchmark.hpp"
+
+class VM;
+class Value;
+
+using NativeFn = std::function<Value(VM*, int, Value*)>;
+using NativeMethods = std::map<std::string, NativeFn>;
 
 inline bool IsRepl;
 // inline bool DEBUG_TRACE_EXECUTION;

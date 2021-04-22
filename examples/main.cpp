@@ -150,7 +150,7 @@ void runFile(int ac, char** av, const std::string& path)
     klass->prop("bar", &Test::getA, &Test::setA);
 
     InterpretResult result = INTERPRET_OK;
-    result = oVM.Interpret("main", str.c_str());
+    result = oVM.Interpret("main", str);
 
     Callable say = oVM.Function("main", "sayHello()");
     if (say.IsValid())
@@ -172,7 +172,7 @@ int main(int ac, char** av)
     std::string strFile;
     for (int i = 1; i < ac; ++i)
     {
-        if (av[i][0] != '-')
+        if (av[i][0] != '-' && strFile.empty())
         {
             strFile = av[i];
         }

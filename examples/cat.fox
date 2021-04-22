@@ -13,8 +13,8 @@ main::func(ac, av)
         strFile := io.open(av[i], "r");
         if (strFile) {
             strFileContent := strFile.read();
-            if (strFileContent != nil)
-                print "%", strFileContent;
+            if (strFileContent)
+                print "%\n", strFileContent;
         }
     }
 }

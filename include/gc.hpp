@@ -101,6 +101,9 @@ inline T* GC::New()
 {
     T* pObject = new T();
 
+	if (!pObject)
+		return nullptr;
+
 	bytesAllocated += sizeof(T);
 
 	if (bytesAllocated > nextGC)
