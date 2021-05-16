@@ -144,36 +144,6 @@ public:
         // ObjectAbstract* abstract;
         // ObjectMap* map;
     } val;
-    // std::variant<bool, double,
-    //     Object*,
-    //     ObjectString*,
-    //     ObjectArray*,
-    //     ObjectClosure*,
-    //     ObjectFiber*,
-    //     ObjectFunction*,
-    //     ObjectModule*,
-    //     ObjectUpvalue*,
-    //     ObjectNative*,
-    //     ObjectLib*,
-    //     ObjectClass*,
-    //     ObjectInstance*,
-    //     ObjectBoundMethod*,
-    //     ObjectAbstract*,
-    //     ObjectMap*> val;
-
-    // template <typename T>
-    // ref<T>& as_ref()
-    // {
-    //     return std::get<ref<T>>(val);
-    // }
-
-    // template <typename T>
-    // T* as_ptr()
-    // {
-    //     if (type != VAL_OBJ)
-    //         throw std::runtime_error("Invalid Type");
-    //     return static_cast<T*>(val.obj);
-    // }
 
     template <typename T,
     std::enable_if_t<!std::is_base_of<Object, T>::value, bool> = true>

@@ -5,8 +5,8 @@
 ** AException.hpp header
 */
 
-#ifndef NTS_AEXCEPTION_HPP_
-#define NTS_AEXCEPTION_HPP_
+#ifndef FOX_AEXCEPTION_HPP_
+#define FOX_AEXCEPTION_HPP_
 
 #include <exception>
 #include <iostream>

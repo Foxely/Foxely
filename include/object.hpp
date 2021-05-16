@@ -735,8 +735,8 @@ template <typename T,
     std::enable_if_t<std::is_base_of<Object, T>::value, bool>>
 T* Value::as()
 {
-    if (type != VAL_OBJ)
-        throw std::runtime_error("Invalid Type");
+    // if (type != VAL_OBJ)
+    //     throw std::runtime_error("Invalid Type");
     return static_cast<T*>(val.obj);
 }
 

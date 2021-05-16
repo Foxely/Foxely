@@ -7,6 +7,7 @@
 #include "object.hpp"
 #include "Parser.h"
 #include "vm.hpp"
+#include "Exceptions/BadCast.hpp"
 
 ValueArray::ValueArray()
 {
@@ -80,31 +81,31 @@ template <>
 bool Value::as<bool>()
 {
     if (type != VAL_BOOL)
-        throw std::runtime_error("Invalid Type");
+        throw BadCast("Invalid Type");
     return val.boolean;
 }
 
 template <>
 double Value::as<double>()
 {
-    if (type != VAL_NUMBER)
-        throw std::runtime_error("Invalid Type");
+    // if (type != VAL_NUMBER)
+    //     throw std::runtime_error("Invalid Type");
     return val.number;
 }
 
 template <>
 float Value::as<float>()
 {
-    if (type != VAL_NUMBER)
-        throw std::runtime_error("Invalid Type");
+    // if (type != VAL_NUMBER)
+    //     throw std::runtime_error("Invalid Type");
     return static_cast<int>(val.number);
 }
 
 template <>
 int Value::as<int>()
 {
-    if (type != VAL_NUMBER)
-        throw std::runtime_error("Invalid Type");
+    // if (type != VAL_NUMBER)
+    //     throw std::runtime_error("Invalid Type");
     return static_cast<int>(val.number);
 }
 

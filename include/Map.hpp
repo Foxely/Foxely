@@ -3,6 +3,7 @@
 #define FOX_MAP_HPP_
 
 #include "value.hpp"
+#include "Option.hpp"
 
 #define MAP_MAX_LOAD (0.75)
 
@@ -34,7 +35,7 @@ public:
 	std::vector<MapEntry> m_vEntries;
 
 	void AdjustCapacity(int capacity);
-	MapEntry& FindEntry(Value oKey);
+	fox::Option<MapEntry&> FindEntry(Value oKey);
 	bool Set(Value oKey, Value value);
 	void AddAll(MapTable& from);
 	bool Get(Value oKey, Value& value);

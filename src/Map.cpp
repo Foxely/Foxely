@@ -71,7 +71,7 @@ static uint32_t hashObject(Object* pObject)
 }
 
 // Generates a hash code for [value], which must be one of the built-in
-// immutable types: null, bool, class, num, range, or string.
+// immutable types: nullptr, bool, class, num, range, or string.
 static uint32_t hashValue(Value value)
 {
   // TODO: We'll probably want to randomize this at some point.
@@ -102,14 +102,14 @@ MapTable::MapTable()
     }
 }
 
-MapEntry& MapTable::FindEntry(Value oKey)
+fox::Option<MapEntry&> MapTable::FindEntry(Value oKey)
 {
     uint32_t index = hashValue(oKey) & m_iCapacity;
-    MapEntry* tombstone = NULL;
+    MapEntry* tombstone = nullptr;
     MapEntry oTemp = MapEntry();
 
-    if (index == -1) return oTemp;
-    if (m_iCapacity == 0) return oTemp;
+    if (index == -1) return {};
+    if (m_iCapacity == 0) return {};
 
     for (;;)
     {
@@ -117,11 +117,11 @@ MapEntry& MapTable::FindEntry(Value oKey)
 
         if (Fox_IsNil(entry.m_oKey)) {
             if (Fox_IsNil(entry.m_oValue))
-                return tombstone != NULL ? *tombstone : entry;
-            else if (tombstone == NULL)
+                return tombstone != nullptr ? fox::just(*tombstone) : fox::just(entry);
+            else if (tombstone == nullptr)
                     tombstone = &entry;
         } else if (ValuesEqual(entry.m_oKey, oKey))
-            return entry;
+            return fox::just(entry);
 
         index = (index + 1) & m_iCapacity;
     }
@@ -143,20 +143,24 @@ void MapTable::AdjustCapacity(int capacity)
         MapEntry& entry = m_vEntries[i];
         if (Fox_IsNil(entry.m_oKey))
             continue;
-        MapEntry& dest = oTemp.FindEntry(entry.m_oKey);
-        dest.m_oKey = entry.m_oKey;
-        dest.m_oValue = entry.m_oValue;
-        m_iCount++;
+        fox::Option<MapEntry&> dest = oTemp.FindEntry(entry.m_oKey);
+        if (dest) {
+            dest->m_oKey = entry.m_oKey;
+            dest->m_oValue = entry.m_oValue;
+            m_iCount++;
+        }
     }
 
     for (int i = 0; i <= m_iCapacity; i++) {
 		MapEntry& entry = m_vEntries[i];
         if (Fox_IsNil(entry.m_oKey))
             continue;
-        MapEntry& dest = oTemp.FindEntry(entry.m_oKey);
-        dest.m_oKey = entry.m_oKey;
-        dest.m_oValue = entry.m_oValue;
-        m_iCount++;
+        fox::Option<MapEntry&> dest = oTemp.FindEntry(entry.m_oKey);
+        if (dest) {
+            dest->m_oKey = entry.m_oKey;
+            dest->m_oValue = entry.m_oValue;
+            m_iCount++;
+        }
     }
 
 	m_vEntries.clear();
@@ -171,13 +175,15 @@ bool MapTable::Set(Value oKey, Value value)
         AdjustCapacity(capacity);
     }
 
-    MapEntry& entry = FindEntry(oKey);
-    bool is_new_key = Fox_IsNil(entry.m_oKey);
-    if (is_new_key && Fox_IsNil(entry.m_oValue))
+    fox::Option<MapEntry&> entry = FindEntry(oKey);
+    bool is_new_key = entry && Fox_IsNil(entry->m_oKey);
+    if (is_new_key && Fox_IsNil(entry->m_oValue))
         m_iCount++;
 
-    entry.m_oKey = oKey;
-    entry.m_oValue = value;
+    if (entry) {
+        entry->m_oKey = oKey;
+        entry->m_oValue = value;
+    }
     return is_new_key;
 }
 
@@ -212,11 +218,11 @@ bool MapTable::Get(Value oKey, Value& value)
     if (m_iCount == 0)
         return false;
 
-    MapEntry& entry = FindEntry(oKey);
-    if (Fox_IsNil(entry.m_oKey))
+    fox::Option<MapEntry&> entry = FindEntry(oKey);
+    if (entry && Fox_IsNil(entry->m_oKey))
         return false;
 
-    value = entry.m_oValue;
+    value = entry->m_oValue;
     return true;
 }
 
@@ -225,11 +231,11 @@ bool MapTable::Delete(Value key)
     if (m_iCount == 0)
         return false;
 
-    MapEntry& entry = FindEntry(key);
-    if (Fox_IsNil(entry.m_oKey))
+    fox::Option<MapEntry&> entry = FindEntry(key);
+    if (entry && Fox_IsNil(entry->m_oKey))
         return false;
-    entry.m_oKey = Fox_Nil;
-    entry.m_oValue = Fox_Nil;
+    entry->m_oKey = Fox_Nil;
+    entry->m_oValue = Fox_Nil;
     m_iCount--;
     return true;
 }

@@ -69,9 +69,9 @@ Value containMapNative(VM* pVM, int argCount, Value* args)
     Fox_FixArity(pVM, argCount, 1);
     ObjectMap* pMap = Fox_AsMap(args[-1]);
     Value search = args[0];
-    MapEntry it = pMap->m_vValues.FindEntry(search);
+    fox::Option<MapEntry&> it = pMap->m_vValues.FindEntry(search);
 
-    return Fox_Bool(!(it.m_oKey == Fox_Nil) && !(it.m_oValue == Fox_Nil));
+    return Fox_Bool(it.is_just());
 }
 
 Value toStringMapNative(VM* pVM, int argCount, Value* args)

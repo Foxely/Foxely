@@ -9,7 +9,7 @@ Value initNative(VM* pVM, int argCount, Value* args)
     Fox_FixArity(pVM, argCount, 1);
     Fox_PanicIfNot(pVM, Fox_IsClosure(args[0]), "Expected a function.");
 
-    return Fox_Object(pVM->gc.New<ObjectFiber>(Fox_AsClosure(args[0])));
+    return Fox_Object(pVM->new_object<ObjectFiber>(Fox_AsClosure(args[0])));
 }
 
 Value callNative(VM* pVM, int argCount, Value* args)
@@ -27,12 +27,6 @@ Value callNative(VM* pVM, int argCount, Value* args)
     // which is why this check is gated on `isCall`. This way, after resuming a
     // suspended fiber, it will run and then return to the fiber that called it
     // and so on.
-    if (pFiber->m_pCaller != nullptr)
-    {
-        fprintf(stderr, "Fiber has already been called.\n");
-        return Fox_Nil;
-    }
-
     if (pFiber->m_pCaller != nullptr)
     {
         fprintf(stderr, "Fiber has already been called.\n");
@@ -129,7 +123,6 @@ Value abortNative(VM* pVM, int argCount, Value* args)
         pVM->PrintError(pVM->m_pCurrentFiber, Fox_AsCString(args[0]));
     else
         pVM->PrintError(pVM->m_pCurrentFiber, "");
-
 
     return Fox_Nil;
 }

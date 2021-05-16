@@ -1,10 +1,2 @@
 
 print "Hello World!\n";
-
-fibonacci :: func(n)
-{
-    print "%\n", n;
-    if (n > 0)
-        return fibonacci(n-1);
-}
-fibonacci(62);

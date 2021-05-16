@@ -22,11 +22,12 @@ void highlight(const std::string& str)
 void repl(int ac, char** av)
 {
     VM oVM(ac, av);
+    oVM.setIsRepl(true);
     mecli::App app;
 
     app.SetOnLineListener([&oVM](const std::string& str)
     {
-        oVM.Interpret(NULL, str.c_str());
+        oVM.Interpret("main", str);
     });
 
     app.AddSyntax("for", highlight);
@@ -149,16 +150,18 @@ void runFile(int ac, char** av, const std::string& path)
     klass->var("a", &Test::a);
     klass->prop("bar", &Test::getA, &Test::setA);
 
-    InterpretResult result = INTERPRET_OK;
-    result = oVM.Interpret("main", str);
+    InterpretResult result = oVM.Interpret("main", str);
 
-    Callable say = oVM.Function("main", "sayHello()");
-    if (say.IsValid())
-        say.Call();
+    if (result == InterpretResult::INTERPRET_OK)
+    {
+        Callable say = oVM.Function("main", "sayHello()");
+        if (say.IsValid())
+            say.Call();
 
-    Callable add = oVM.Function("main", "add(_,_)");
-    if (add.IsValid())
-        add.Call(1, 2);
+        Callable add = oVM.Function("main", "add(_,_)");
+        if (add.IsValid())
+            add.Call(1, 2);
+    }
 
     // if (result == INTERPRET_COMPILE_ERROR) exit(65);
     // if (result == INTERPRET_RUNTIME_ERROR) exit(70);
@@ -178,7 +181,6 @@ int main(int ac, char** av)
         }
     }
     if (strFile.empty()) {
-        IsRepl = true;
         repl(ac , av);
     } else if (ac >= 2) {
         runFile(ac, av, strFile);

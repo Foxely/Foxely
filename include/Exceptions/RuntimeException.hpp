@@ -5,8 +5,8 @@
 ** EmptyLibraryList.hpp header
 */
 
-#ifndef NTS_COMPONENT_NOT_FOUND_EXCEPTION_HPP_
-#define NTS_COMPONENT_NOT_FOUND_EXCEPTION_HPP_
+#ifndef FOX_RUNTIME_EXCEPTION_HPP_
+#define FOX_RUNTIME_EXCEPTION_HPP_
 
 #include "AException.hpp"
 

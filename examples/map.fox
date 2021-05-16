@@ -1,9 +1,9 @@
 
 
 map := { 0 : 2, 10 : false, "test" : 10 };
+print "map = %\n", map;
 
 print "\n-- Get --\n";
-print "map = %\n", map;
 print "map[0] = %\n", map[0];
 print "map.get(10) = %\n", map.get(10);
 print "map['test'] = %\n", map["test"];
@@ -18,18 +18,18 @@ print "\n-- Contain --\n";
 
 print "Before pop = %\n", map;
 
-if (map.contain(0))
-    print "Contain key: 0\n";
+if (map.contain("test"))
+    print "Contain key: \"test\n";
 else
-    print "Not Contain key: 0\n";
+    print "Not Contain key: \"test\n";
 
 map.pop();
 print "After pop = %\n", map;
 
-if (map.contain(0))
-    print "Contain key: 0\n";
+if (map.contain("test"))
+    print "Contain key: \"test\"\n";
 else
-    print "Not Contain key: 0\n";
+    print "Not Contain key: \"test\n";
 
 print "\n-- Set --\n";
 

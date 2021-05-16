@@ -99,7 +99,7 @@ void ExpressionStatement(Parser& parser)
     } else {
         Expression(parser);
 	    parser.Consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
-        if (IsRepl)
+        if (parser.m_pVm->IsRepl())
             parser.EmitByte(OP_PRINT_REPL);
         parser.EmitByte(OP_POP);
     }

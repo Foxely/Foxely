@@ -17,6 +17,7 @@
 #include "Table.hpp"
 #include "Utility.hpp"
 #include "Exceptions/RuntimeException.hpp"
+#include "Exceptions/CompileError.hpp"
 
 Value clockNative(VM* pVM, int argCount, Value* args)
 {
@@ -48,7 +49,7 @@ VM::VM(int ac, char** av) : argc(ac), argv(av), m_oParser(this), modules()
     isInit = false;
     currentModule = nullptr;
     m_pApiStack = nullptr;
-    m_pCurrentFiber = gc.New<ObjectFiber>(nullptr);
+    m_pCurrentFiber = new_object<ObjectFiber>(nullptr);
     DefineModule("core");
     initString = new_string("init");
     stringString = new_string("string");
@@ -56,6 +57,7 @@ VM::VM(int ac, char** av) : argc(ac), argv(av), m_oParser(this), modules()
     DefineCoreString(this);
     DefineCoreMap(this);
     DefineCoreFiber(this);
+    m_bIsRepl = false;
 }
 
 // VM::~VM()
@@ -155,7 +157,6 @@ void VM::RuntimeError(const char *format, ...)
     }
 
     // ResetStack();
-    result = InterpretResult::INTERPRET_RUNTIME_ERROR;
     throw RuntimeException("");
 }
 
@@ -189,6 +190,7 @@ void VM::PrintError(ObjectFiber* pFiber, const char *format, ...)
             fprintf(stderr, "%s()\n", function->name->string.c_str());
     }
 
+    m_pCurrentFiber = pFiber->m_pCaller;
     // ResetStack();
     // result = InterpretResult::INTERPRET_RUNTIME_ERROR;
 }
@@ -253,7 +255,7 @@ bool VM::CallValue(Value oCallee, int iArgCount)
         case OBJ_CLASS:
         {
             ObjectClass* pKlass = Fox_AsClass(oCallee);
-            m_pCurrentFiber->m_pStackTop[-iArgCount - 1] = Fox_Object(gc.New<ObjectInstance>(this, pKlass));
+            m_pCurrentFiber->m_pStackTop[-iArgCount - 1] = Fox_Object(new_object<ObjectInstance>(this, pKlass));
             Value oInitializer;
             if (pKlass->methods.Get(initString, oInitializer))
                 return CallValue(oInitializer, iArgCount);
@@ -292,7 +294,7 @@ ObjectUpvalue* VM::CaptureUpvalue(Value *local)
 
     if (pUpvalue != nullptr && pUpvalue->location == local)
         return pUpvalue;
-    ObjectUpvalue* pCreatedUpvalue = gc.New<ObjectUpvalue>(local);
+    ObjectUpvalue* pCreatedUpvalue = new_object<ObjectUpvalue>(local);
     if (pPrevUpvalue == nullptr) {
         m_pCurrentFiber->m_vOpenUpvalues = pCreatedUpvalue;
     } else {
@@ -322,7 +324,7 @@ void VM::DefineLib(const std::string &strModule, const std::string &strName, Nat
     if (pModule != nullptr)
     {
         Push(Fox_Object(new_string(strName)));
-        Push(Fox_Object(gc.New<ObjectLib>(Fox_AsString(PeekStart(0)))));
+        Push(Fox_Object(new_object<ObjectLib>(Fox_AsString(PeekStart(0)))));
         pModule->m_vVariables.Set(Fox_AsString(PeekStart(0)), PeekStart(1));
         ObjectLib* pKlass = Fox_AsLib(Pop());
         Pop();
@@ -330,7 +332,7 @@ void VM::DefineLib(const std::string &strModule, const std::string &strName, Nat
         for (auto &it : functions)
         {
             Push(Fox_Object(new_string(it.first)));
-            Push(Fox_Object(gc.New<ObjectNative>(it.second)));
+            Push(Fox_Object(new_object<ObjectNative>(it.second)));
 
             pKlass->methods.Set(Fox_AsString(PeekStart(1)), PeekStart(2));
 
@@ -388,7 +390,7 @@ void VM::DefineBuiltIn(Table& methods, NativeMethods& functions)
         NativeFn func = it.second;
 
         Push(Fox_Object(new_string(it.first)));
-        Push(Fox_Object(gc.New<ObjectNative>(func)));
+        Push(Fox_Object(new_object<ObjectNative>(func)));
 
         methods.Set(Fox_AsString(PeekStart(0)), PeekStart(1));
 
@@ -422,6 +424,8 @@ bool VM::Invoke(ObjectString* pName, int iArgCount)
     Value& oReceiver = Peek(iArgCount);
     Value oValue;
 
+    if (!Fox_IsObject(oReceiver))
+        RuntimeError("Only instances && module have methods.");
     switch (Fox_AsObject(oReceiver)->type)
     {
         case OBJ_INSTANCE:
@@ -500,15 +504,20 @@ InterpretResult VM::Interpret(const std::string& strModule, const std::string& s
 {
     PROFILE_FUNCTION();
     // ResetStack();
-    result = INTERPRET_OK;
-    if (strSource.empty())
-        return result;
+    ObjectClosure* pClosure = nullptr;
+    try {
+        if (strSource.empty())
+            throw CompileError("Empty source code.\n");
 
-    ObjectClosure* pClosure = CompileSource(strModule, strSource, false, true);
-    if (!pClosure)
+        pClosure = CompileSource(strModule, strSource, false, true);
+        if (!pClosure)
+            throw CompileError("");
+    } catch (const CompileError& e) {
+        std::cerr << e.what();
         return INTERPRET_COMPILE_ERROR;
+    }
 
-    Push(Fox_Object(pClosure));
+    Push(pClosure);
     // Initialize the first call frame.
     CallFrame *pFrame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount++];
     pFrame->closure = pClosure;
@@ -548,7 +557,7 @@ ObjectString* VM::new_string(const std::string& strString)
 	if (interned != nullptr)
 		return interned;
 
-	ObjectString* string = gc.New<ObjectString>(strString);
+	ObjectString* string = new_object<ObjectString>(strString);
     if (!string)
         throw std::runtime_error("Allocation failed.");
 	string->type = OBJ_STRING;
@@ -585,10 +594,8 @@ InterpretResult VM::run(ObjectFiber* pFiber)
 
 #define BINARY_OP(ValueType, GetValue, type, op)                                         \
     do {                                                                       \
-        if (!ValueIsNumber(Peek(0)) || !ValueIsNumber(Peek(1))) {              \
+        if (!ValueIsNumber(Peek(0)) || !ValueIsNumber(Peek(1)))                \
             RuntimeError("Operands must be numbers.");                         \
-            return INTERPRET_RUNTIME_ERROR;                                    \
-        }                                                                      \
         type b = Fox_As##GetValue(Pop());                                           \
         type a = Fox_As##GetValue(Pop());                                           \
         Push(Fox_##ValueType(a op b));                                       \
@@ -598,11 +605,11 @@ InterpretResult VM::run(ObjectFiber* pFiber)
     while (true)
     {
 #ifdef DEBUG_LOG_TRACE
-            printf("          ");
+            printf("(fiber %p) ", m_pCurrentFiber);
             for (Value *pSlot = m_pCurrentFiber->m_vStack; pSlot < m_pCurrentFiber->m_pStackTop; ++pSlot) {
-                printf("[ ");
+                printf("[");
                 PrintValue(*pSlot);
-                printf(" ]");
+                printf("] | ");
             }
             printf("\n");
             disassembleInstruction(
@@ -662,10 +669,8 @@ InterpretResult VM::run(ObjectFiber* pFiber)
             PROFILE_SCOPE("OP_GET_GLOBAL");
             ObjectString* pName = READ_STRING();
             Value oValue;
-            if (!currentModule->m_vVariables.Get(pName, oValue)) {
+            if (!currentModule->m_vVariables.Get(pName, oValue))
                 RuntimeError("Undefined variable '%s'.", pName->string.c_str());
-                return INTERPRET_RUNTIME_ERROR;
-            }
             Push(oValue);
             break;
         }
@@ -686,7 +691,6 @@ InterpretResult VM::run(ObjectFiber* pFiber)
             if (currentModule->m_vVariables.Set(pName, Peek(0))) {
                 currentModule->m_vVariables.Delete(pName);
                 RuntimeError("Undefined variable '%s'.", pName->string.c_str());
-                return INTERPRET_RUNTIME_ERROR;
             }
             break;
         }
@@ -694,10 +698,8 @@ InterpretResult VM::run(ObjectFiber* pFiber)
         case OP_GET_PROPERTY:
         {
             PROFILE_SCOPE("OP_GET_PROPERTY");
-            if (!Fox_IsInstance(Peek(0))) {
+            if (!Fox_IsInstance(Peek(0)))
                 RuntimeError("Only instances have properties.");
-                return INTERPRET_RUNTIME_ERROR;
-            }
 
             ObjectInstance* pInstance = Fox_AsInstance(Peek(0));
 
@@ -719,9 +721,7 @@ InterpretResult VM::run(ObjectFiber* pFiber)
                 }
             }
 
-            if (!BindMethod(pInstance->klass, READ_STRING())) {
-                return INTERPRET_RUNTIME_ERROR;
-            }
+            BindMethod(pInstance->klass, READ_STRING());
             break;
         }
 
@@ -729,10 +729,7 @@ InterpretResult VM::run(ObjectFiber* pFiber)
         {
             PROFILE_SCOPE("OP_SET_PROPERTY");
             if (!Fox_IsInstance(Peek(1)))
-            {
                 RuntimeError("Only instances have fields.");
-                return INTERPRET_RUNTIME_ERROR;
-            }
 
             ObjectInstance* pInstance = Fox_AsInstance(Peek(1));
             if (pInstance->user_type != nullptr)
@@ -794,7 +791,6 @@ InterpretResult VM::run(ObjectFiber* pFiber)
                 }
             } else {
                 RuntimeError("Operands must be two numbers or two strings.");
-                return INTERPRET_RUNTIME_ERROR;
             }
             break;
         }
@@ -882,10 +878,8 @@ InterpretResult VM::run(ObjectFiber* pFiber)
         case OP_NEGATE:
         {
             PROFILE_SCOPE("OP_NEGATE");
-            if (!Fox_IsNumber(Peek(0))) {
+            if (!Fox_IsNumber(Peek(0)))
                 RuntimeError("Operand must be a number.");
-                return INTERPRET_RUNTIME_ERROR;
-            }
 
             Push(Fox_Number(-Fox_AsNumber(Pop())));
             break;
@@ -965,8 +959,7 @@ InterpretResult VM::run(ObjectFiber* pFiber)
         {
             PROFILE_SCOPE("OP_CALL");
             int iArgCount = READ_BYTE();
-            if (!CallValue(Peek(iArgCount), iArgCount))
-                return INTERPRET_RUNTIME_ERROR;
+            CallValue(Peek(iArgCount), iArgCount);
             frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
             break;
         }
@@ -974,7 +967,7 @@ InterpretResult VM::run(ObjectFiber* pFiber)
         case OP_CLASS:
         {
             PROFILE_SCOPE("OP_CLASS");
-            Push(Fox_Object(gc.New<ObjectClass>(READ_STRING())));
+            Push(Fox_Object(new_object<ObjectClass>(READ_STRING())));
             break;
         }
         
@@ -983,10 +976,8 @@ InterpretResult VM::run(ObjectFiber* pFiber)
             PROFILE_SCOPE("OP_INHERIT");
             Value oSuperclass = Peek(1);
 
-            if (!Fox_IsClass(oSuperclass)) {
+            if (!Fox_IsClass(oSuperclass))
                 RuntimeError("Superclass must be a class.");
-                return INTERPRET_RUNTIME_ERROR;
-            }
 
             ObjectClass* pSubclass = Fox_AsClass(Peek(0));
 
@@ -1016,9 +1007,7 @@ InterpretResult VM::run(ObjectFiber* pFiber)
             PROFILE_SCOPE("OP_INVOKE");
             ObjectString* pMethod = READ_STRING();
             int iArgCount = READ_BYTE();
-            if (!Invoke(pMethod, iArgCount)) {
-                return INTERPRET_RUNTIME_ERROR;
-            }
+            Invoke(pMethod, iArgCount);
             frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
             break;
         }
@@ -1029,9 +1018,7 @@ InterpretResult VM::run(ObjectFiber* pFiber)
             ObjectString* pMethod = READ_STRING();
             int iArgCount = READ_BYTE();
             ObjectClass* pSuperclass = Fox_AsClass(Pop());
-            if (!InvokeFromClass(pSuperclass, pMethod, iArgCount)) {
-                return INTERPRET_RUNTIME_ERROR;
-            }
+            InvokeFromClass(pSuperclass, pMethod, iArgCount);
             frame = &m_pCurrentFiber->m_vFrames[m_pCurrentFiber->m_iFrameCount - 1];
             break;
         }
@@ -1040,7 +1027,7 @@ InterpretResult VM::run(ObjectFiber* pFiber)
         {
             PROFILE_SCOPE("OP_CLOSURE");
             ObjectFunction* pFunction = Fox_AsFunction(READ_CONSTANT());
-            ObjectClosure* pClosure = gc.New<ObjectClosure>(this, pFunction);
+            ObjectClosure* pClosure = new_object<ObjectClosure>(this, pFunction);
             Push(Fox_Object(pClosure));
 
             for (int i = 0; i < pClosure->upvalueCount; i++) {
@@ -1067,9 +1054,7 @@ InterpretResult VM::run(ObjectFiber* pFiber)
             PROFILE_SCOPE("OP_GET_SUPER");
             ObjectString* pName = READ_STRING();
             ObjectClass* pSuperclass = Fox_AsClass(Pop());
-            if (!BindMethod(pSuperclass, pName)) {
-                return INTERPRET_RUNTIME_ERROR;
-            }
+            BindMethod(pSuperclass, pName);
             break;
         }
 
@@ -1174,20 +1159,13 @@ InterpretResult VM::run(ObjectFiber* pFiber)
             Value oSubscriptValue = Peek(1);
 
             if (!Fox_IsObject(oSubscriptValue))
-            {
-                RuntimeError("Can only subscript on pArrays, strings or maps.");
-                return INTERPRET_RUNTIME_ERROR;
-            }
-
+                RuntimeError("Can only subscript on Arrays, strings or maps.");
             switch (Fox_AsObject(oSubscriptValue)->type)
             {
                 case OBJ_ARRAY:
                 {
                     if (!Fox_IsNumber(oIndexValue) && !Fox_IsNumber(oIndexValue))
-                    {
                         RuntimeError("Array index must be a number.");
-                        return INTERPRET_RUNTIME_ERROR;
-                    }
 
                     ObjectArray* ppArray = Fox_AsArray(oSubscriptValue);
                     int iIndex = Fox_AsNumber(oIndexValue);
@@ -1204,17 +1182,13 @@ InterpretResult VM::run(ObjectFiber* pFiber)
                         break;
                     }
 
-                    RuntimeError("pArray index out of bounds.");
-                    return INTERPRET_RUNTIME_ERROR;
+                    RuntimeError("Array index out of bounds.");
                 }
 
                 case OBJ_STRING:
                 {
                     if (!Fox_IsNumber(oIndexValue) && !Fox_IsNumber(oIndexValue))
-                    {
                         RuntimeError("String index must be a number.");
-                        return INTERPRET_RUNTIME_ERROR;
-                    }
                     
                     ObjectString* pString = Fox_AsString(oSubscriptValue);
                     int iIndex = Fox_AsNumber(oIndexValue);
@@ -1231,7 +1205,6 @@ InterpretResult VM::run(ObjectFiber* pFiber)
                     }
 
                     RuntimeError("String index out of bounds.");
-                    return INTERPRET_RUNTIME_ERROR;
                 }
 
                 case OBJ_MAP: {
@@ -1248,8 +1221,8 @@ InterpretResult VM::run(ObjectFiber* pFiber)
 
                 default:
                 {
-                    RuntimeError("Can only subscript on pArrays, strings or dictionaries.");
-                    return INTERPRET_RUNTIME_ERROR;
+                    RuntimeError("Can only subscript on Arrays, strings or dictionaries.");
+                    break;
                 }
             }
             break;
@@ -1263,20 +1236,14 @@ InterpretResult VM::run(ObjectFiber* pFiber)
             Value oSubscriptValue = Peek(2);
 
             if (!Fox_IsObject(oSubscriptValue))
-            {
                 RuntimeError("Can only subscript on Arrays, strings or maps.");
-                return INTERPRET_RUNTIME_ERROR;
-            }
 
             switch (Fox_AsObject(oSubscriptValue)->type)
             {
                 case OBJ_ARRAY:
                 {
                     if (!Fox_IsNumber(oIndexValue) && !Fox_IsNumber(oIndexValue))
-                    {
-                        RuntimeError("pArray index must be a number.");
-                        return INTERPRET_RUNTIME_ERROR;
-                    }
+                        RuntimeError("Array index must be a number.");
 
                     ObjectArray* pArray = Fox_AsArray(oSubscriptValue);
                     int iIndex = Fox_AsNumber(oIndexValue);
@@ -1295,22 +1262,15 @@ InterpretResult VM::run(ObjectFiber* pFiber)
                     }
 
                     RuntimeError("Array index out of bounds.");
-                    return INTERPRET_RUNTIME_ERROR;
                 }
 
                 case OBJ_STRING:
                 {
                     if (!Fox_IsNumber(oIndexValue) && !Fox_IsNumber(oIndexValue))
-                    {
                         RuntimeError("String index must be a number.");
-                        return INTERPRET_RUNTIME_ERROR;
-                    }
 
                     if (!Fox_IsString(oValue))
-                    {
                         RuntimeError("The value to set must be a string.");
-                        return INTERPRET_RUNTIME_ERROR;
-                    }
 
                     ObjectString* pString = Fox_AsString(oSubscriptValue);
                     int iIndex = Fox_AsNumber(oIndexValue);
@@ -1328,7 +1288,6 @@ InterpretResult VM::run(ObjectFiber* pFiber)
                     }
 
                     RuntimeError("String index out of bounds.");
-                    return INTERPRET_RUNTIME_ERROR;
                 }
 
                 case OBJ_MAP: {
@@ -1381,7 +1340,7 @@ InterpretResult VM::run(ObjectFiber* pFiber)
             {
                 case OBJ_ARRAY:
                 {
-                    ObjectArray* pNewArray = gc.New<ObjectArray>();
+                    ObjectArray* pNewArray = new_object<ObjectArray>();
                     Push(Fox_Object(pNewArray));
                     ObjectArray* pArray = Fox_AsArray(objectValue);
 
@@ -1440,14 +1399,14 @@ InterpretResult VM::run(ObjectFiber* pFiber)
         case OP_ARRAY:
         {
             PROFILE_SCOPE("OP_ARRAY");
-            Push(Fox_Object(gc.New<ObjectArray>()));
+            Push(Fox_Object(new_object<ObjectArray>()));
             break;
         }
 
         case OP_MAP:
         {
             PROFILE_SCOPE("OP_MAP");
-            Push(Fox_Object(gc.New<ObjectMap>()));
+            Push(Fox_Object(new_object<ObjectMap>()));
             break;
         }
 
@@ -1515,9 +1474,7 @@ void VM::Concatenate()
     ObjectString* a = Fox_AsString(Peek(1));
     Pop();
     Pop();
-
-    ObjectString* result = new_string(a->string + b->string);
-    Push(Fox_Object(result));
+    Push(new_string(a->string + b->string));
 }
 
 
@@ -1709,7 +1666,7 @@ bool VM::BindMethod(ObjectClass* klass, ObjectString* name)
         return false;
     }
 
-    ObjectBoundMethod* bound = gc.New<ObjectBoundMethod>(Peek(0), Fox_AsClosure(method));
+    ObjectBoundMethod* bound = new_object<ObjectBoundMethod>(Peek(0), Fox_AsClosure(method));
     Pop();
     Push(Fox_Object(bound));
     return true;
@@ -1782,12 +1739,12 @@ ObjectClosure* VM::CompileInModule(Value name, const std::string& source, bool i
     ObjectModule* module = GetModule(name);
     if (module == nullptr)
     {
-        module = gc.New<ObjectModule>(*this, Fox_AsString(name));
+        module = new_object<ObjectModule>(*this, Fox_AsString(name));
 
         // It's possible for the wrenMapSet below to resize the modules map,
         // and trigger a GC while doing so. When this happens it will collect
         // the module we've just created. Once in the map it is safe.
-        Push(Fox_Object(module));
+        Push(module);
 
         // Store it in the VM's module registry so we don't load the same module
         // multiple times.
@@ -1798,8 +1755,8 @@ ObjectClosure* VM::CompileInModule(Value name, const std::string& source, bool i
         // Implicitly import the core module.
         ObjectModule* coreModule = GetModule(new_string("core"));
         if (coreModule) {
-            for (int i = 0; i < coreModule->m_vVariables.m_iCount; i++)
-                module->m_vVariables.AddAll(coreModule->m_vVariables);
+            // for (int i = 0; i < coreModule->m_vVariables.m_iCount; i++)
+            module->m_vVariables.AddAll(coreModule->m_vVariables);
         }
     }
 
@@ -1814,8 +1771,8 @@ ObjectClosure* VM::CompileInModule(Value name, const std::string& source, bool i
     }
 
     // Functions are always wrapped in closures.
-    Push(Fox_Object(fn));
-    ObjectClosure* closure = gc.New<ObjectClosure>(this, fn);
+    Push(fn);
+    ObjectClosure* closure = new_object<ObjectClosure>(this, fn);
     Pop(); // fn.
 
     return closure;
@@ -1926,7 +1883,7 @@ Handle* VM::MakeHandle(Value value)
     if (Fox_IsObject(value)) Push(value);
     
     // Make a handle for it.
-    Handle* handle = gc.New<Handle>();
+    Handle* handle = new_object<Handle>();
     handle->value = value;
 
     if (Fox_IsObject(value)) Pop();
@@ -1968,12 +1925,12 @@ Handle* VM::MakeCallHandle(const char* signature)
     
     // Create a little stub function that assumes the arguments are on the stack
     // and calls the method.
-    ObjectFunction* fn = gc.New<ObjectFunction>();
+    ObjectFunction* fn = new_object<ObjectFunction>();
     
     // Wrap the function in a closure and then in a handle. Do this here so it
     // doesn't get collected as we fill it in.
     Handle* value = MakeHandle(Fox_Object(fn));
-    value->value = Fox_Object(gc.New<ObjectClosure>(this, fn));
+    value->value = Fox_Object(new_object<ObjectClosure>(this, fn));
 
     fn->chunk.WriteChunk((uint8_t)OP_CALL, 0);
     fn->chunk.WriteChunk((uint8_t)numParams, 0);
@@ -2103,7 +2060,7 @@ void VM::SetSlotInteger(int iSlot, int value)
 void VM::SetSlotNewList(int iSlot)
 {
     PROFILE_FUNCTION();
-    SetSlot(iSlot, Fox_Object(gc.New<ObjectArray>()));
+    SetSlot(iSlot, Fox_Object(new_object<ObjectArray>()));
 }
 
 // void wrenSetSlotNewMap(int slot)
@@ -2186,6 +2143,16 @@ bool VM::IsLogTrace() const
 {
     PROFILE_FUNCTION();
     return m_bLogTrace;
+}
+
+bool VM::IsRepl() const
+{
+    return m_bIsRepl;
+}
+
+void VM::setIsRepl(bool bIsRepl)
+{
+    m_bIsRepl = bIsRepl;
 }
 
 // template <>

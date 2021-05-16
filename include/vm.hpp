@@ -126,6 +126,9 @@ public:
 	bool IsLogGC() const;
 	bool IsLogTrace() const;
 
+	bool IsRepl() const;
+	void setIsRepl(bool bIsRepl);
+
 	template<typename T, typename... Args>
 	T* new_object(Args&&... args)
 	{
@@ -166,6 +169,7 @@ private:
 	bool m_bLogToken;
 	bool m_bLogGC;
 	bool m_bLogTrace;
+	bool m_bIsRepl;
 };
 
 struct ExpandType
